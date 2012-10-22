@@ -1,0 +1,91 @@
+@import "jquery/jquery-ui.css";
+
+/* layout */
+body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-family: Helvetica,sans-serif; }
+a { color: #037; border: none; text-decoration: none }
+a:hover{  text-decoration: underline }
+
+.code { border-collapse:collapse; width:100%; padding:0 }
+.code { font-family: monospace; }
+.code th { /*width:2.5em;*/ padding-right:1ex; background-color:#eeeeee ;
+            text-align:right; color:black; font-weight:normal   }
+.code td { padding-left: 1ex; white-space: pre }
+
+#footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
+#footer img { vertical-align: middle; }
+img { border: none; }
+input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
+p#breadcrumb { padding:0; margin: 0 1ex 2ex 1ex;   }
+hr { margin: 0; }
+p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0 1ex 0 0  }
+a.logo { float:right }
+
+#tooltip {
+    position:absolute;
+    display:none;
+    padding:1em;
+    padding-top:1ex;
+    border: 1px solid gray;
+    background-color: white;
+    font-size: smaller;
+    opacity: 0.9;
+    border-radius: 4px;
+    max-width: 80%;
+    box-shadow:1px 1px 7px gray;
+    z-index:2;
+}
+#tooltip ul { margin:0; padding-left: 1em }
+#tooltip a.showuse {color:inherit; text-decoration:underline}
+/*#tooltip li { border: 1px solid blue; margin:0 }*/
+
+a { text-decoration:none }
+.code th a { color: inherit }
+
+
+/* color style */
+/*.comment, */  .code i { color: #888; font-style: oblique }
+/*.keyword, */  .code b { font-weight: bold; }
+/*.keytype, */  .code em { color: #0057AE; font-style:normal }
+/*.string,  */  .code q { color: #BF0303; font-style: normal }
+.code q::before , .code q::after { content:none; }
+/*.directive,*/ .code u { color: #063; text-decoration:none; }
+/*.num,      */ .code var { color: #B08000; font-style: normal; }
+/*.char,     */ .code kdb { color: #FF80E0 }
+
+/* code a,  code dfn  */
+.ref { color: #208 } 
+.type { color: #061 }
+.typedef { color: #35938D }
+.member { color: #B08000 }
+.call { color: #20f }
+.namespace, .enum { color: #862a38 }
+.decl { color: #205 }
+.macro { background-color:#efe; color: inherit; }
+.macro:hover { background-color:#BEFF9B; }
+
+.ref.col0 {color:#2400FF} .ref.col1 {color:#9C00FF} .ref.col2 {color:#D1008A} .ref.col3 {color:#FF0000} .ref.col4 {color:#FF4F00}
+.ref.col5 {color:#F69D00} .ref.col6 {color:#72D200} .ref.col7 {color:#00F718} .ref.col8 {color:#00BBCD} .ref.col9 {color:#0053FF}
+
+.code dfn { font-weight:bold; font-style:normal }
+.code .virtual { font-style: italic; }
+
+
+.error { border-bottom: 1px dashed red }
+.warning { border-bottom: 1px dotted #c90; }
+.highlight { background-color: #FBFA96 !important; color: black !important;}
+
+#tooltip i { color: #888; white-space: pre-wrap; font-family: monospace }
+
+/* disable the keywords in strings  (macro have that)  */
+.code q em, .code q b, .code q var { color:inherit; font-style:inherit; font-weight:inherit; }
+
+ /* Old Macro expansions.*/
+ .expansion { display: none;  white-space: pre ; }
+ .macro {position: relative;}
+ .macro:hover .expansion { display: block; border: 2px solid #BEFF9B;
+                           padding: 2px; background-color:#BEFF9B; font-weight: normal;
+                           border-radius:5px;  box-shadow:1px 1px 7px #000;
+                           position: absolute;  z-index: 1 }
+
+
+

@@ -1,0 +1,73 @@
+This is the generator for the woboq code browser.
+
+See http://code.woboq.org for an example
+See http://woboq.com/codebrowser.html for licence information
+See also the announcement http://woboq.com/blog/codebrowser-introduction.html
+
+
+Licence information:
+====================
+Licensees holding valid commercial licenses provided by Woboq may use
+this software in accordance with the terms contained in a written agreement
+between the licensee and Woboq.
+For further information see http://woboq.com/codebrowser.html
+
+Alternatively, this work may be used under a Creative Commons
+Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
+http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US
+This license does not allow you to use the code browser to assist the
+development of your comercial software. If you intent to do so, consider
+purchasing a comerial licence.
+
+
+Compiling the generator
+=======================
+
+You need the clang libraries version 3.1 or later (e.g. pre-3.2)
+You may apply the patch in the patches/ directory for better performance.
+(Note: the patch breaks binary compatibility!)
+You need a recent C++ compiler to compile (tested with clang 3.1 and gcc 4.7 on Linux)
+
+Example:
+cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
+make
+# because clang searches for includes files in ../lib relative to the exacutable: 
+ln -s /opt/llvm/lib/ .  
+
+
+If you have errors related to exceptions, edit generator/CMakeLists.txt and replace -fno-rtti by -fexceptions
+
+
+Using the generator
+===================
+
+Step 1: Generate the compile_commands.json for your project
+
+The code browser is built around the clang tooling infrastructure that uses compile_commands.json
+http://clang.llvm.org/docs/JSONCompilationDatabase.html
+If your build system is cmake, just pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON to cmake to generate the script.
+For other build systems (e.g. qmake, make) you can use scripts/fake_compiler.sh as compiler (see comments in that file)
+
+Step 2: Create code HTML using codebrowser_generator
+
+Before generating, make sure the output directory is empty or does not contains stale files from a previous generation.
+Call the codebrowser_generator. You use those arguments:
+ -o with the output directory where the generated files will be put
+ -b the "build directory" containing the compile_commands.json
+ -p (one or more) with project specification. That is the name of the project, the path of the source code, and the revision separated by comas
+ 
+Step 3: Generate the index HTML files using codebrowser_indexer
+
+By running the codebrowser_indexer with the path to the generated html as argument
+
+Step 4: copy the data/ directory one level above the generated html
+
+Example:
+To generate the code for this project itself:
+
+ cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+ git ls-files | egrep "\.cpp$" | xargs ./generator/codebrowser_generator -b $PWD -p codebrowser:$PWD:`git describe` -o ~/public_html/codebrowser
+ ./indexgenerator/codebrowser_indexgenerator ~/public_html/codebrowser
+ ln -s ./data ~/public_html/
+ 
+Step 5: Open it in a browser or upload it to your webserver

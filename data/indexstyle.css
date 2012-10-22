@@ -1,0 +1,41 @@
+@import "jquery/jquery-ui.css";
+
+body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-family: Helvetica,sans-serif; }
+a { color: #037; border: none; text-decoration: none }
+a:hover{  text-decoration: underline }
+#footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
+#footer img { vertical-align: middle; }
+img { border: none; }
+input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
+p {  margin:0 }
+
+h1 { float: right; font-weight: large; padding: 0px; margin:1px;
+    background-image: url(woboq-48.png); background-repeat: no-repeat;
+    height:48px; width: 126px; overflow:hidden
+}
+h1 a { visibility:hidden }
+
+h2 { font-size:medium; font-weight: normal;
+        padding:0; margin: 0 1ex 2ex 1ex;   }
+
+a { text-decoration:none}
+a.opener { color:inherit }
+
+hr { margin: 0; border-collapse:collapse;  }
+
+table#tree { margin: 0; padding: 1ex 1ex; }
+table#tree { width:640px; text-align:left;
+border-left: 1px solid #D8D8D8; border-right: 1px solid #D8D8D8;
+    margin: auto}
+
+
+table#tree table { padding:0; padding-left: 4ex; width:100%; margin:0; border:0; }
+table#tree td { white-space: pre; font-family:monospace; margin:0; padding:0; border: 0 }
+table#tree tr { margin:0; border:0; padding:0 }
+/*table#tree tr:hover  { background-color: #eee }
+table#tree tr:hover table { background-color: white }*/
+
+
+
+
+
