@@ -1,7 +1,7 @@
 This is the generator for the woboq code browser.
 
 See http://code.woboq.org for an example
-See http://woboq.com/codebrowser.html for licence information
+See http://woboq.com/codebrowser.html for license information
 See also the announcement http://woboq.com/blog/codebrowser-introduction.html
 
 Browse the source code of the generator using the code browser itself:
@@ -19,8 +19,8 @@ Alternatively, this work may be used under a Creative Commons
 Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
 http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US
 This license does not allow you to use the code browser to assist the
-development of your comercial software. If you intent to do so, consider
-purchasing a comerial licence.
+development of your commercial software. If you intent to do so, consider
+purchasing a commercial licence.
 
 
 Compiling the generator
@@ -34,7 +34,7 @@ You need a recent C++ compiler to compile (tested with clang 3.1 and gcc 4.7 on 
 Example:
 cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
 make
-# because clang searches for includes files in ../lib relative to the exacutable: 
+# because clang searches for includes files in ../lib relative to the executable: 
 ln -s /opt/llvm/lib/ .  
 
 

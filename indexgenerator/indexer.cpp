@@ -15,7 +15,7 @@
  * Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
  * http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US
  * This license does not allow you to use the code browser to assist the
- * development of your comercial software. If you intent to do so, consider
+ * development of your commercial software. If you intent to do so, consider
  * purchasing a comerial licence.
  ****************************************************************************/
 

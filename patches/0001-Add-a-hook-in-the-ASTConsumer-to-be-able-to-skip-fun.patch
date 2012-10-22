@@ -2,7 +2,7 @@ From 5b14259250ba281afcf29a752032fe0c8e1b36aa Mon Sep 17 00:00:00 2001
 From: Olivier Goffart <ogoffart@woboq.com>
 Date: Sat, 1 Sep 2012 18:17:14 +0200
 Subject: [PATCH] Add a hook in the ASTConsumer to be able to skip function
- boddy
+ body
 
 ---
  include/clang/AST/ASTConsumer.h |  5 +++++
