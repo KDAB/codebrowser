@@ -16,7 +16,7 @@
  * http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US
  * This license does not allow you to use the code browser to assist the
  * development of your commercial software. If you intent to do so, consider
- * purchasing a comerial licence.
+ * purchasing a commercial licence.
  ****************************************************************************/
 
 #pragma once
