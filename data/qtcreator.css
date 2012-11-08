@@ -46,10 +46,10 @@ a.logo { float:right }
 
 .code b, .code em { color: #808000; font-style:normal; font-weight: normal}
 .code i, .code q, .code kbd { color: #008000 ; font-style:normal; font-weight: normal}
-.code var, .code u { color: #000080;  text-decoration: none }
+.code var, .code u { color: #000080;  text-decoration: none; font-style:normal }
 
-.type, .typedef, .namespace, .enum  { color: #800080}
-.member { color: #860d0d }
+.code .type, .code .typedef, .code .namespace, .code .enum  { color: #800080}
+.code .member { color: #860d0d }
 .code .virtual { font-style: italic }
 
 .error { border-bottom: 1px dashed red }
