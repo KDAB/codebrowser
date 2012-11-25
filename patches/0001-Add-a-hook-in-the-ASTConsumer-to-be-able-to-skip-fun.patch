@@ -1,4 +1,4 @@
-From 5b14259250ba281afcf29a752032fe0c8e1b36aa Mon Sep 17 00:00:00 2001
+From 49818ff15fd87c303f6b8e959db19d7b7641da88 Mon Sep 17 00:00:00 2001
 From: Olivier Goffart <ogoffart@woboq.com>
 Date: Sat, 1 Sep 2012 18:17:14 +0200
 Subject: [PATCH] Add a hook in the ASTConsumer to be able to skip function
@@ -7,14 +7,14 @@ Subject: [PATCH] Add a hook in the ASTConsumer to be able to skip function
 ---
  include/clang/AST/ASTConsumer.h |  5 +++++
  include/clang/Parse/Parser.h    |  3 ++-
- lib/Parse/ParseStmt.cpp         | 12 ++++++++----
- 3 files changed, 15 insertions(+), 5 deletions(-)
+ lib/Parse/ParseStmt.cpp         | 10 +++++++---
+ 3 files changed, 14 insertions(+), 4 deletions(-)
 
 diff --git a/include/clang/AST/ASTConsumer.h b/include/clang/AST/ASTConsumer.h
-index 8418b5a..208fc52 100644
+index 37b0740..c366024 100644
 --- a/include/clang/AST/ASTConsumer.h
 +++ b/include/clang/AST/ASTConsumer.h
-@@ -26,6 +26,7 @@ namespace clang {
+@@ -27,6 +27,7 @@ namespace clang {
    class VarDecl;
    class FunctionDecl;
    class ImportDecl;
@@ -22,22 +22,22 @@ index 8418b5a..208fc52 100644
  
  /// ASTConsumer - This is an abstract interface that should be implemented by
  /// clients that read ASTs.  This abstraction layer allows the client to be
-@@ -125,6 +126,10 @@ public:
+@@ -130,6 +131,10 @@ public:
+ 
    /// PrintStats - If desired, print any statistics.
    virtual void PrintStats() {}
- 
-+  /// This callback is called if the PArser was initialized with
-+  /// SkipFunctionBodies.  Return true if the function should be skipped
-+  virtual bool shouldSkipFunctionBody(Decl *D) { return true; }
 +
-   // Support isa/cast/dyn_cast
-   static bool classof(const ASTConsumer *) { return true; }
++  /// This callback is called for each function if the Parser was initialized
++  /// with SkipFunctionBodies.  Returns true if the function should be skipped
++  virtual bool shouldSkipFunctionBody(Decl *D) { return true; }
  };
+ 
+ } // end namespace clang.
 diff --git a/include/clang/Parse/Parser.h b/include/clang/Parse/Parser.h
-index 20b13ba..86e5375 100644
+index c433344..e5184b8 100644
 --- a/include/clang/Parse/Parser.h
 +++ b/include/clang/Parse/Parser.h
-@@ -1621,9 +1621,10 @@ private:
+@@ -1631,9 +1631,10 @@ private:
  
    /// \brief When in code-completion, skip parsing of the function/method body
    /// unless the body contains the code-completion point.
@@ -50,7 +50,7 @@ index 20b13ba..86e5375 100644
    bool ParseImplicitInt(DeclSpec &DS, CXXScopeSpec *SS,
                          const ParsedTemplateInfo &TemplateInfo,
 diff --git a/lib/Parse/ParseStmt.cpp b/lib/Parse/ParseStmt.cpp
-index 776423c..6845c5d 100644
+index f604e03..2c24894 100644
 --- a/lib/Parse/ParseStmt.cpp
 +++ b/lib/Parse/ParseStmt.cpp
 @@ -21,6 +21,7 @@
@@ -61,7 +61,7 @@ index 776423c..6845c5d 100644
  #include "llvm/ADT/SmallString.h"
  using namespace clang;
  
-@@ -1933,7 +1934,7 @@ Decl *Parser::ParseFunctionStatementBody(Decl *Decl, ParseScope &BodyScope) {
+@@ -2003,7 +2004,7 @@ Decl *Parser::ParseFunctionStatementBody(Decl *Decl, ParseScope &BodyScope) {
    assert(Tok.is(tok::l_brace));
    SourceLocation LBraceLoc = Tok.getLocation();
  
@@ -70,7 +70,7 @@ index 776423c..6845c5d 100644
      BodyScope.Exit();
      return Actions.ActOnFinishFunctionBody(Decl, 0);
    }
-@@ -1975,7 +1976,7 @@ Decl *Parser::ParseFunctionTryBlock(Decl *Decl, ParseScope &BodyScope) {
+@@ -2045,7 +2046,7 @@ Decl *Parser::ParseFunctionTryBlock(Decl *Decl, ParseScope &BodyScope) {
    else
      Actions.ActOnDefaultCtorInitializers(Decl);
  
@@ -79,7 +79,7 @@ index 776423c..6845c5d 100644
      BodyScope.Exit();
      return Actions.ActOnFinishFunctionBody(Decl, 0);
    }
-@@ -1994,12 +1995,15 @@ Decl *Parser::ParseFunctionTryBlock(Decl *Decl, ParseScope &BodyScope) {
+@@ -2064,11 +2065,14 @@ Decl *Parser::ParseFunctionTryBlock(Decl *Decl, ParseScope &BodyScope) {
    return Actions.ActOnFinishFunctionBody(Decl, FnBody.take());
  }
  
@@ -89,14 +89,12 @@ index 776423c..6845c5d 100644
    assert(SkipFunctionBodies &&
           "Should only be called when SkipFunctionBodies is enabled");
  
--  // We're in code-completion mode. Skip parsing for all function bodies unless
 +  if (!Actions.getASTConsumer().shouldSkipFunctionBody(Decl))
 +      return false;
 +
-+  // Skip parsing for all function bodies unless
-   // the body contains the code-completion point.
-   TentativeParsingAction PA(*this);
-   ConsumeBrace();
+   if (!PP.isCodeCompletionEnabled()) {
+     ConsumeBrace();
+     SkipUntil(tok::r_brace, /*StopAtSemi=*/false, /*DontConsume=*/false);
 -- 
 1.7.12.1
 
