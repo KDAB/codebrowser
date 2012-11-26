@@ -1,0 +1,51 @@
+From 6f9baa7cb54c9a8e8e6150dda9dd85f4da1d8ec4 Mon Sep 17 00:00:00 2001
+From: Olivier Goffart <ogoffart@woboq.com>
+Date: Sat, 1 Sep 2012 18:17:14 +0200
+Subject: [PATCH] Add a hook in the ASTConsumer to be able to skip function
+ body
+
+---
+ include/clang/AST/ASTConsumer.h | 5 +++++
+ lib/Sema/SemaDecl.cpp           | 3 +++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/include/clang/AST/ASTConsumer.h b/include/clang/AST/ASTConsumer.h
+index 37b0740..c366024 100644
+--- a/include/clang/AST/ASTConsumer.h
++++ b/include/clang/AST/ASTConsumer.h
+@@ -27,6 +27,7 @@ namespace clang {
+   class VarDecl;
+   class FunctionDecl;
+   class ImportDecl;
++  class Decl;
+ 
+ /// ASTConsumer - This is an abstract interface that should be implemented by
+ /// clients that read ASTs.  This abstraction layer allows the client to be
+@@ -130,6 +131,10 @@ public:
+ 
+   /// PrintStats - If desired, print any statistics.
+   virtual void PrintStats() {}
++
++  /// This callback is called for each function if the Parser was initialized
++  /// with SkipFunctionBodies.  Returns true if the function should be skipped
++  virtual bool shouldSkipFunctionBody(Decl *D) { return true; }
+ };
+ 
+ } // end namespace clang.
+diff --git a/lib/Sema/SemaDecl.cpp b/lib/Sema/SemaDecl.cpp
+index 629fccc..554eb24 100644
+--- a/lib/Sema/SemaDecl.cpp
++++ b/lib/Sema/SemaDecl.cpp
+@@ -7985,6 +7985,9 @@ void Sema::computeNRVO(Stmt *Body, FunctionScopeInfo *Scope) {
+ }
+ 
+ bool Sema::canSkipFunctionBody(Decl *D) {
++  if (!Consumer.shouldSkipFunctionBody(D))
++    return false;
++
+   if (isa<ObjCMethodDecl>(D))
+     return true;
+ 
+-- 
+1.7.12.1
+

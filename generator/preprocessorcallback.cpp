@@ -24,6 +24,7 @@
 #include <clang/Lex/Token.h>
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/Preprocessor.h>
+#include <clang/Basic/Version.h>
 #include <boost/lexical_cast.hpp>
 #include "stringbuilder.h"
 
@@ -86,7 +87,10 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     // Temporarily change the diagnostics object so that we ignore any generated
     // diagnostics from this pass.
     clang::DiagnosticsEngine TmpDiags(PP.getDiagnostics().getDiagnosticIDs(),
-                               new clang::IgnoringDiagConsumer);
+#if CLANG_VERSION_MAJOR!=3 || CLANG_VERSION_MINOR>2
+                                      &PP.getDiagnostics().getDiagnosticOptions(),
+#endif
+                                      new clang::IgnoringDiagConsumer);
 
     disabled = true;
     clang::DiagnosticsEngine *OldDiags = &PP.getDiagnostics();
