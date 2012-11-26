@@ -740,3 +740,15 @@ _gaq.push(['_trackPageview']);
     ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 })();
+
+// adds
+if (document.referrer.indexOf("google") !== -1) {
+    document.write("<div style='display:none; visibility: hidden'>"+
+        "<div id='googlead' style='position: absolute; right: 0; margin:1em; z-index:-1'>"+
+        "<script type='text/javascript'>google_ad_client = 'ca-pub-5892035981328708'; google_ad_slot = '6278880490'; google_ad_width = 200; google_ad_height = 200; </script>" +
+        "<script type=\"text/javascript\" src=\"http://pagead2.googlesyndication.com/pagead/show_ads.js\"> /* */ </script>" +
+        "</div></div>");
+    $(function() {
+        $("#header+hr").after($("#googlead"));
+    });
+}
