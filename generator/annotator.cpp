@@ -142,9 +142,13 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
 
             std::string fn = it->first + "/" + (filename.data() + source_path.size());
 
-            boost::filesystem::path p{outputPrefix + "/" + fn + ".html"};
-            bool should_process = !boost::filesystem::exists(p);
+            bool should_process = false;
+            if (it->second.type != ProjectInfo::External) {
+                boost::filesystem::path p { outputPrefix %  "/" % fn % ".html" };
+                should_process = !boost::filesystem::exists(p);
                 // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
+            }
+            project_cache[id] = it->first;
             cache[id] = { should_process , fn};
             return fn;
         }
@@ -292,6 +296,12 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To)
     std::string fromFN = htmlNameForFile(From);
     std::string toFN = htmlNameForFile(To);
 
+    auto pr_it = projects.find(project_cache[To]);
+    if (pr_it == projects.end())
+        return result = {};
+    if (pr_it->second.type == ProjectInfo::External)
+        return result = pr_it->second.external_root_url % "/" % toFN % ".html";
+
     return result = naive_uncomplete(boost::filesystem::path(fromFN).parent_path(), toFN).string() + ".html";
 }
 
@@ -406,19 +416,30 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     if (clas[0] == ' ') clas = clas.substr(1);
 
     if (ref.empty()) {
-        generator(FID).addTag("span", "class=\'" % clas % "\'", pos, len);
+        generator(FID).addTag("span", "class=\"" % clas % "\"", pos, len);
         return;
     }
 
     auto escapedRef = Generator::escapeAttr(ref);
-    tags %= " data-ref=\'" % escapedRef % "' ";
+    tags %= " data-ref=\"" % escapedRef % "\" ";
 
     if (declType == Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;
         clang::SourceLocation loc = canonDecl->getLocation();
         clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
-        if (declFID != FID)
-            link = pathTo(FID, declFID);
+        if (declFID != FID) {
+            auto pr_it = projects.find(project_cache[declFID]);
+            if (pr_it != projects.end()) {
+                if (pr_it->second.type == ProjectInfo::External)
+                    tags %= "data-proj=\"" % pr_it->second.name % "\" ";
+                link = pathTo(FID, declFID);
+            }
+
+            if (link.empty()) {
+                generator(FID).addTag("span", "class=\'" % clas % "\'" % tags, pos, len);
+                return;
+            }
+        }
         link %= "#" % (loc.isFileID() ? escapedRef : boost::lexical_cast<std::string>(sm.getExpansionLineNumber(loc)));
         std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
         generator(FID).addTag("a", tag, pos, len);

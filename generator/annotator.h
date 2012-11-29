@@ -45,16 +45,23 @@ class Decl;
 struct ProjectInfo {
     std::string name;
     std::string source_path;
-    std::string description;
-    std::string version_info;
-    std::string repo_url; //may contains tags;
+//    std::string description;
+//    std::string version_info;
+//    std::string repo_url; //may contains tags;
     std::string revision;
+
+    std::string external_root_url;
+
     //TODO
     std::string fileRepoUrl(const std::string &file) const { return {}; }
-    bool internal = false;
+    enum Type { Normal,
+                Internal, //includes and stuffs
+                External, //links to external projects somewhere else, do not generate refs or anything,
+                          // and link to a different ref source
+    } type;
 
-    ProjectInfo(std::string name, std::string source_path, bool internal = false)
-        :   name(std::move(name)), source_path(std::move(source_path)), internal(internal)  {}
+    ProjectInfo(std::string name, std::string source_path, Type t = Normal)
+        :   name(std::move(name)), source_path(std::move(source_path)), type(t)  {}
     ProjectInfo(std::string name, std::string source_path, std::string rev)
         :   name(std::move(name)), source_path(std::move(source_path)), revision(std::move(rev))  {}
 };
@@ -77,12 +84,13 @@ public:
     enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum };
 private:
     std::map<std::string, ProjectInfo> projects =
-        {{"include", {"include", "/usr/include/", true}}};
+        {{"include", {"include", "/usr/include/", ProjectInfo::Internal }}};
 
     std::string outputPrefix;
     std::string dataPath;
 
     std::map<clang::FileID, std::pair<bool, std::string> > cache;
+    std::map<clang::FileID, std::string > project_cache;
     std::map<clang::FileID, Generator> generators;
 
     std::string htmlNameForFile(clang::FileID id);
@@ -115,13 +123,14 @@ public:
         if (dataPath.empty()) dataPath = "../data";
     }
     ~Annotator();
-    void addProject(std::string name, std::string path, std::string rev)
+    void addProject(ProjectInfo info)
     {
+        std::string &path = info.source_path;
         if (!path.size())
             return;
         if (path[path.size()-1] != '/')
             path+='/';
-        ProjectInfo info(name, std::move(path), std::move(rev));
+        std::string name = info.name;
         projects.insert({ std::move(name), std::move(info)});
     }
 

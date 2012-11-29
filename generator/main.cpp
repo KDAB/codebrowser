@@ -60,7 +60,13 @@ cl::opt<std::string> OutputPath(
 
 cl::list<std::string> ProjectPaths(
     "p",
-    cl::desc("<project>:<path>"),
+    cl::desc("<project>:<path>[:<revision>]"),
+    cl::ZeroOrMore);
+
+
+cl::list<std::string> ExternalProjectPaths(
+    "e",
+    cl::desc("<project>:<path>:<url>"),
     cl::ZeroOrMore);
 
 cl::opt<std::string> DataPath(
@@ -130,8 +136,25 @@ public:
                 continue;
             }
             auto secondColonPos = s.find(':', colonPos+1);
-            annotator.addProject(s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
-                                 secondColonPos < s.size() ? s.substr(secondColonPos + 1) : std::string());
+            ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
+                                secondColonPos < s.size() ? s.substr(secondColonPos + 1) : std::string() };
+            annotator.addProject(std::move(info));
+        }
+        for(std::string &s : ExternalProjectPaths) {
+            auto colonPos = s.find(':');
+            if (colonPos >= s.size()) {
+                std::cerr << "fail to parse project option : " << s << std::endl;
+                continue;
+            }
+            auto secondColonPos = s.find(':', colonPos+1);
+            if (secondColonPos >= s.size()) {
+                std::cerr << "fail to parse project option : " << s << std::endl;
+                continue;
+            }
+            ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
+                               ProjectInfo::External };
+            info.external_root_url = s.substr(secondColonPos + 1);
+            annotator.addProject(std::move(info));
         }
 
         //ci.getLangOpts().DelayedTemplateParsing = (true);
