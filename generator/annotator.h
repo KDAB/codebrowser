@@ -131,7 +131,12 @@ public:
         if (path[path.size()-1] != '/')
             path+='/';
         std::string name = info.name;
-        projects.insert({ std::move(name), std::move(info)});
+        auto it = projects.find(name);
+        if (it != projects.end()) {
+            it->second = std::move(info);
+        } else {
+            projects.insert({ std::move(name), std::move(info)});
+        }
     }
 
     void setSourceMgr(clang::SourceManager &sm, const clang::LangOptions &lo)

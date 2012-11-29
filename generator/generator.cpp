@@ -103,8 +103,19 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
     myfile << "<link rel=\"alternate stylesheet\" href=\"" << data_path << "/qtcreator.css\" title=\"QtCreator\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";
-    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"' </script>\n";
-    myfile << "<script src='" << data_path << "/codebrowser.js'></script>\n";
+    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"';";
+    if (!projects.empty()) {
+        myfile << "var projects = {";
+        bool first = true;
+        for (auto it: projects) {
+            if (!first) myfile << ", ";
+            first = false;
+            myfile << "\"" << it.first << "\" : \"" << it.second <<  "\"";
+        }
+        myfile << "};";
+    }
+    myfile << "</script>\n"
+              "<script src='" << data_path << "/codebrowser.js'></script>\n";
 
     myfile << "</head>\n<body><div id='header'> </div><hr/>";
 

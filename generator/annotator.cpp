@@ -430,8 +430,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         if (declFID != FID) {
             auto pr_it = projects.find(project_cache[declFID]);
             if (pr_it != projects.end()) {
-                if (pr_it->second.type == ProjectInfo::External)
+                if (pr_it->second.type == ProjectInfo::External) {
                     tags %= "data-proj=\"" % pr_it->second.name % "\" ";
+                    generator(FID).addProject(pr_it->second.name, pr_it->second.external_root_url);
+                }
                 link = pathTo(FID, declFID);
             }
 

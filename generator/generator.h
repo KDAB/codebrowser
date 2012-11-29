@@ -23,6 +23,7 @@
 
 #include <string>
 #include <set>
+#include <map>
 
 
 /* This class generate the HTML out of a file with the said tags.
@@ -44,10 +45,15 @@ class Generator {
 
     std::set<Tag> tags;
 
+    std::map<std::string, std::string> projects;
+
 public:
 
     void addTag(std::string name, std::string attributes, int pos, int len) {
         tags.insert({std::move(name), std::move(attributes), pos, len});
+    }
+    void addProject(std::string a, std::string b) {
+        projects.insert({std::move(a), std::move(b) });
     }
 
     void generate(const std::string &outputPrefix, std::string dataPath, const std::string &filename,

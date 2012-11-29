@@ -314,7 +314,12 @@ $(function () {
             if (skipHighlightTimerId) return false;
             var elem = $(this);
             var ref = elem.attr("data-ref");
-            var url = root_path + "/refs/" + ref;
+            var proj = elem.attr("data-proj");
+
+            var proj_root_path = root_path;
+            if (proj) { proj_root_path = projects[proj]; }
+
+            var url = proj_root_path + "/refs/" + ref;
 
             if (!$(this).hasClass("highlight")) {
                 highlight_items(ref);
@@ -366,7 +371,7 @@ $(function () {
                                 }
                                 dict[f].push(l);
                             } else {
-                                var url = root_path + "/" + f + ".html#" + l;
+                                var url = proj_root_path + "/" + f + ".html#" + l;
                                 content += "<br/><a href='" + url +"' >" + f + ":" + l + "</a>";
                                 if (tag === "ovr") {
                                     var c = th.attr("c");
@@ -382,7 +387,7 @@ $(function () {
                             }
                             for(var f in dict) {
                                 if (!dict.hasOwnProperty(f) || f==="number") continue;
-                                var url_begin = root_path + "/" + f + ".html";
+                                var url_begin = proj_root_path + "/" + f + ".html";
                                 content += "<br/><a href='" + url_begin + "#" + dict[f][0] +"' >" + f +  "</a>";
                                 var len = dict[f].length;
                                 if (len > 100 || (f !== file && len >= 5))
@@ -409,7 +414,7 @@ $(function () {
                             var f = t.attr("f");
                             var l = t.attr("l");
                             var c = t.attr("c");
-                            var url = root_path + "/" + f + ".html#" + l;
+                            var url = proj_root_path + "/" + f + ".html#" + l;
                             if (!dict[f]) {
                                 dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
                                             contexts: {},  prefixL: prefixLen(file, f), count: 0};
@@ -495,7 +500,7 @@ $(function () {
                         });
 
                         if (result.len >= 0) {
-                            var url = root_path + "/" + result.f + ".html#" +
+                            var url = proj_root_path + "/" + result.f + ".html#" +
                                 (result.isMarcro ? result.l : ref );
                             if (elem.attr("href")) {
                                 elem.attr("href", url);
