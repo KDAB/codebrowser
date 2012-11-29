@@ -80,6 +80,7 @@ private:
         {{"include", {"include", "/usr/include/", true}}};
 
     std::string outputPrefix;
+    std::string dataPath;
 
     std::map<clang::FileID, std::pair<bool, std::string> > cache;
     std::map<clang::FileID, Generator> generators;
@@ -110,7 +111,9 @@ private:
 
     void syntaxHighlight(Generator& generator, clang::FileID FID, const clang::Preprocessor& PP);
 public:
-    Annotator(std::string outputPrefix) : outputPrefix(std::move(outputPrefix)) {}
+    Annotator(std::string outputPrefix, std::string _dataPath) : outputPrefix(std::move(outputPrefix)) , dataPath(std::move(_dataPath)) {
+        if (dataPath.empty()) dataPath = "../data";
+    }
     ~Annotator();
     void addProject(std::string name, std::string path, std::string rev)
     {

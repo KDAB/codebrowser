@@ -209,7 +209,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
 
         // Emit the HTML.
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(outputPrefix, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer);
+        g.generate(outputPrefix, dataPath, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer);
 
         fileIndex << fn << '\n';
     }

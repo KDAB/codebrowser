@@ -73,9 +73,8 @@ void Generator::Tag::close(std::ostream &myfile) const
     myfile << "</" << name << ">";
 }
 
-
-
-void Generator::generate(const std::string &outputPrefix, const std::string &filename, const char *begin, const char *end,
+void Generator::generate(const std::string &outputPrefix, std::string data_path, const std::string &filename,
+                         const char *begin, const char *end,
                          const std::string &footer)
 {
     std::string real_filename = outputPrefix % "/" % filename % ".html";
@@ -94,7 +93,8 @@ void Generator::generate(const std::string &outputPrefix, const std::string &fil
     for (int i = 0; i < count - 2; i++)
         root_path += "/..";
 
-    std::string data_path = root_path + "/../data";
+    if (boost::algorithm::starts_with(data_path, "."))
+        data_path = root_path % "/" % data_path;
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
     "<html>\n<head>\n";

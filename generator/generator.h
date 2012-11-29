@@ -50,7 +50,8 @@ public:
         tags.insert({std::move(name), std::move(attributes), pos, len});
     }
 
-    void generate(const std::string &outputPrefix, const std::string &filename, const char *begin, const char *end,
+    void generate(const std::string &outputPrefix, std::string dataPath, const std::string &filename,
+                  const char *begin, const char *end,
                   const std::string &footer);
 
     static std::string escapeAttr(const std::string&);

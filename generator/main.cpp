@@ -63,6 +63,11 @@ cl::list<std::string> ProjectPaths(
     cl::desc("<project>:<path>"),
     cl::ZeroOrMore);
 
+cl::opt<std::string> DataPath(
+    "d",
+    cl::desc("<data path>"),
+    cl::Optional);
+
 
 #if 1
 std::string locationToString(clang::SourceLocation loc, clang::SourceManager& sm) {
@@ -115,7 +120,7 @@ class MyASTConsumer : public clang::ASTConsumer
     Annotator annotator;
 public:
     MyASTConsumer(clang::CompilerInstance &ci) : clang::ASTConsumer(), ci(ci),
-            annotator (OutputPath)
+            annotator (OutputPath, DataPath)
 
     {
         for(std::string &s : ProjectPaths) {

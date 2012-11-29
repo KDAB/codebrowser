@@ -700,7 +700,7 @@ $(function () {
             return false;
     });
 
-    $("#header").prepend("<a class='logo' href='http://code.woboq.org'><img src='" + root_path + "/../data/woboq-48.png'/></a>");
+    $("#header").prepend("<a class='logo' href='http://code.woboq.org'><img src='http://code.woboq.org/data/woboq-48.png'/></a>");
 
 /*-------------------------------------------------------------------------------------*/
 
