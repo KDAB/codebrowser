@@ -287,7 +287,7 @@ $(function () {
     var highlight_items = function(ref) {
         if (highlighted_items)
             highlighted_items.removeClass("highlight");
-        highlighted_items = $("dfn[data-ref='"+escape_selector(ref)+"'],a[data-ref='"+escape_selector(ref)+"']");
+        highlighted_items = $("[data-ref='"+escape_selector(ref)+"']");
         highlighted_items.addClass("highlight")
     }
 
