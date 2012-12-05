@@ -99,6 +99,14 @@ std::string MyClassDerived::m() const
     return MyClass::m();
 }
 
+#define BUILD_NS(A, B) A::B
+#define BUILD_NS2(A, B) ::A::B
+BUILD_NS(NS::Foo::Bar ,  Type) tst_mac1;
+BUILD_NS2(NS::Foo::Bar ,  Type) tst_mac2;
+BUILD_NS(NS::Foo, Bar::Type) tst_mac3;
+NS::BUILD_NS(Foo, Bar)::Type tst_mac4;
+NS BUILD_NS2(Foo, Bar)::Type tst_mac5;
+
 void test_macros() {
     typedef int TTFoo;
     TTFoo a;
@@ -107,4 +115,17 @@ void test_macros() {
 #undef TTFoo
     TTFoo c;
 };
+
+//DECLARE_SOMETHING Macro
+#define DECLARE_SOMETHING(WHAT) WHAT mySomething \
+        { int foo(int a); }
+
+/* This is  mySomething struct */
+DECLARE_SOMETHING(struct);
+
+int mySomething::foo(int a) {
+    return a;
+}
+
+
 

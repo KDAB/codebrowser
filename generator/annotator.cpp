@@ -316,11 +316,12 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     clang::SourceManager &sm = getSourceMgr();
 
     if (!range.getBegin().isFileID()) { //macro expension.
-
         clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());
         clang::FileID FID = sm.getFileID(expensionloc);
-        if (!shouldProcess(FID))
+        if (!shouldProcess(FID) || sm.getMacroArgExpandedLocation(range.getBegin()) !=
+                                   sm.getMacroArgExpandedLocation(range.getEnd())) {
             return;
+        }
 
         clang::SourceLocation spel1 = sm.getSpellingLoc(range.getBegin());
         clang::SourceLocation spel2 = sm.getSpellingLoc(range.getEnd());

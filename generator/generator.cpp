@@ -159,7 +159,7 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
             }
             if (c >= end)
                 break;
-            assert(c!=end);
+            assert(c < end);
             while (c == next_start && tags_it != tags.cend()) {
                 assert(c == begin + tags_it->pos);
                 tags_it->open(myfile);
