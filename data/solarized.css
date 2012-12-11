@@ -1,0 +1,122 @@
+@import "jquery/jquery-ui.css";
+
+/* layout */
+body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-family: Helvetica,sans-serif; }
+a { color: #037; border: none; text-decoration: none }
+a:hover{  text-decoration: underline }
+
+.code { border-collapse:collapse; width:100%; padding:0 }
+.code { font-family: DejaVu sans Mono , monospace; }
+.code th { /*width:2.5em;*/ padding-right:1ex; background-color:#eeeeee ;
+            text-align:right; color:black; font-weight:normal   }
+.code td { padding-left: 1ex; white-space: pre }
+
+#footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
+#footer img { vertical-align: middle; }
+img { border: none; }
+input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
+p#breadcrumb { padding:0; margin: 0 1ex 2ex 1ex;   }
+hr { margin: 0; }
+p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0 1ex 0 0  }
+a.logo { float:right }
+
+#tooltip {
+    position:absolute;
+    display:none;
+    padding:1em;
+    padding-top:1ex;
+    border: 1px solid gray;
+    background-color: white;
+    font-size: smaller;
+    opacity: 0.9;
+    border-radius: 4px;
+    max-width: 80%;
+    box-shadow:1px 1px 7px gray;
+    z-index:2;
+}
+#tooltip ul { margin:0; padding-left: 1em }
+#tooltip a.showuse {color:inherit; text-decoration:underline}
+/*#tooltip li { border: 1px solid blue; margin:0 }*/
+
+.code a:hover{  text-decoration: none }
+
+.code th a { color: inherit }
+
+
+
+body, table.code { background-color: #002b36; color: #839496;}
+.code th { background-color: #073642; color: #93a1a1; }
+a { color: #93a1a1; }
+#tooltip { background-color: #073642; color: #93a1a1 }
+#tooltip a { color: #6c71c4;}
+hr { border: 1px  solid #073642 }
+input { background-color: #002b36 }
+#footer { color: #839496; }
+#header img { display:none }
+
+/*
+$base03:    #002b36;
+$base02:    #073642;
+$base01:    #586e75;
+$base00:    #657b83;
+$base0:     #839496;
+$base1:     #93a1a1;
+$base2:     #eee8d5;
+$base3:     #fdf6e3;
+$yellow:    #b58900;
+$orange:    #cb4b16;
+$red:       #dc322f;
+$magenta:   #d33682;
+$violet:    #6c71c4;
+$blue:      #268bd2;
+$cyan:      #2aa198;
+$green:     #859900;
+*/
+
+/* color style */
+/*.comment, */  .code i { color: #268bd2; font-style: oblique }
+/*.keyword, */  .code b { color: #859900;  font-weight: bold; }
+/*.keytype, */  .code em { color: #b58900;  font-weight:bold; font-style:normal }
+/*.string,  */  .code q { color: #2aa198; font-style: normal }
+.code q::before , .code q::after { content:none; }
+/*.directive,*/ .code u { color: #dc322f; text-decoration:none; }
+/*.num,      */ .code var { color: #2aa198; font-style: normal; }
+/*.char,     */ .code kdb { color: #dc322f }
+
+/* code a,  code dfn  */
+.code .ref, .code .decl { color:#93a1a1}
+.namespace, .enum, .typedef  { color: #6c71c4;}
+.code .type { color: #b58900;}
+.code .local { color: #d33682; }
+/*.typedef { color: #35938D }*/
+.code .member { color: #cb4b16; }
+/*.call { color: #20f }*/
+.macro {  color: #d33682; }
+/*.macro:hover { background-color:#BEFF9B; }*/
+/*
+.ref.col0 {color:#2400FF} .ref.col1 {color:#9C00FF} .ref.col2 {color:#D1008A} .ref.col3 {color:#FF0000} .ref.col4 {color:#FF4F00}
+.ref.col5 {color:#F69D00} .ref.col6 {color:#72D200} .ref.col7 {color:#00F718} .ref.col8 {color:#00BBCD} .ref.col9 {color:#0053FF}
+*/
+.code dfn { font-weight:bold; font-style:normal }
+.code .virtual { font-style: italic; }
+
+
+.error { border-bottom: 1px dashed red }
+.warning { border-bottom: 1px dotted #c90; }
+.highlight { background-color: #073642 !important; }
+
+#tooltip i { color: #268bd2; white-space: pre-wrap; font-family: monospace }
+
+/* disable the keywords in strings  (macro have that)  */
+.code q em, .code q b, .code q var { color:inherit; font-style:inherit; font-weight:inherit; }
+
+ /* Old Macro expansions.*/
+ .expansion { display: none;  white-space: pre ; }
+ .macro {position: relative;}
+ .macro:hover .expansion { display: block; border: 2px solid #BEFF9B;
+                           padding: 2px; background-color:#BEFF9B; font-weight: normal;
+                           border-radius:5px;  box-shadow:1px 1px 7px #000;
+                           position: absolute;  z-index: 1 }
+
+
+
