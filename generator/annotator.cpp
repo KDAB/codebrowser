@@ -29,6 +29,7 @@
 #include <clang/AST/Mangle.h>
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/DeclTemplate.h>
+#include <clang/AST/PrettyPrinter.h>
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
 
@@ -352,7 +353,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     std::string tags;
     std::string clas = computeClas(decl);
     std::string ref;
-    clang::Decl* canonDecl = decl->getCanonicalDecl();
+    const clang::Decl* canonDecl = decl->getCanonicalDecl();
     if (!canonDecl->isDefinedOutsideFunctionOrMethod()) {
         if (!decl->getDeclName().isIdentifier())
             return; //skip local operators (FIXME)
@@ -409,9 +410,13 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     // Include the whole end token in the range.
     len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
 
-    if (clang::RecordDecl* rec = llvm::dyn_cast<clang::RecordDecl>(canonDecl)) {
+    if (const clang::RecordDecl* rec = llvm::dyn_cast<clang::RecordDecl>(canonDecl)) {
         rec = rec->getDefinition();
         if (rec) canonDecl = rec;
+    } else if (const clang::FunctionDecl* fnc = llvm::dyn_cast<clang::FunctionDecl>(canonDecl)) {
+        if (fnc->hasBody(fnc) && fnc) {
+            canonDecl = fnc;
+        }
     }
 
     if (clas[0] == ' ') clas = clas.substr(1);
@@ -438,8 +443,13 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 link = pathTo(FID, declFID);
             }
 
+            if (declType != Annotator::Use) {
+                tags %= "id=\"" % escapedRef % "\" ";
+            }
+
             if (link.empty()) {
-                generator(FID).addTag("span", "class=\'" % clas % "\'" % tags, pos, len);
+                generator(FID).addTag(declType == Annotator::Use ? "span" : "dfn",
+                                      "class=\'" % clas % "\'" % tags, pos, len);
                 return;
             }
         }

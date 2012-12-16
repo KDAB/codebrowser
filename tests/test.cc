@@ -1,5 +1,4 @@
 #include <string>
-#include <boost/concept_check.hpp>
 
 namespace NS {
     namespace Foo {
@@ -51,7 +50,15 @@ struct MyClass /* ??? */ :  MyBase {
         std::string local = string;
         return function(1,2,2);
     }
+
+    int outofline(std::string foo);
 };
+
+
+int MyClass::outofline(std::string foo)
+{
+    return foo.size();
+}
 
 //Some enum
 enum MyEnum { Val1, //comment1
@@ -128,4 +135,16 @@ int mySomething::foo(int a) {
 }
 
 
+namespace {
+    struct InAnonymousNamspace {
+        int someFunction();
+        int member;
+    };
+}
 
+
+/* doc */
+int InAnonymousNamspace::someFunction()
+{
+    return member;
+}

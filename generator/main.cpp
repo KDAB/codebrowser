@@ -224,7 +224,6 @@ public:
 std::set<std::string> MyAction::processed;
 
 
-
 using namespace clang::tooling;
 
 int main(int argc, const char **argv) {
