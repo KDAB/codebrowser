@@ -638,15 +638,24 @@ $(function () {
                 }
             };
 
+            var text_search = function(text) {
+                var location = "" + (window.location);
+                var idx = location.indexOf(file);
+                if (idx < 0)
+                    return;
+                location = location.substring(0, idx);
+                window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
+            }
+
             var list = [];
             for (xx in searchTerms) {
                 if (searchTerms.hasOwnProperty(xx))
                     list.push(xx);
             }
             $("#searchline").autocomplete( {source: list, select: activate, minLength: 4  } );
-        /*$("#searchline").keypress( function(e) { if(e.which == 13) {
-         *                activate();
-    } } );*/
+            $("#searchline").keypress( function(e) { if(e.which == 13) {
+                text_search($("#searchline").val());
+                    } } );
         }
 
         $.get(root_path + '/fileIndex', function(data) {

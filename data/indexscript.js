@@ -34,7 +34,16 @@ $(function() {
             window.location = root_path +  val + ".html";
         }
 
+        var text_search = function(text) {
+            var location = "" + (window.location);
+            window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
+        }
+
         $("#searchline").autocomplete( {source: list, select: activate, minLength:4  } );
+        $("#searchline").keypress( function(e) { if(e.which == 13) {
+                text_search($("#searchline").val());
+            } } );
+
 
         fileIndex = list;
 
