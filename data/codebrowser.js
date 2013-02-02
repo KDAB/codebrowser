@@ -654,8 +654,14 @@ $(function () {
             }
             $("#searchline").autocomplete( {source: list, select: activate, minLength: 4  } );
             $("#searchline").keypress( function(e) { if(e.which == 13) {
-                text_search($("#searchline").val());
-                    } } );
+                        var val = $("#searchline").val();
+                        console.log(val + " " + $.inArray(val, list));
+                        if ( $.inArray(val, list) < 0) {
+                            text_search(val);
+                        } else {
+                            window.location = root_path + "/" + val + ".html";
+                        }
+                } } );
         }
 
         $.get(root_path + '/fileIndex', function(data) {
