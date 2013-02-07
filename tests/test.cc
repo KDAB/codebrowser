@@ -1,4 +1,5 @@
 #include <string>
+#include <boost/concept_check.hpp>
 
 namespace NS {
     namespace Foo {
@@ -15,7 +16,11 @@ struct MyBase {
     /* comment 3 (NOT doc) */
     /* comment 4 (doc) */
     Type member;
+    static Type static_member;
 };
+
+/* here is a static member */
+Type MyBase::static_member = 8;
 
 // documentation for MyClass begin {
 
@@ -49,6 +54,10 @@ struct MyClass /* ??? */ :  MyBase {
     virtual std::string m() const {
         std::string local = string;
         return function(1,2,2);
+    }
+
+    inline int hey() {
+        return m().size();
     }
 
     int outofline(std::string foo);
@@ -103,6 +112,8 @@ struct MyClassDerived : MyClass {
 
 std::string MyClassDerived::m() const
 {
+    extern int* oh();
+    oh();
     return MyClass::m();
 }
 
@@ -136,15 +147,59 @@ int mySomething::foo(int a) {
 
 
 namespace {
+    /* class
+       that is annonymus */
     struct InAnonymousNamspace {
         int someFunction();
+        /* member
+         * doc */
         int member;
     };
 }
 
-
-/* doc */
+/* doc
+   */
 int InAnonymousNamspace::someFunction()
 {
     return member;
+}
+
+static int some_static_func() {
+    extern int extern_val;
+    static int local_static;
+    InAnonymousNamspace  a;
+    local_static ++;
+    return a.someFunction() + extern_val + local_static;
+}
+
+static int static_val;
+int nonstatic_val;
+
+int *oh() {
+    extern int extern_val;
+    nonstatic_val += extern_val;
+    static_val += some_static_func();
+    int q = [&]() {
+       extern_val++;
+       static_val++;
+       nonstatic_val++;
+       static std::string local_static;
+       local_static = "hello";
+       int loc = 4;
+       struct MyStruct : MyBase {
+           void operator+=(int q) {
+               static_member += q;
+           }
+           /* that's magic */
+           int foo() { return 4; }
+       };
+
+       MyStruct s;
+       s+=loc;
+       return loc + s.foo();
+    }();
+    if (q) {
+        return &extern_val;
+    }
+    return &nonstatic_val;
 }

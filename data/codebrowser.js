@@ -75,7 +75,11 @@ $(function () {
     var elapsed;
 
     var escape_selector = function (str) {
-        return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@])/g,'\\$1')
+        return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}])/g,'\\$1')
+    }
+
+    function escape_html(str) {
+        return $("<p/>").text(str).html();
     }
 
     // demangle the function name, don't care about the template or the argument
@@ -331,8 +335,46 @@ $(function () {
             var computeTooltipContent = function(data, title) {
                 var type ="", content ="";
                 if (elem.hasClass("local")) {
-                    type = $("#" + ref).attr("data-type");
+                    type = $("#" + escape_selector(ref)).attr("data-type");
                     content = "<br/>(local)";
+                } else if (elem.hasClass("tu")) {
+                    type = $("#" + escape_selector(ref)).attr("data-type");
+
+                    var docs = $("i[data-doc='"+escape_selector(ref)+"']");
+                    docs.each(function() {
+                        var comment = $(this).html();
+                        content += "<br/><i>" + comment + "</i>";
+                    });
+
+                    //var uses = highlighted_items;
+                    var uses = $("[data-ref='"+escape_selector(ref)+"']");
+                    var usesLis ="";
+                    var usesCount = 0;
+                    uses.each(function() {
+                        var t = $(this);
+                        var l = t.parent().prev("th").text();
+
+                        if (t.hasClass("def")) {
+                            content += "<br/><a href='#"+ l +"'>Definition</a>";
+                        } else if (t.hasClass("decl")) {
+                            content += "<br/><a href='#"+ l +"'>Declaration</a>";
+                        } else {
+                            var c;
+                            var context = t.closest("tr").prevAll().find(".def").first();
+                            if (context.length == 1 && context.hasClass("decl")) {
+                                c = context[0].title_;
+                                if (c === undefined)
+                                    c = context.attr("title")
+                            }
+                            if (!c) c = "line " + l;
+                            usesLis += "<li><a href='#"+ l +"'>"+ escape_html(c) +"</a></li>"
+                            usesCount += 1;
+                        }
+                    });
+
+                    if (usesCount > 0)
+                        content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + usesCount + ")<br/><ul class='uses'>" + usesLis + "</ul>"
+
                 } else {
                     var res = $("<data>"+data+"</data>");
 
@@ -471,7 +513,7 @@ $(function () {
             }
 
             var tt = this;
-            if (!this.tooltip_loaded && !elem.hasClass("local")) {
+            if (!this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu")) {
                 this.tooltip_loaded = true;
                 $.get(url, function(data) {
                     tt.tooltip_data = data;

@@ -83,6 +83,14 @@ public:
     enum DeclType { Declaration, Definition, Use, Override };
     enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum };
 private:
+    enum class Visibility {
+        Local, // Local to a Function
+        Static, // If it is only visible to this file
+        Global // Globaly visible.
+    };
+
+    static Visibility getVisibility(const clang::NamedDecl *);
+
     std::map<std::string, ProjectInfo> projects =
         {{"include", {"include", "/usr/include/", ProjectInfo::Internal }}};
 
@@ -100,8 +108,8 @@ private:
     // ref -> [ what, loc, typeRef ]
     std::map<std::string, std::vector<std::tuple<DeclType, clang::SourceLocation, std::string>>> references;
     std::multimap<std::string, std::string> docs;
-    // fileId -> ref
-    std::multimap<clang::SourceLocation, std::string> decl_offsets;
+    // fileId -> [ref, visivility]
+    std::multimap<clang::SourceLocation, std::pair<std::string, Visibility>> decl_offsets;
 
     std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;
 

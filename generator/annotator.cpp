@@ -105,6 +105,18 @@ static boost::filesystem::path naive_uncomplete(boost::filesystem::path base, bo
     }
 }
 
+Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
+{
+    switch (decl->getLinkage()) {
+        case clang::NoLinkage:
+            return Visibility::Local;
+        case clang::ExternalLinkage:
+            return Visibility::Global;
+        case clang::InternalLinkage:
+        case clang::UniqueExternalLinkage:
+            return Visibility::Static;
+    }
+};
 
 bool Annotator::shouldProcess(clang::FileID FID)
 {
@@ -224,6 +236,8 @@ bool Annotator::generate(clang::Preprocessor &PP)
     for (auto it : references) {
         if (it.second.size() < 1)
             continue;
+        if (boost::starts_with(it.first, "__"))
+            continue;
         std::string filename = outputPrefix + "/refs/" + it.first;
         std::ofstream myfile;
         myfile.open(filename, std::ios::app);
@@ -316,6 +330,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     clang::SourceManager &sm = getSourceMgr();
 
+    Visibility visibility = getVisibility(decl);
+
     if (!range.getBegin().isFileID()) { //macro expension.
         clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());
         clang::FileID FID = sm.getFileID(expensionloc);
@@ -329,8 +345,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         if (sm.getFileID(spel1) != FID
             || sm.getFileID(spel2) != FID) {
 
-            if (decl->getCanonicalDecl()->isDefinedOutsideFunctionOrMethod()
-                && ! decl->isInAnonymousNamespace()) {
+            if (visibility == Visibility::Global) {
                 if (usedContext && typeText.empty() && declType == Use) {
                     typeText = getContextStr(usedContext);
                 }
@@ -354,26 +369,25 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     std::string clas = computeClas(decl);
     std::string ref;
     const clang::Decl* canonDecl = decl->getCanonicalDecl();
-    if (!canonDecl->isDefinedOutsideFunctionOrMethod()) {
-        if (!decl->getDeclName().isIdentifier())
-            return; //skip local operators (FIXME)
+    if (type != Namespace) {
+        if (visibility == Visibility::Local) {
+            if (!decl->getDeclName().isIdentifier())
+                return; //skip local operators (FIXME)
 
-        clang::SourceLocation loc = canonDecl->getLocation();
-        int &id = localeNumbers[loc.getRawEncoding()];
-        if (id == 0) id = localeNumbers.size();
-        std::string name = decl->getName().str();
-        ref = boost::lexical_cast<std::string>(id) + name;
-        tags %= " title='" % Generator::escapeAttr(name) % "'";
-        clas %= " local col" % boost::lexical_cast<std::string>(id % 10);
-        if (!typeText.empty()) {
-            tags %= " data-type='" % Generator::escapeAttr(typeText) % "'";
+            clang::SourceLocation loc = canonDecl->getLocation();
+            int &id = localeNumbers[loc.getRawEncoding()];
+            if (id == 0) id = localeNumbers.size();
+            std::string name = decl->getName().str();
+            ref = boost::lexical_cast<std::string>(id) + name;
+            tags %= " title='" % Generator::escapeAttr(name) % "'";
+            clas %= " local col" % boost::lexical_cast<std::string>(id % 10);
+        } else {
+            auto cached =  getReferenceAndTitle(decl);
+            ref = cached.first;
+            tags %= " title='" % cached.second % "'";
         }
-    } else if (type != Namespace) {
-        auto cached =  getReferenceAndTitle(decl);
-        ref = cached.first;
-        tags %= " title='" % cached.second % "'";
 
-        if (!decl->isInAnonymousNamespace()) {
+        if (visibility == Visibility::Global) {
             if (usedContext && typeText.empty() && declType == Use) {
                 typeText = getContextStr(usedContext);
             }
@@ -386,6 +400,16 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 //                     functionIndex[project].insert({fun->getQualifiedNameAsString(), ref});
 //                 }
 //             }
+        } else {
+            if (!typeText.empty()) {
+                tags %= " data-type='" % Generator::escapeAttr(typeText) % "'";
+            }
+        }
+
+        if (visibility == Visibility::Static) {
+            if (declType != Use)
+                decl_offsets.insert({ decl->getLocStart(), {ref, visibility} });
+            clas += " tu";
         }
     }
 
@@ -398,6 +422,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         case Call: clas += " call"; break;
         case Namespace: clas += " namespace"; break;
         case Enum: clas += " enum"; break;
+    }
+
+    if (declType == Definition && visibility != Visibility::Local) {
+        clas += " def";
     }
 
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
@@ -470,7 +498,7 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
         references[ref].push_back( std::make_tuple(dt,  refLoc, typeRef) );
         if (dt != Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
-            decl_offsets.insert({ fulloc.getSpellingLoc(), ref });
+            decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, Visibility::Global} });
         }
     }
 }
@@ -482,7 +510,7 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
     clang::FileID FID = sm.getFileID(expensionloc);
     if (!shouldProcess(FID))
         return;
-    if (overrided->isDefinedOutsideFunctionOrMethod() && !overrided->isInAnonymousNamespace()) {
+    if (getVisibility(overrided) == Visibility::Global) {
         auto c = getReferenceAndTitle(overrided);
         references[c.first].push_back( std::make_tuple(Override, expensionloc, getReferenceAndTitle(decl).first) );
     }
@@ -714,7 +742,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                         L.LexFromRawLexer(Tok);
                     }
                 }
-                generator.addTag("i", {}, CommentBegin, CommentLen);
+                std::string attributes;
 
                 auto registerComment = [&](clang::SourceLocation begin, clang::SourceLocation end) {
                     const auto &dof = decl_offsets;
@@ -723,7 +751,11 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                     auto it_after = dof.upper_bound(end);
                     //                --it_after;
                     if (it_before != dof.end() && it_before == (--it_after)) {
-                        docs.insert({it_before->second, std::string(BufferStart+CommentBegin, BufferStart + CommentBegin + CommentLen)});
+                        if (it_before->second.second == Visibility::Global) {
+                            docs.insert({it_before->second.first, std::string(BufferStart+CommentBegin, BufferStart + CommentBegin + CommentLen)});
+                        } else {
+                            attributes = "data-doc=\"" % it_before->second.first % "\"";
+                        }
                     }
                 };
 
@@ -743,6 +775,8 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                     registerComment(CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
                                     CommentBeginLocation);
                 }
+
+                generator.addTag("i", attributes, CommentBegin, CommentLen);
                 continue; //Don't skip next token
             }
             case tok::utf8_string_literal:
