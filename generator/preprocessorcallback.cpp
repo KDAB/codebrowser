@@ -49,7 +49,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     int len = sm.getCharacterData(Range.getEnd()) - begin;
     len += clang::Lexer::MeasureTokenLength(Range.getEnd(), sm, PP.getLangOpts());
 
-    std::string copy{begin, len};
+    std::string copy(begin, len);
     begin = copy.c_str();
     clang::Lexer lex(loc, PP.getLangOpts(), begin, begin, begin + len);
     std::vector<clang::Token> tokens;
