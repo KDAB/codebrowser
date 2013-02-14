@@ -89,7 +89,7 @@ private:
         Global // Globaly visible.
     };
 
-    static Visibility getVisibility(const clang::NamedDecl *);
+    Visibility getVisibility(const clang::NamedDecl *);
 
     std::map<std::string, ProjectInfo> projects =
         {{"include", {"include", "/usr/include/", ProjectInfo::Internal }}};

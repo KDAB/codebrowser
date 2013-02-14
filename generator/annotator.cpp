@@ -107,12 +107,40 @@ static boost::filesystem::path naive_uncomplete(boost::filesystem::path base, bo
 
 Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
 {
+    if (llvm::isa<clang::EnumConstantDecl>(decl)  ||
+        llvm::isa<clang::EnumDecl>(decl)  ||
+        llvm::isa<clang::NamespaceDecl>(decl) ||
+        llvm::isa<clang::NamespaceAliasDecl>(decl) ||
+        llvm::isa<clang::TypedefDecl>(decl) ||
+        llvm::isa<clang::TypedefNameDecl>(decl)) {
+
+        if (!decl->isDefinedOutsideFunctionOrMethod())
+            return Visibility::Local;
+        if (decl->isInAnonymousNamespace())
+            return Visibility::Static;
+        return Visibility::Global; //FIXME
+    }
+
+    clang::SourceManager &sm = getSourceMgr();
+    clang::FileID mainFID = sm.getMainFileID();
+
     switch (decl->getLinkage()) {
         case clang::NoLinkage:
             return Visibility::Local;
         case clang::ExternalLinkage:
+            if (decl->getDeclContext()->isRecord()
+                && mainFID == sm.getFileID(sm.getSpellingLoc(llvm::dyn_cast<clang::NamedDecl>(decl->getDeclContext())->getCanonicalDecl()->getSourceRange().getBegin()))) {
+                // private class
+                const clang::CXXMethodDecl* fun = llvm::dyn_cast<clang::CXXMethodDecl>(decl);
+                if (fun && fun->isVirtual())
+                    return Visibility::Global; //because we need to check overrides
+                return Visibility::Static;
+            }
             return Visibility::Global;
         case clang::InternalLinkage:
+            if (mainFID != sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
+                return Visibility::Global;
+            return Visibility::Static;
         case clang::UniqueExternalLinkage:
             return Visibility::Static;
     }
@@ -237,6 +265,8 @@ bool Annotator::generate(clang::Preprocessor &PP)
         if (it.second.size() < 1)
             continue;
         if (boost::starts_with(it.first, "__"))
+            continue;
+        if (it.first == "main")
             continue;
         std::string filename = outputPrefix + "/refs/" + it.first;
         std::ofstream myfile;
