@@ -64,10 +64,4 @@ a.logo { float:right }
  
  /* Macro expansions.*/
  .expansion { display: none;  white-space: pre ; }
- .macro:hover .expansion { display: block; border: 2px solid gray;
-                        padding: 2px; background-color:#eee; font-weight: normal;
-                        border-radius:5px;  
-                        position: absolute;  z-index: 1 }
- .macro { background-color:#efe; position: relative }
- 
  

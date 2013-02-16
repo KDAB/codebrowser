@@ -82,12 +82,7 @@ a.logo { float:right }
 .code q em, .code q b, .code q var { color:inherit; font-style:inherit; font-weight:inherit; }
 
  /* Old Macro expansions.*/
- .expansion { display: none;  white-space: pre ; }
- .macro {position: relative;}
- .macro:hover .expansion { display: block; border: 2px solid #BEFF9B;
-                           padding: 2px; background-color:#BEFF9B; font-weight: normal;
-                           border-radius:5px;  box-shadow:1px 1px 7px #000;
-                           position: absolute;  z-index: 1 }
+ .expansion { display: none;  }
 
 
 

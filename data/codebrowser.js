@@ -19,11 +19,8 @@
  * purchasing a commercial licence.
  ****************************************************************************/
 
-
 //Styles:
 var setStyle = "";
-
-
 document.write("<link rel='alternate stylesheet' title='Solarized' href='" +root_path + "/../data/solarized.css' />"); //FIXME: data url
 function switchStylestyle(styleName) {
     setStyle = styleName;
@@ -67,6 +64,14 @@ if (style_match) {
     var c = readCookie('style');
     if (c) switchStylestyle(c);
 }
+
+var shouldFade = ! $.browser.firefox;
+if (shouldFade) {
+    //Avoid flicker when changing page.  Firefox does it well already so no need to add anything.
+    document.write("<div id='mask' style='position:fixed; z-order:300; background-color: inherit; width:100%; height:100%;' ></div>");
+    $(function() { $("#mask").fadeOut(200); });
+}
+
 
 //-----------------------------------------------------------------------------------
 
@@ -313,6 +318,23 @@ $(function () {
     var onMouseClick = function(e) {
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
+
+        if (shouldFade && this.href) {
+            var href = this.href;
+            var hashPos = href.indexOf("#");
+            if (hashPos >= 0) {
+                var anchor = href.substr(hashPos+1);
+                var url = href.substr(0, hashPos);
+                if (url == "" || url === location.origin + location.pathname) {
+                    var target = $("#" + escape_selector(anchor));
+                    if (target.length == 1) {
+                        e.preventDefault();
+                        $("html,body").animate({scrollTop:target.offset().top}, 300);
+                        return false;
+                    }
+                }
+            }
+        }
         return true;
     }
 
@@ -787,9 +809,6 @@ $(function () {
     elapsed = new Date().getTime() - start;
     console.log("init: " + elapsed);
 });
-
-
-
 
 //*******************************************
 // Google analytics
