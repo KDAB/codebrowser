@@ -262,7 +262,8 @@ $(function () {
                 clearTimeout(tt.hideTimerId);
                 if (additionalFunction)
                     additionalFunction();
-                tt.tooltip.show();
+                tt.tooltip.stop(true, true);
+                tt.tooltip.fadeIn();
                 tt.setUnderElem(elem);
             }, this.showDelay);
         },
@@ -272,7 +273,8 @@ $(function () {
             clearTimeout(this.hideTimerId);
             var tooltip = this.tooltip;
             this.hideTimerId = setTimeout( function() {
-                tooltip.hide();
+                tooltip.stop(true, true);
+                tooltip.fadeOut();
             }, this.hideDelay);
         },
 
