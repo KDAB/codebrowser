@@ -54,6 +54,9 @@ $(function() {
 
         function openFolder() {
             var t = $(this);
+            var state = {};
+            if (history)
+                state = history.state || state;
             if (!this._opened) {
                 this._opened = true;
                 var p = t.attr("data-path") + "/";
@@ -61,6 +64,7 @@ $(function() {
                 t.text("[-]");
                 var content = $("<table/>");
                 var dict = {};
+                var toOpenNow = [];
                 for (var i=0; i < fileIndex.length; ++i) {
                     var f = fileIndex[i];
                     if (f.indexOf(p) == 0) {
@@ -73,24 +77,43 @@ $(function() {
                             dict[name] = true;
                             content.append("<tr><td class='folder'><a class='opener' data-path='" + p + name + "' + href='"+subPath + name+"'>[+]</a> " +
                                         "<a href='" + subPath + name + "/'>" + name + "/</a></td></tr>\n");
+                            if (state[p+name])
+                                toOpenNow.push(p+name);
                         } else {
                             var name = f.substr(p.length);
-                            console.log(name);
                             content.append("<tr><td>    <a href='" + subPath + name + ".html'>" + name + "</a></td></tr>\n");
                         }
                     }
                 }
                 content.find(".opener").click(openFolder);
                 t.parent().append(content);
+                state[t.attr("data-path")]=true;
+                toOpenNow.forEach(function(toOpen) { 
+                    var e = $("a[data-path='"+toOpen+"']").get(0)
+                    if (e) 
+                        openFolder.call(e);
+                });
             } else {
                 t.parent().find("> table").empty();
                 t.text("[+]");
                 this._opened = false;
+                state[t.attr("data-path")]=false;
             }
+            if (history && history.replaceState)
+                history.replaceState(state);
             return false;
         }
 
         $(".opener").click(openFolder);
+        var state;
+        if (history)
+            state = history.state;
+        if (state) {
+            $(".opener").each(function(e) {
+                if (state[$(this).attr("data-path")])
+                    openFolder.call(this);
+            });
+        }
     });
 });
 
