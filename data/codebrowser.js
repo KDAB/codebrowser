@@ -321,7 +321,7 @@ $(function () {
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
 
-        if (shouldFade && this.href) {
+        if (history && history.pushState && shouldFade && this.href) {
             var href = this.href;
             var hashPos = href.indexOf("#");
             if (hashPos >= 0) {
@@ -330,8 +330,9 @@ $(function () {
                 if (url == "" || url === location.origin + location.pathname) {
                     var target = $("#" + escape_selector(anchor));
                     if (target.length == 1) {
-                        e.preventDefault();
+                        history.pushState({}, undefined, href); //so back goes back to the last location
                         $("html,body").animate({scrollTop:target.offset().top}, 300);
+                        e.preventDefault();
                         return false;
                     }
                 }
