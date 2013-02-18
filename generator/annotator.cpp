@@ -264,7 +264,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
     for (auto it : references) {
         if (it.second.size() < 1)
             continue;
-        if (boost::starts_with(it.first, "__"))
+        if (boost::starts_with(it.first, "__builtin"))
             continue;
         if (it.first == "main")
             continue;
