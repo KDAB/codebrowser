@@ -146,6 +146,23 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     }
 };
 
+void Annotator::addProject(ProjectInfo info) {
+    boost::filesystem::path path(info.source_path);
+    if (path.empty())
+        return;
+    info.source_path = boost::filesystem::canonical(path).string();
+    if (info.source_path[info.source_path.size()-1] != '/')
+        info.source_path+='/';
+
+    std::string name = info.name;
+    auto it = projects.find(name);
+    if (it != projects.end()) {
+        it->second = std::move(info);
+    } else {
+        projects.insert( { std::move(name), std::move(info)});
+  }
+}
+
 bool Annotator::shouldProcess(clang::FileID FID)
 {
     auto it = cache.find(FID);
