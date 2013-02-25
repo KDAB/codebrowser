@@ -22,6 +22,7 @@
 
 #pragma once
 #include <clang/Lex/PPCallbacks.h>
+#include <clang/Lex/MacroInfo.h>
 
 namespace clang {
 class Preprocessor;
