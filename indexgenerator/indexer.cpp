@@ -53,6 +53,21 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
     boost::split(parts, root, boost::is_any_of("/"));
     std::string project = parts.at(parts.size()-1);
 
+    parts.clear();
+    boost::split(parts, path, boost::is_any_of("/"), boost::algorithm::token_compress_on);
+    if (!parts.empty() && parts.at(parts.size()-1).empty())
+        parts.pop_back();
+    std::string breadcrumb = project;
+    if (!parts.empty()) {
+        std::string parent;
+        breadcrumb = parts.at(parts.size()-1);
+        for (int i = parts.size()-2; i >= 0; --i) {
+            parent += "../";
+            breadcrumb = "<a href='" +parent +"'>" + parts.at(i) + "</a>/" + breadcrumb;
+        }
+        breadcrumb = "<a href='../" +parent +"'>" + project + "</a>/" + breadcrumb;
+    }
+
     myfile << "<!doctype html>\n"
               "<head><title>Index of " << path << " - Woboq Code Browser</title>"
               "<link rel=\"stylesheet\" href=\"" << data_path << "/indexstyle.css\"/>\n";
@@ -63,7 +78,7 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
               "</head>\n<body>\n";
     myfile << "<h1><a href='http://code.woboq.org'>Woboq Code Browser</a></h1>\n";
     myfile << "<p><input id='searchline' placeholder='Search for a file'  type='text'/></p>\n";
-    myfile << "<h2> Index of <em>" << project << "/" << path << "</em></h2>\n";
+    myfile << "<h2> Index of <em>" << breadcrumb << "</em></h2>\n";
     myfile << "<hr/><table id='tree'>\n";
 
     //if (!path.empty())
