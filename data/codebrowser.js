@@ -749,6 +749,7 @@ $(function () {
             }
             reset();
         });*/
+        reset();
         return false;
     });
 
