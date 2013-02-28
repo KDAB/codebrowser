@@ -31,7 +31,7 @@
 
 #include "../global.h"
 
-
+const char *data_url = nullptr;
 
 struct FolderInfo {
 //    std::string name;
@@ -47,7 +47,7 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
         return;
     }
 
-    std::string data_path = rel + "../data";
+    std::string data_path = data_url ? std::string(data_url) : (rel + "../data");
 
     std::vector<std::string> parts;
     boost::split(parts, root, boost::is_any_of("/"));
@@ -114,8 +114,10 @@ int main(int argc, char **argv) {
         if (!skipOptions && arg[0]=='-') {
             if (arg == "--") {
                 skipOptions = true;
-            } else {
-                //.....
+            } else if (arg=="-d") {
+                i++;
+                if (i < argc)
+                  data_url = argv[i];
             }
         } else {
             if (root.empty()) {
@@ -128,7 +130,7 @@ int main(int argc, char **argv) {
     }
 
     if (root.empty()) {
-        std::cerr << "Usage: " << argv[0] << " <path> -d <desc_html>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <path> -d data_url" << std::endl;
         return -1;
     }
     std::ifstream fileIndex(root + "/" + "fileIndex");
