@@ -94,19 +94,51 @@ $(function () {
         if (mangle[1] !== 'Z') return mangle;
         mangle = mangle.slice(2);
         var result;
+        var last = "";
+        var scoped = false;
         do {
             if (!result)
                 result = "";
             else
                 result += "::";
-            if (mangle[0]==='N') mangle = mangle.slice(1);
+            if (mangle[0]==='D') {
+                result += "~" + last;
+                break;
+            }
+            if (mangle[0]==='C') {
+                result += last;
+                break;
+            }
+            if (mangle[0]==='N') {
+                mangle = mangle.slice(1);
+                scoped = true;
+            }
             if (mangle[0]==='K') mangle = mangle.slice(1);
+            if (mangle[0]==='L') mangle = mangle.slice(1);
+            if (mangle.match(/^St/)) { //St
+                mangle = mangle.slice(2);
+                result += "std::";
+            }
+            if (mangle[0]==='I') {
+                var n = 1;
+                var i;
+                for (i = 1; i < mangle.length && n > 0 ;i++) {
+                    if (mangle[i] === 'I') n++;
+                    if (mangle[i] === 'E') n--;
+                }
+                mangle = mangle.slice(i);
+            }
+            if (mangle.match(/^[a-z]/)) {
+                result += "operator";
+                break;
+            }
             var len = parseInt(mangle);
             if (!len) return null;
             var start = ("" + len).length;
-            result+= mangle.substr(start, len);
+            last = mangle.substr(start, len);
+            result += last;
             mangle = mangle.slice(start + len)
-        } while(mangle[0]!='E');
+        } while(mangle && mangle[0]!='E' && scoped);
         return result;
     }
 
