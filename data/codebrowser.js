@@ -68,7 +68,8 @@ if (style_match) {
 var shouldFade = ! $.browser.firefox;
 if (shouldFade) {
     //Avoid flicker when changing page.  Firefox does it well already so no need to add anything.
-    document.write("<div id='mask' style='position:fixed; z-order:300; background-color: inherit; width:100%; height:100%;' ></div>");
+    document.write("<div id='mask' style='position:fixed; z-order:300; background-color: inherit; width:100%; height:100%;' >"+
+                   "<p style ='padding-top: 2em; text-align:center' >Loading...</p></div>");
     $(function() { $("#mask").fadeOut(200); });
 }
 
