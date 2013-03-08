@@ -434,7 +434,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             tags %= " title='" % cached.second % "'";
         }
 
-        if (visibility == Visibility::Global) {
+        if (visibility == Visibility::Global && type != Typedef) {
             if (usedContext && typeText.empty() && declType == Use) {
                 typeText = getContextStr(usedContext);
             }

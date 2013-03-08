@@ -433,6 +433,8 @@ $(function () {
                     if (usesCount > 0)
                         content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + usesCount + ")<br/><ul class='uses'>" + usesLis + "</ul>"
 
+                } else if (elem.hasClass("typedef")) {
+                    type = elem.attr("data-type");
                 } else {
                     var res = $("<data>"+data+"</data>");
 
@@ -571,7 +573,7 @@ $(function () {
             }
 
             var tt = this;
-            if (!this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu")) {
+            if (!this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu") && !elem.hasClass("typedef")) {
                 this.tooltip_loaded = true;
                 $.get(url, function(data) {
                     tt.tooltip_data = data;
@@ -755,7 +757,6 @@ $(function () {
             $("#searchline").autocomplete( {source: list, select: activate, minLength: 4  } );
             $("#searchline").keypress( function(e) { if(e.which == 13) {
                         var val = $("#searchline").val();
-                        console.log(val + " " + $.inArray(val, list));
                         if ( $.inArray(val, list) < 0) {
                             text_search(val);
                         } else {

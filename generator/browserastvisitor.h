@@ -147,7 +147,9 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
    bool VisitTypedefTypeLoc(clang::TypedefTypeLoc TL) {
        clang::SourceRange range = TL.getSourceRange();
-       annotator.registerUse(TL.getTypedefNameDecl(), range, Annotator::Typedef, currentContext);
+       annotator.registerReference(TL.getTypedefNameDecl(), range,  Annotator::Typedef, Annotator::Use,
+                                   annotator.getTypeRef(TL.getTypedefNameDecl()->getUnderlyingType()),
+                                   currentContext);
        return true;
    }
 
