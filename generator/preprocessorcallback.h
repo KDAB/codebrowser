@@ -23,6 +23,7 @@
 #pragma once
 #include <clang/Lex/PPCallbacks.h>
 #include <clang/Lex/MacroInfo.h>
+#include <clang/Basic/Version.h>
 
 namespace clang {
 class Preprocessor;
@@ -37,5 +38,10 @@ class PreprocessorCallback  : public clang::PPCallbacks {
 
 public:
     PreprocessorCallback(Annotator &fm, clang::Preprocessor &PP) : annotator(fm), PP(PP) {}
-    virtual void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroInfo* MI, clang::SourceRange Range);
+
+    void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroInfo* MI, clang::SourceRange Range);
+#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 2
+    void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroDirective* MD, clang::SourceRange Range) override
+    { MacroExpands(MacroNameTok, MD->getInfo(), Range); }
+#endif
 };
