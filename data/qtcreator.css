@@ -35,6 +35,7 @@ a.logo { float:right }
 }
 #tooltip ul { margin:0; padding-left: 1em }
 #tooltip a.showuse {color:inherit; text-decoration:underline}
+#tooltip b a { color:inherit }
 /*#tooltip li { border: 1px solid blue; margin:0 }*/
 
 .code a { text-decoration:none; color:inherit }

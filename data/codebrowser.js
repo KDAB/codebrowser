@@ -265,10 +265,10 @@ $(function () {
         },
 
         setUnderElem: function(elem) {
-            var docwidth=(window.innerWidth)? window.innerWidth-15 : document.body.clientWidth-15
-            var docheight=(window.innerHeight)? window.innerHeight-18 : document.body.clientHeight-15
-            var twidth=this.tooltip.get(0).offsetWidth
-            var theight=this.tooltip.get(0).offsetHeight
+            var docwidth=(window.innerWidth)? window.innerWidth-15 : document.body.clientWidth-15;
+            var docheight=(window.innerHeight)? window.innerHeight-18 : document.body.clientHeight-15;
+            var twidth=this.tooltip.get(0).offsetWidth;
+            var theight=this.tooltip.get(0).offsetHeight;
             var tipx=elem.position().left + elem.width()/2 - twidth/2 ;
             if (tipx+twidth>docwidth) tipx = docwidth - twidth - this.gap;
             else if (tipx < 0) tipx = this.gap;
@@ -390,7 +390,7 @@ $(function () {
                 highlight_items(ref);
             }
 
-            var computeTooltipContent = function(data, title) {
+            var computeTooltipContent = function(data, title, id) {
                 var type ="", content ="";
                 if (elem.hasClass("local")) {
                     type = $("#" + escape_selector(ref)).attr("data-type");
@@ -555,7 +555,11 @@ $(function () {
 
                 var tt = tooltip.tooltip;
                 tt.empty();
-                tt.append($("<b />").text(title));
+                if (id && id != "") {
+                    tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
+                } else {
+                    tt.append($("<b />").text(title));
+                }
                 if (type != "") {
                     tt.append("<br/>");
                     tt.append($("<span class='type' />").text(type));
@@ -578,7 +582,7 @@ $(function () {
                 $.get(url, function(data) {
                     tt.tooltip_data = data;
                     if (tooltip.ref === ref)
-                        computeTooltipContent(data, tt.title_);
+                        computeTooltipContent(data, tt.title_, tt.id);
 
                     // attempt to change the href to the definition
                     var res = $("<data>"+data+"</data>");
@@ -618,7 +622,7 @@ $(function () {
                     }
                 });
             }
-            tooltip.showAfterDelay(elem, function() { computeTooltipContent(tt.tooltip_data, tt.title_) })
+            tooltip.showAfterDelay(elem, function() { computeTooltipContent(tt.tooltip_data, tt.title_, tt.id) })
 
             return false;
         };
@@ -833,8 +837,13 @@ $(function () {
     $(".code").on({"mouseenter": function() {
         if (!this.hasLink) {
             this.hasLink = true;
-            var t = $(this)
-            t.wrapInner("<a href='#"+t.text()+"'/>");
+            var t = $(this);
+            var def = t.parent().find("dfn[id]");
+            if (def && def.length >= 1 && !def.first().hasClass("local")) {
+                t.wrapInner("<a href='#"+def.first().attr("id")+"'/>");
+            } else {
+                t.wrapInner("<a href='#"+t.text()+"'/>");
+            }
         }
     }}, "th");
 
