@@ -25,6 +25,10 @@
 #include <set>
 #include <map>
 
+namespace llvm {
+class StringRef;
+}
+
 
 /* This class generate the HTML out of a file with the said tags.
  */
@@ -60,5 +64,5 @@ public:
                   const char *begin, const char *end,
                   const std::string &footer);
 
-    static std::string escapeAttr(const std::string&);
+    static std::string escapeAttr(llvm::StringRef);
 };

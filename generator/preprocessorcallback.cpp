@@ -25,7 +25,6 @@
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Basic/Version.h>
-#include <boost/lexical_cast.hpp>
 #include "stringbuilder.h"
 
 
@@ -120,7 +119,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     std::string link;
     if (defFID != FID)
         link = annotator.pathTo(FID, defFID);
-    std::string tag = "class=\"macro\" href=\"" % link % "#" % boost::lexical_cast<std::string>(sm.getExpansionLineNumber(defLoc))
+    std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
                     % "\" title=\"" % expansion % "\"";
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }

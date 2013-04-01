@@ -33,7 +33,7 @@
 #include <iostream>
 #include <llvm/Support/raw_ostream.h>
 
-std::string Generator::escapeAttr(const std::string& s)
+std::string Generator::escapeAttr(llvm::StringRef s)
 {
     unsigned len = s.size();
     std::string Str;

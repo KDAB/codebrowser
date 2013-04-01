@@ -43,7 +43,6 @@
 
 
 #include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/date_time.hpp>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
@@ -424,10 +423,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             clang::SourceLocation loc = canonDecl->getLocation();
             int &id = localeNumbers[loc.getRawEncoding()];
             if (id == 0) id = localeNumbers.size();
-            std::string name = decl->getName().str();
-            ref = boost::lexical_cast<std::string>(id) + name;
+            llvm::StringRef name = decl->getName();
+            ref = (llvm::Twine(id) + name).str();
             tags %= " title='" % Generator::escapeAttr(name) % "'";
-            clas %= " local col" % boost::lexical_cast<std::string>(id % 10);
+            clas %= " local col" % llvm::Twine(id % 10).str();
         } else {
             auto cached =  getReferenceAndTitle(decl);
             ref = cached.first;
@@ -528,7 +527,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 return;
             }
         }
-        link %= "#" % (loc.isFileID() ? escapedRef : boost::lexical_cast<std::string>(sm.getExpansionLineNumber(loc)));
+        link %= "#" % (loc.isFileID() ? escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).str());
         std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
         generator(FID).addTag("a", tag, pos, len);
     } else {

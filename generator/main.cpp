@@ -32,7 +32,6 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include "annotator.h"
 
@@ -80,12 +79,7 @@ std::string locationToString(clang::SourceLocation loc, clang::SourceManager& sm
     clang::PresumedLoc fixed = sm.getPresumedLoc(loc);
     if (!fixed.isValid())
         return "???";
-    std::string buffer = fixed.getFilename();
-    buffer += ":";
-    buffer += boost::lexical_cast<std::string>(fixed.getLine());
-//    buffer += ":";
-//    buffer += fixed.getColumn();
-    return buffer;
+    return (llvm::Twine(fixed.getFilename()) + ":" + llvm::Twine(fixed.getLine())).str();
 }
 #endif
 
