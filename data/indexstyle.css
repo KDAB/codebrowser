@@ -2,6 +2,7 @@
 
 body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-family: Helvetica,sans-serif; }
 a { color: #037; border: none; text-decoration: none }
+a:visited { color: #737; }
 a:hover{  text-decoration: underline }
 #footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
 #footer img { vertical-align: middle; }
@@ -20,23 +21,26 @@ h2 { font-size:medium; font-weight: normal;
         padding:0; margin: 0 1ex 2ex 1ex;   }
 
 a { text-decoration:none}
-a.opener { color:inherit }
 
 hr { margin: 0; border-collapse:collapse;  }
 
 table#tree { margin: 0; padding: 1ex 1ex; }
-table#tree { width:640px; text-align:left;
-border-left: 1px solid #D8D8D8; border-right: 1px solid #D8D8D8;
-    margin: auto}
+table#tree { width:640px; text-align:left;  margin: auto}
 
 
 table#tree table { padding:0; padding-left: 4ex; width:100%; margin:0; border:0; }
 table#tree td { white-space: pre; font-family:monospace; margin:0; padding:0; border: 0 }
 table#tree tr { margin:0; border:0; padding:0 }
-/*table#tree tr:hover  { background-color: #eee }
+
+table#tree tr:nth-child(even) { background-color: #fafafa }
+table#tree tr table { background-color: white }
+
+/*
+table#tree tr:hover  { background-color: #eee }
 table#tree tr:hover table { background-color: white }*/
 
+td.folder > a { padding-left: 22px; background: url("folder.png") no-repeat left }
+td.file > a { padding-left: 22px; background: url("txt.png") no-repeat left }
+td.parent > a { padding-left: 22px; background: url("back.png") no-repeat left }
 
-
-
-
+td a.opener { color:inherit; background: none; padding:0 }

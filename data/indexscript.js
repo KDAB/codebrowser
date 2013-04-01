@@ -178,13 +178,13 @@ $(function() {
                             if (dict[name])
                                 continue;
                             dict[name] = true;
-                            content.append("<tr><td class='folder'><a class='opener' data-path='" + p + name + "' + href='"+subPath + name+"'>[+]</a> " +
+                            content.append("<tr><td class='folder'><a class='opener' data-path='" + p + name + "'  href='"+subPath + name+"'>[+]</a> " +
                                         "<a href='" + subPath + name + "/'>" + name + "/</a></td></tr>\n");
                             if (state[p+name])
                                 toOpenNow.push(p+name);
                         } else {
                             var name = f.substr(p.length);
-                            content.append("<tr><td>    <a href='" + subPath + name + ".html'>" + name + "</a></td></tr>\n");
+                            content.append("<tr><td class='file'>    <a href='" + subPath + name + ".html'>" + name + "</a></td></tr>\n");
                         }
                     }
                 }
