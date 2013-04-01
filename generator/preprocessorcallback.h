@@ -42,6 +42,6 @@ public:
     void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroInfo* MI, clang::SourceRange Range);
 #if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 2
     void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroDirective* MD, clang::SourceRange Range) override
-    { MacroExpands(MacroNameTok, MD->getInfo(), Range); }
+    { MacroExpands(MacroNameTok, MD->getMacroInfo(), Range); }
 #endif
 };
