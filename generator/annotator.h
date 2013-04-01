@@ -58,7 +58,7 @@ struct ProjectInfo {
                 Internal, //includes and stuffs
                 External, //links to external projects somewhere else, do not generate refs or anything,
                           // and link to a different ref source
-    } type;
+    } type = Normal;
 
     ProjectInfo(std::string name, std::string source_path, Type t = Normal)
         :   name(std::move(name)), source_path(std::move(source_path)), type(t)  {}
