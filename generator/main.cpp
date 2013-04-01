@@ -32,7 +32,6 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
-#include <boost/algorithm/string/predicate.hpp>
 #include "annotator.h"
 
 #include "browserastvisitor.h"

@@ -27,8 +27,6 @@
 #include <vector>
 #include <map>
 
-#include <boost/algorithm/string.hpp>
-
 #include "../global.h"
 
 const char *data_url = nullptr;
@@ -49,24 +47,29 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
 
     std::string data_path = data_url ? std::string(data_url) : (rel + "../data");
 
-    std::vector<std::string> parts;
-    boost::split(parts, root, boost::is_any_of("/"));
-    std::string project = parts.at(parts.size()-1);
+    unsigned int pos = root.rfind('/', root.size()-2);
+    std::string project = pos < root.size() ? root.substr(pos+1) : root;
+    std::string breadcrumb = path;
+    std::string parent;
 
-    parts.clear();
-    boost::split(parts, path, boost::is_any_of("/"), boost::algorithm::token_compress_on);
-    if (!parts.empty() && parts.at(parts.size()-1).empty())
-        parts.pop_back();
-    std::string breadcrumb = project;
-    if (!parts.empty()) {
-        std::string parent;
-        breadcrumb = parts.at(parts.size()-1);
-        for (int i = parts.size()-2; i >= 0; --i) {
-            parent += "../";
-            breadcrumb = "<a href='" +parent +"'>" + parts.at(i) + "</a>/" + breadcrumb;
-        }
-        breadcrumb = "<a href='../" +parent +"'>" + project + "</a>/" + breadcrumb;
+    pos = path.rfind('/', path.size()-2);
+    if (pos < path.size()) {
+      breadcrumb = path.substr(pos+1);
+
+      unsigned int next_pos;
+      while (pos > 0 && (next_pos = path.rfind('/', pos-1)) < path.size()) {
+          if (pos != next_pos +1) {
+              parent += "../";
+              breadcrumb = "<a href='" +parent +"'>" + path.substr(next_pos + 1, pos - next_pos - 1) + "</a>/" + breadcrumb;
+          }
+          pos = next_pos;
+      }
+      if (pos > 1) {
+          parent += "../";
+          breadcrumb = "<a href='" +parent +"'>" + path.substr(0, pos) + "</a>/" + breadcrumb;
+      }
     }
+    breadcrumb = "<a href='../" +parent +"'>" + project + "</a>/" + breadcrumb;
 
     myfile << "<!doctype html>\n"
               "<head><title>Index of " << path << " - Woboq Code Browser</title>"
@@ -140,19 +143,16 @@ int main(int argc, char **argv) {
     while (std::getline(fileIndex, line))
     {
         FolderInfo *parent = &rootInfo;
-        std::vector<std::string> parts;
-        boost::split(parts, line, boost::is_any_of("/"));
-        auto it = parts.cbegin();
-        if (it == parts.cend())
-            continue;
-        auto end = --parts.cend();
-        while(it != end) {
-            auto &sub = parent->subfolders[*it];
+
+        unsigned int pos = 0;
+        unsigned int next_pos;
+        while ((next_pos = line.find('/', pos)) < line.size()) {
+            auto &sub = parent->subfolders[line.substr(pos, next_pos - pos)];
             if (!sub) sub = std::make_shared<FolderInfo>();
             parent = sub.get();
-            ++it;
+            pos = next_pos + 1;
         }
-        parent->subfolders[*it]; //make sure it exists;
+        parent->subfolders[line.substr(pos)]; //make sure it exists;
     }
     gererateRecursisively(&rootInfo, root, "");
     return 0;

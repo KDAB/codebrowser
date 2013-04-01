@@ -39,7 +39,6 @@
 /*#include <ostream>
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/stream.hpp>*/
-#include <boost/algorithm/string.hpp>
 
 
 #include <boost/filesystem.hpp>
@@ -195,7 +194,7 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
 
     for (auto it = projects.begin(); it != projects.end(); ++it) {
         const std::string &source_path = it->second.source_path;
-        if (boost::starts_with(filename, source_path)) {
+        if (llvm::StringRef(filename).startswith(source_path)) {
 
             std::string fn = it->first + "/" + (filename.data() + source_path.size());
 
@@ -237,7 +236,8 @@ bool Annotator::generate(clang::Preprocessor &PP)
         done.insert(fn);
 
         auto project_it = std::find_if(projects.cbegin(), projects.cend(),
-                              [&fn](const std::pair<std::string, ProjectInfo> &it) { return boost::starts_with(fn, it.second.name); } );
+                              [&fn](const std::pair<std::string, ProjectInfo> &it)
+                              { return llvm::StringRef(fn).startswith(it.second.name); } );
         if (project_it == projects.cend()) {
             std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
             continue;
@@ -280,7 +280,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
     for (auto it : references) {
         if (it.second.size() < 1)
             continue;
-        if (boost::starts_with(it.first, "__builtin"))
+        if (llvm::StringRef(it.first).startswith("__builtin"))
             continue;
         if (it.first == "main")
             continue;
@@ -647,7 +647,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         if ((llvm::isa<clang::FunctionDecl>(decl) || llvm::isa<clang::VarDecl>(decl))
             && mangle->shouldMangleDeclName(decl)
             //workaround crash in clang while trying to mangle some buitins types
-            && !boost::starts_with(qualName, "__")) {
+            && !llvm::StringRef(qualName).startswith("__")) {
                 llvm::raw_string_ostream s(cached.first);
                 if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
                     mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete, s);

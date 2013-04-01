@@ -26,7 +26,6 @@
 
 
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
 
 
 #include <fstream>
@@ -86,19 +85,17 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
         return;
     }
 
-    std::vector<std::string> elems;
-    boost::algorithm::split(elems, filename, boost::is_any_of("/"));
-    int count = elems.size();
+    int count = std::count(filename.begin(), filename.end(), '/');
     std::string root_path = "..";
-    for (int i = 0; i < count - 2; i++)
+    for (int i = 0; i < count - 1; i++)
         root_path += "/..";
 
-    if (boost::algorithm::starts_with(data_path, "."))
+    if (data_path.size() && data_path[0] == '.')
         data_path = root_path % "/" % data_path;
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
     "<html>\n<head>\n";
-    myfile << "<title>" << elems.back() << " [" << filename << "] - Woboq Code Browser</title>\n";
+    myfile << "<title>" << llvm::StringRef(filename).split('/').first.str() << " [" << filename << "] - Woboq Code Browser</title>\n";
     myfile << "<link rel=\"stylesheet\" href=\"" << data_path << "/kdevelop.css\" title=\"KDevelop\"/>\n";
     myfile << "<link rel=\"alternate stylesheet\" href=\"" << data_path << "/qtcreator.css\" title=\"QtCreator\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
