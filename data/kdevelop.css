@@ -39,9 +39,8 @@ a.logo { float:right }
 #tooltip b a { color:inherit }
 /*#tooltip li { border: 1px solid blue; margin:0 }*/
 
-.code a { text-decoration:none }
+.code a { text-decoration:none; color:inherit }
 .code a:hover {  text-decoration: none }
-.code th a { color: inherit }
 
 
 

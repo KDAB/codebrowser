@@ -39,6 +39,7 @@ class MangleContext;
 class Type;
 class QualType;
 class Decl;
+class FileEntry;
 }
 
 
@@ -145,6 +146,7 @@ public:
     bool generate(clang::Preprocessor& PP);
 
     std::string pathTo(clang::FileID From, clang::FileID To);
+    std::string pathTo(clang::FileID From, const clang::FileEntry* To);
 
     // only use typeRef for declarations (or definition)
     // only use usedContext for uses

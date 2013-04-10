@@ -44,4 +44,8 @@ public:
     void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroDirective* MD, clang::SourceRange Range) override
     { MacroExpands(MacroNameTok, MD->getMacroInfo(), Range); }
 #endif
+
+    void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
+                            bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
+                            llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;
 };

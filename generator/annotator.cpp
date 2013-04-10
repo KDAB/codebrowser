@@ -381,6 +381,31 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To)
     return result = naive_uncomplete(boost::filesystem::path(fromFN).parent_path(), toFN).string() + ".html";
 }
 
+std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
+{
+  //this is a bit duplicated with the other pathTo and htmlNameForFile
+
+    if (!To || !To->getName())
+        return {};
+
+    std::string fromFN = htmlNameForFile(From);
+
+    boost::filesystem::path path(To->getName());
+    std::string filename = boost::filesystem::canonical(path).string();
+
+    ProjectInfo *project = projectForFile(filename);
+    if (!project)
+        return {};
+
+    if (project->type == ProjectInfo::External) {
+        return project->external_root_url % "/" % project->name % "/" % (filename.data() + project->source_path.size()) % ".html";
+    }
+
+    return naive_uncomplete(boost::filesystem::path(fromFN).parent_path(),
+                            boost::filesystem::path(project->name % "/" % (filename.data() + project->source_path.size()) % ".html")).string();
+}
+
+
 void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange range, Annotator::TokenType type,
                                   Annotator::DeclType declType, std::string typeText,
                                   clang::NamedDecl *usedContext)

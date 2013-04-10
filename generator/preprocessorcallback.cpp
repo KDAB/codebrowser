@@ -123,3 +123,26 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
                     % "\" title=\"" % expansion % "\"";
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
+
+void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok,
+                                              llvm::StringRef FileName, bool IsAngled,
+                                              clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
+                                              llvm::StringRef SearchPath, llvm::StringRef RelativePath,
+                                              const clang::Module* Imported)
+{
+    if (!HashLoc.isValid() || !HashLoc.isFileID() || !File)
+        return;
+    clang::SourceManager &sm = annotator.getSourceMgr();
+    clang::FileID FID = sm.getFileID(HashLoc);
+    if (!annotator.shouldProcess(FID))
+        return;
+
+    std::string link = annotator.pathTo(FID, File);
+    if (link.empty())
+      return;
+
+    auto B = sm.getFileOffset(FilenameRange.getBegin());
+    auto E = sm.getFileOffset(FilenameRange.getEnd());
+
+    annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E-B);
+}

@@ -46,8 +46,8 @@ a.logo { float:right }
 .code dfn { font-style: normal }
 
 .code b, .code em { color: #808000; font-style:normal; font-weight: normal}
-.code i, .code q, .code kbd { color: #008000 ; font-style:normal; font-weight: normal}
-.code var, .code u { color: #000080;  text-decoration: none; font-style:normal }
+.code i, .code q, .code kbd, .code u>a { color: #008000 ; font-style:normal; font-weight: normal}
+.code var, .code u, .code .macro { color: #000080;  text-decoration: none; font-style:normal }
 
 .code .type, .code .typedef, .code .namespace, .code .enum  { color: #800080}
 .code .member { color: #860d0d }
