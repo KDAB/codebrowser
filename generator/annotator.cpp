@@ -188,30 +188,45 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
         cache[id] = {false, {} };
         return {};
     }
-
     boost::filesystem::path path(entry->getName());
     std::string filename = boost::filesystem::canonical(path).string();
 
-    for (auto it = projects.begin(); it != projects.end(); ++it) {
-        const std::string &source_path = it->second.source_path;
-        if (llvm::StringRef(filename).startswith(source_path)) {
-
-            std::string fn = it->first + "/" + (filename.data() + source_path.size());
-
-            bool should_process = false;
-            if (it->second.type != ProjectInfo::External) {
-                boost::filesystem::path p { outputPrefix %  "/" % fn % ".html" };
-                should_process = !boost::filesystem::exists(p);
-                // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
-            }
-            project_cache[id] = it->first;
-            cache[id] = { should_process , fn};
-            return fn;
+    ProjectInfo *project = projectForFile(filename);
+    if (project) {
+        std::string fn = project->name % "/" % (filename.data() + project->source_path.size());
+        bool should_process = false;
+        if (project->type != ProjectInfo::External) {
+            boost::filesystem::path p { outputPrefix %  "/" % fn % ".html" };
+            should_process = !boost::filesystem::exists(p);
+            // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
         }
+        project_cache[id] = project->name;
+        cache[id] = { should_process , fn};
+        return fn;
     }
+
     cache[id] = {false, {} };
     return {};
 }
+
+ProjectInfo* Annotator::projectForFile(llvm::StringRef filename)
+{
+    unsigned int match_length = 0;
+    ProjectInfo *result = nullptr;
+
+    for (auto it = projects.begin(); it != projects.end(); ++it) {
+        const std::string &source_path = it->second.source_path;
+        if (source_path.size() < match_length)
+            continue;
+        if (filename.startswith(source_path)) {
+            result = &it->second;
+            match_length = source_path.size();
+        }
+    }
+
+    return result;
+}
+
 
 bool Annotator::generate(clang::Preprocessor &PP)
 {

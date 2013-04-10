@@ -101,7 +101,9 @@ private:
     std::map<clang::FileID, std::string > project_cache;
     std::map<clang::FileID, Generator> generators;
 
-    std::string htmlNameForFile(clang::FileID id);
+    std::string htmlNameForFile(clang::FileID id); // keep a cache;
+    ProjectInfo *projectForFile(llvm::StringRef filename); // don't keep a cache;
+
 
     void addReference(const std::string& ref, clang::SourceLocation refLoc, Annotator::TokenType type,
                       Annotator::DeclType dt, const std::string &typeRef, clang::Decl *decl);
