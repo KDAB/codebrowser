@@ -55,15 +55,15 @@ a.logo { float:right }
 /*.char,     */ .code kdb { color: #FF80E0 }
 
 /* code a,  code dfn  */
-.ref { color: #208 } 
-.type { color: #061 }
-.typedef { color: #35938D }
-.member { color: #B08000 }
-.call { color: #20f }
-.namespace, .enum { color: #862a38 }
-.decl { color: #205; font-weight:bold; }
-.macro { background-color:#efe; color: inherit; }
-.macro:hover { background-color:#BEFF9B; }
+.code .ref { color: #208 }
+.code .type , #tooltip .type { color: #061 }
+.code .typedef { color: #35938D }
+.code .member { color: #B08000 }
+.code .call { color: #20f }
+.code .namespace, .code .enum { color: #862a38 }
+.code .decl { color: #205; font-weight:bold; }
+.code .macro { background-color:#efe; color: inherit; }
+.code .macro:hover { background-color:#BEFF9B; }
 
 .ref.col0 {color:#2400FF} .ref.col1 {color:#9C00FF} .ref.col2 {color:#D1008A} .ref.col3 {color:#FF0000} .ref.col4 {color:#FF4F00}
 .ref.col5 {color:#F69D00} .ref.col6 {color:#72D200} .ref.col7 {color:#00F718} .ref.col8 {color:#00BBCD} .ref.col9 {color:#0053FF}
