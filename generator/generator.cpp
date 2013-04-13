@@ -95,7 +95,7 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
     "<html>\n<head>\n";
-    myfile << "<title>" << llvm::StringRef(filename).split('/').first.str() << " [" << filename << "] - Woboq Code Browser</title>\n";
+    myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " [" << filename << "] - Woboq Code Browser</title>\n";
     myfile << "<link rel=\"stylesheet\" href=\"" << data_path << "/kdevelop.css\" title=\"KDevelop\"/>\n";
     myfile << "<link rel=\"alternate stylesheet\" href=\"" << data_path << "/qtcreator.css\" title=\"QtCreator\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
