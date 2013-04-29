@@ -854,10 +854,6 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
-    if(setStyle && setStyle!==""){
-        switchStylestyle(setStyle)
-    }
-
     elapsed = new Date().getTime() - start;
     console.log("init: " + elapsed);
 });
