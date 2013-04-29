@@ -65,6 +65,11 @@ if (style_match) {
     if (c) switchStylestyle(c);
 }
 
+if (setStyle != "") {
+    //Webkit bug  https://bugs.webkit.org/show_bug.cgi?id=115347
+    document.write('<style>.code td {white-space: pre }</style>');
+}
+
 var shouldFade = ! $.browser.firefox;
 if (shouldFade) {
     //Avoid flicker when changing page.  Firefox does it well already so no need to add anything.
