@@ -38,11 +38,11 @@
 #include <sstream>
 #include <fstream>
 
-#include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/PathV2.h>
 
 #include "stringbuilder.h"
 
@@ -52,54 +52,6 @@ Annotator::~Annotator()
 // static std::string projectFromName(const std::string &fn) {
 //     return fn.substr(0 ,  fn.find('/'));
 // }
-
-
-/**
- * https://svn.boost.org/trac/boost/ticket/1976#comment:2
- *
- * "The idea: uncomplete(/foo/new, /foo/bar) => ../new
- *  The use case for this is any time you get a full path (from an open dialog, perhaps)
- *  and want to store a relative path so that the group of files can be moved to a different
- *  directory without breaking the paths. An IDE would be a simple example, so that the
- *  project file could be safely checked out of subversion."
- *
- * ALGORITHM:
- *  iterate path and base
- * compare all elements so far of path and base
- * whilst they are the same, no write to output
- * when they change, or one runs out:
- *   write to output, ../ times the number of remaining elements in base
- *   write to output, the remaining elements in path
- */
-static boost::filesystem::path naive_uncomplete(boost::filesystem::path base, boost::filesystem::path path) {
-    if (path.has_root_path()){
-        if (path.root_path() != base.root_path()) {
-            return path;
-        } else {
-            return naive_uncomplete(base.relative_path(), path.relative_path());
-        }
-    } else {
-        if (base.has_root_path()) {
-            throw "cannot uncomplete a path relative path from a rooted base";
-        } else {
-            typedef boost::filesystem::path::const_iterator path_iterator;
-            path_iterator path_it = path.begin();
-            path_iterator base_it = base.begin();
-            while ( path_it != path.end() && base_it != base.end() ) {
-                if (*path_it != *base_it) break;
-                ++path_it; ++base_it;
-            }
-            boost::filesystem::path result;
-            for (; base_it != base.end(); ++base_it) {
-                result /= "..";
-            }
-            for (; path_it != path.end(); ++path_it) {
-                result /= *path_it;
-            }
-            return result;
-        }
-    }
-}
 
 Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
 {
@@ -376,7 +328,7 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To)
     if (pr_it->second.type == ProjectInfo::External)
         return result = pr_it->second.external_root_url % "/" % toFN % ".html";
 
-    return result = naive_uncomplete(boost::filesystem::path(fromFN).parent_path(), toFN).string() + ".html";
+    return result = naive_uncomplete(llvm::sys::path::parent_path(fromFN), toFN) + ".html";
 }
 
 std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
@@ -400,8 +352,8 @@ std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
         return project->external_root_url % "/" % project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html";
     }
 
-    return naive_uncomplete(boost::filesystem::path(fromFN).parent_path(),
-                            boost::filesystem::path(project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html")).string();
+    return naive_uncomplete(llvm::sys::path::parent_path(fromFN),
+                            std::string(project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html"));
 }
 
 

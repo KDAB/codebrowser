@@ -78,3 +78,52 @@ llvm::error_code create_directories(const llvm::Twine& path)
     return create_directory(p);
 }
 
+
+/**
+ * https://svn.boost.org/trac/boost/ticket/1976#comment:2
+ *
+ * "The idea: uncomplete(/foo/new, /foo/bar) => ../new
+ *  The use case for this is any time you get a full path (from an open dialog, perhaps)
+ *  and want to store a relative path so that the group of files can be moved to a different
+ *  directory without breaking the paths. An IDE would be a simple example, so that the
+ *  project file could be safely checked out of subversion."
+ *
+ * ALGORITHM:
+ *  iterate path and base
+ * compare all elements so far of path and base
+ * whilst they are the same, no write to output
+ * when they change, or one runs out:
+ *   write to output, ../ times the number of remaining elements in base
+ *   write to output, the remaining elements in path
+ */
+std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path) {
+    using namespace llvm;
+    if (sys::path::has_root_path(path)){
+        if (sys::path::root_path(path) != sys::path::root_path(base)) {
+            return path;
+        } else {
+            return naive_uncomplete(sys::path::relative_path(base), sys::path::relative_path(path));
+        }
+    } else {
+        if (sys::path::has_root_path(base)) {
+            std::cerr << "naive_uncomplete(" << base.str() << "," << path.str()
+                      << "): cannot uncomplete a path relative path from a rooted base" << std::endl;
+            return path;
+        } else {
+            auto path_it = sys::path::begin(path);
+            auto path_it_end = sys::path::end(path);
+            auto base_it = sys::path::begin(base);
+            auto base_it_end = sys::path::end(base);
+            while ( path_it != path_it_end && base_it != base_it_end ) {
+                if (*path_it != *base_it) break;
+                ++path_it; ++base_it;
+            }
+            llvm::SmallString<128>  result;
+            for (; base_it != base_it_end; ++base_it) {
+                sys::path::append(result, "..");
+            }
+            sys::path::append(result, path_it, path_it_end);
+            return result.str();
+        }
+    }
+}

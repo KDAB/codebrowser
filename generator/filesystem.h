@@ -23,6 +23,7 @@
 
 #include <llvm/Support/system_error.h>
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/SmallString.h>
 
 namespace llvm {
 class Twine;
@@ -33,3 +34,5 @@ llvm::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<cha
 
 /* The one in llvm::sys::fs do not create the directory with the right peromissions */
 llvm::error_code create_directories(const llvm::Twine &path);
+
+std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path);
