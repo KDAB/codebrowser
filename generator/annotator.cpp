@@ -37,8 +37,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <time.h>
 
-#include <boost/date_time.hpp>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
@@ -222,9 +222,13 @@ bool Annotator::generate(clang::Preprocessor &PP)
             footer  = "Generated while processing <a href='" %  pathTo(FID, mainFID) % "'>" % htmlNameForFile(mainFID) % "</a><br/>";
         }
 
-        auto date = boost::gregorian::day_clock::local_day();
+        auto now = time(0);
+        auto tm = localtime(&now);
+        char buf[80];
+        strftime(buf, sizeof(buf), "%Y-%b-%d", tm);
+
         const ProjectInfo &projectinfo = project_it->second;
-        footer %= "Generated on <em>" % to_simple_string(date) % "</em>"
+        footer %= "Generated on <em>" % std::string(buf) % "</em>"
             % " from project " % projectinfo.name % "</a>";
         if (!projectinfo.revision.empty())
             footer %= " revision <em>" % projectinfo.revision % "</em>";
