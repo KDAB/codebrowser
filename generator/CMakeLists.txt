@@ -11,14 +11,9 @@ link_directories( ${LLVM_LIB_DIR} )
 Find_Package(Clang REQUIRED)
 include_directories(${CLANG_INCLUDE_DIRS})
 
-
-set(Boost_USE_STATIC_RUNTIME    OFF)
-find_package(Boost REQUIRED COMPONENTS filesystem system date_time)
-include_directories(${Boost_INCLUDE_DIRS})
-
 add_executable(codebrowser_generator main.cpp annotator.cpp generator.cpp preprocessorcallback.cpp filesystem.cpp)
 
-target_link_libraries(codebrowser_generator  ${CLANG_LIBS} ${LLVM_LIBS_CORE} ${Boost_LIBRARIES} )
+target_link_libraries(codebrowser_generator  ${CLANG_LIBS} ${LLVM_LIBS_CORE} )
 
 
 ADD_DEFINITIONS("-std=c++11") 
