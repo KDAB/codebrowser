@@ -21,16 +21,14 @@
 
 #include "generator.h"
 #include "stringbuilder.h"
+#include "filesystem.h"
 
 #include "../global.h"
-
-
-#include <boost/filesystem.hpp>
-
 
 #include <fstream>
 #include <iostream>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FileSystem.h>
 
 std::string Generator::escapeAttr(llvm::StringRef s)
 {
@@ -77,8 +75,10 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
                          const std::string &footer)
 {
     std::string real_filename = outputPrefix % "/" % filename % ".html";
-    boost::filesystem::create_directories(boost::filesystem::path(real_filename).parent_path());
+    // Make sure the parent directory exist:
+    create_directories(llvm::StringRef(real_filename).rsplit('/').first);
     std::ofstream myfile;
+
     myfile.open(real_filename);
     if (!myfile) {
         std::cerr << "Error generating " << real_filename << std::endl;

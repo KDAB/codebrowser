@@ -16,7 +16,7 @@ set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost REQUIRED COMPONENTS filesystem system date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 
-add_executable(codebrowser_generator main.cpp annotator.cpp generator.cpp preprocessorcallback.cpp)
+add_executable(codebrowser_generator main.cpp annotator.cpp generator.cpp preprocessorcallback.cpp filesystem.cpp)
 
 target_link_libraries(codebrowser_generator  ${CLANG_LIBS} ${LLVM_LIBS_CORE} ${Boost_LIBRARIES} )
 

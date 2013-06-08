@@ -21,6 +21,7 @@
 
 #include "annotator.h"
 #include "generator.h"
+#include "filesystem.h"
 #include <clang/Basic/SourceManager.h>
 #include <clang/Basic/FileManager.h>
 #include <clang/Basic/Version.h>
@@ -36,15 +37,12 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-/*#include <ostream>
-#include <boost/iostreams/device/file.hpp>
-#include <boost/iostreams/stream.hpp>*/
-
 
 #include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
+#include <llvm/Support/FileSystem.h>
 
 #include "stringbuilder.h"
 
@@ -145,18 +143,19 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
 };
 
 void Annotator::addProject(ProjectInfo info) {
-    boost::filesystem::path path(info.source_path);
-    if (path.empty())
+    if (info.source_path.empty())
         return;
-    info.source_path = boost::filesystem::canonical(path).string();
-    if (info.source_path[info.source_path.size()-1] != '/')
-        info.source_path+='/';
+    llvm::SmallString<256> filename;
+    canonicalize(info.source_path, filename);
+    if (filename[filename.size()-1] != '/')
+        filename += '/';
+    info.source_path = filename.c_str();
 
-    std::string name = info.name;
-    auto it = projects.find(name);
+    auto it = projects.find(info.name);
     if (it != projects.end()) {
         it->second = std::move(info);
     } else {
+        std::string name = info.name;
         projects.insert( { std::move(name), std::move(info)});
   }
 }
@@ -188,16 +187,16 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
         cache[id] = {false, {} };
         return {};
     }
-    boost::filesystem::path path(entry->getName());
-    std::string filename = boost::filesystem::canonical(path).string();
+    llvm::SmallString<256> filename;
+    canonicalize(entry->getName(), filename);
 
     ProjectInfo *project = projectForFile(filename);
     if (project) {
-        std::string fn = project->name % "/" % (filename.data() + project->source_path.size());
+        std::string fn = project->name % "/" % (filename.c_str() + project->source_path.size());
         bool should_process = false;
         if (project->type != ProjectInfo::External) {
-            boost::filesystem::path p { outputPrefix %  "/" % fn % ".html" };
-            should_process = !boost::filesystem::exists(p);
+            std::string p(outputPrefix %  "/" % fn % ".html");
+            should_process =  !llvm::sys::fs::exists(p);
             // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
         }
         project_cache[id] = project->name;
@@ -233,7 +232,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
     std::ofstream fileIndex;
     fileIndex.open(outputPrefix + "/fileIndex", std::ios::app);
     if (!fileIndex) {
-        boost::filesystem::create_directories(outputPrefix);
+        create_directories(outputPrefix);
         fileIndex.open(outputPrefix + "/fileIndex", std::ios::app);
         if (!fileIndex) {
             std::cerr << "Can't generate index for " << std::endl;
@@ -290,8 +289,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
         fileIndex << fn << '\n';
     }
 
-    boost::filesystem::path refsPath(outputPrefix + "/refs");
-    boost::filesystem::create_directories(refsPath);
+    create_directories(llvm::Twine(outputPrefix, "/refs"));
     for (auto it : references) {
         if (it.second.size() < 1)
             continue;
@@ -390,19 +388,20 @@ std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
 
     std::string fromFN = htmlNameForFile(From);
 
-    boost::filesystem::path path(To->getName());
-    std::string filename = boost::filesystem::canonical(path).string();
+    llvm::SmallString<256> filename;
+    canonicalize(To->getName(), filename);
+
 
     ProjectInfo *project = projectForFile(filename);
     if (!project)
         return {};
 
     if (project->type == ProjectInfo::External) {
-        return project->external_root_url % "/" % project->name % "/" % (filename.data() + project->source_path.size()) % ".html";
+        return project->external_root_url % "/" % project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html";
     }
 
     return naive_uncomplete(boost::filesystem::path(fromFN).parent_path(),
-                            boost::filesystem::path(project->name % "/" % (filename.data() + project->source_path.size()) % ".html")).string();
+                            boost::filesystem::path(project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html")).string();
 }
 
 
