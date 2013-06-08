@@ -650,10 +650,11 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
             cached.first = getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
         } else {
-            cached.first = boost::erase_all_copy(qualName, " ");
+            cached.first = qualName;
+            std::remove(cached.first.begin(), cached.first.end(), ' ');
             // replace < and > because alse jquery can't match them.
-            boost::replace_all(cached.first, "<", "{");
-            boost::replace_all(cached.first, ">", "}");
+            std::replace(cached.first.begin(), cached.first.end(), '<' , '{');
+            std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
         }
         cached.second = Generator::escapeAttr(qualName);
     }
