@@ -72,7 +72,13 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
 
-    switch (decl->getLinkage()) {
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
+    switch (decl->getLinkage())
+#else
+    switch (decl->getLinkageInternal())
+#endif
+    {
+        default:
         case clang::NoLinkage:
             return Visibility::Local;
         case clang::ExternalLinkage:
@@ -712,7 +718,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
     const SourceManager &SM = PP.getSourceManager();
     const llvm::MemoryBuffer *FromFile = SM.getBuffer(FID);
     Lexer L(FID, FromFile, SM, PP.getLangOpts());
-    const char *BufferStart = L.getBufferStart();
+    const char *BufferStart = FromFile->getBufferStart();
     const char *BufferEnd = FromFile->getBufferEnd();
 
     // Inform the preprocessor that we want to retain comments as tokens, so we
