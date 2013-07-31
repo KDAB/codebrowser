@@ -260,7 +260,7 @@ $(function () {
         gap : 12,
 
         init: function() {
-            $("body").append("<div id='tooltip' style='position:absolute' />");
+            $("div#content").append("<div id='tooltip' style='position:absolute' />");
             this.tooltip = $("#tooltip");
             var this_ = this;
             this.tooltip.hover(
@@ -270,26 +270,19 @@ $(function () {
         },
 
         setUnderElem: function(elem) {
-            var docwidth=(window.innerWidth)? window.innerWidth-15 : document.body.clientWidth-15;
-            var docheight=(window.innerHeight)? window.innerHeight-18 : document.body.clientHeight-15;
+            var content=$("div#content")
+            var docwidth = content.innerWidth()-15;
+            var docheight= content.innerHeight()-18;
             var twidth=this.tooltip.get(0).offsetWidth;
             var theight=this.tooltip.get(0).offsetHeight;
             var tipx=elem.position().left + elem.width()/2 - twidth/2 ;
+            tipx += content.scrollLeft();
             if (tipx+twidth>docwidth) tipx = docwidth - twidth - this.gap;
             else if (tipx < 0) tipx = this.gap;
             var tipy=elem.position().top + elem.height()/2 + this.gap;
-            tipy=(tipy-$(window).scrollTop()+theight>docheight && tipy-theight>$(window).scrollTop()) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
+            tipy += content.scrollTop();
+            tipy=(tipy-content.scrollTop()+theight>docheight && tipy-theight>content.scrollTop()) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
             this.tooltip.css({left: tipx, top: tipy});
-
-          /*  var docwidth=(window.innerWidth)? window.innerWidth-15 : document.body.clientWidth-15
-            var docheight=(window.innerHeight)? window.innerHeight-18 : document.body.clientHeight-15
-            var twidth=this.tooltip.get(0).offsetWidth
-            var theight=this.tooltip.get(0).offsetHeight
-            var tipx=e.pageX + 10 ;
-            var tipy=e.pageY + 10;
-            tipx=(e.clientX+twidth>docwidth)? tipx-twidth- (2*10): tipx //account for right edge
-            tipy=(e.clientY+theight>docheight)? tipy-theight-(2*10) : tipy //account for bottom edge
-            this.tooltip.css({left: tipx, top: tipy}); */
         },
 
         showAfterDelay: function(elem, additionalFunction) {
