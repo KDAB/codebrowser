@@ -323,6 +323,11 @@ $(function () {
     };
 
 
+    // Make the header a header
+    $("body >  :not(#mask, #header, #tooltip, #header+hr)").wrapAll("<div id='content' />")
+    $("#content").css({"position":"fixed" , "overflow":"auto", "top":75 , "bottom":0, "left":0, "right":0});
+    $("#header+hr").css({"position":"fixed" , "top":73 , "left":0, "right":0});
+
 
     tooltip.init();
 
@@ -808,14 +813,8 @@ $(function () {
         if (setStyle.toLowerCase() === title.toLowerCase()) styleOpt += " selected='true'";
         styleOpt += ">" + title + "</option>";
     });
-    $("#header").prepend("<p id='options'><a href='#'>Options...</a></p><div id='options_dlg' style='display:none'>" +
-        "<p><a class='opt_linenum' href='#'>Toggle line number</a></p>" +
-        "<p>Style: <select class='opt_style'>" + styleOpt + "</select></p>" +
-        "<p><a class='opt_close' href='#'>Close</a></p></div>");
-    $("#options").click(function() {
-        $("#options_dlg").dialog({title: "Options", poition: "top"});
-        return false;
-    });
+    $("#header").append("<p id='options'><a class='opt_linenum' href='#'>Toggle line number</a> -  Style: <select class='opt_style'>" + styleOpt + "</select></p>")
+
     var lineNumberShown = true;
     $(".opt_linenum").click(function() {
         //toggle is too slow.
@@ -879,14 +878,14 @@ if ($(window).width() > 600) {
         document.write("<div style='display:none; visibility: hidden'>"+
             "<div id='googlead' style='position: absolute; right: 0; margin:1em; z-index:0'>"+
             "<script type='text/javascript'>google_ad_client = 'ca-pub-5892035981328708'; google_ad_slot = '6278880490'; google_ad_width = 200; google_ad_height = 200; </script>" +
-            "<script type=\"text/javascript\" src=\"http://pagead2.googlesyndication.com/pagead/show_ads.js\"> /* */ </script>" +
+            "<script type=\"text/javascript\" src=\"http://pagead2.googlesyndication.com/pagead/show_ads.js\">  </script>" +
             "</div></div>");
         $(function() {
-            $("#header+hr").after($("#googlead"));
+            $("table.code").before($("#googlead"));
         });
     } else if (document.referrer.indexOf("woboq") == -1) {
         $(function() {
-            $("#header+hr").after("<div><div id='banner' style='position: absolute; right: 0; margin:1em; z-index:0'><a href='http://woboq.com/codebrowser.html?b'>"+
+            $("table.code").before("<div><div id='banner' style='position: absolute; right: 0; margin:1em; z-index:0'><a href='http://woboq.com/codebrowser.html?b'>"+
                 "<img src='http://code.woboq.org/codebrowserbanner.png' style='border:0; box-shadow: 1px 1px 3px #969696;'/></a></div></div>");
             banner =  $("#banner img");
             banner.hover(
