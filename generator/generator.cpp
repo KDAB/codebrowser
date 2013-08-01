@@ -114,7 +114,7 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
     myfile << "</script>\n"
               "<script src='" << data_path << "/codebrowser.js'></script>\n";
 
-    myfile << "</head>\n<body><div id='header'> </div><hr/>";
+    myfile << "</head>\n<body><div id='header'> </div><hr/><div id='content'>";
 
     //** here we put the code
     myfile << "<table class=\"code\">\n";
@@ -201,6 +201,6 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
     myfile << footer;
 
     myfile << "<br />Powered by <a href='http://woboq.com'><img alt='Woboq' src='http://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='http://code.woboq.org'>Code Browser</a> "
-              CODEBROWSER_VERSION "\n</p>\n</body></html>\n";
+              CODEBROWSER_VERSION "\n</p>\n</div></body></html>\n";
 }
 

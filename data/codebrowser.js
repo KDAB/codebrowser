@@ -316,11 +316,10 @@ $(function () {
     };
 
 
-    // Make the header a header
-    $("body > :not(#mask, #header, #tooltip, #header+hr)").wrapAll("<div id='content' />"); // FIXME this is slow
-    $("#content").css({"position":"fixed" , "overflow":"auto", "top":77 , "bottom":0, "left":0, "right":0});
-    $("#header+hr").css({"position":"fixed" , "top":75 , "left":0, "right":0});
-
+    // Compatibility with code browser <= 1.3:   generate the div#content
+    if ($("body > #content").length != 1) {
+        $("body > :not(#mask, #header, #tooltip, #header+hr)").wrapAll("<div id='content' />");
+    }
 
     tooltip.init();
 
@@ -347,13 +346,6 @@ $(function () {
         highlighted_items.addClass("highlight")
     } else if (anchor_id != "") {
         highlight_items(anchor_id);
-    }
-    if (anchor_id != "") {
-        // make sure the highlited item is visible
-        var ai = $("#" + anchor_id);
-        if (ai.position().top > $("#content").height()) {
-            $("#content").scrollTop(ai.position().top);
-        }
     }
     var skipHighlightTimerId = null;
     skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600)

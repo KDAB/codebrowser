@@ -5,6 +5,10 @@ body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-fami
 a { color: #037; border: none; text-decoration: none }
 a:hover{  text-decoration: underline }
 
+div#content {position:fixed; overflow:auto; top:77px; bottom:0; left:0; right:0}
+div#header { position:fixed; left:0; right:0; }
+div#header+hr {position:fixed; top:75px; left:0; right:0}
+
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: monospace; }
 .code th { /*width:2.5em;*/ padding-right:1ex; background-color:#eeeeee ;
