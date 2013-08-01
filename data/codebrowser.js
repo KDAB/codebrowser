@@ -317,9 +317,9 @@ $(function () {
 
 
     // Make the header a header
-    $("body >  :not(#mask, #header, #tooltip, #header+hr)").wrapAll("<div id='content' />")
-    $("#content").css({"position":"fixed" , "overflow":"auto", "top":75 , "bottom":0, "left":0, "right":0});
-    $("#header+hr").css({"position":"fixed" , "top":73 , "left":0, "right":0});
+    $("body > :not(#mask, #header, #tooltip, #header+hr)").wrapAll("<div id='content' />"); // FIXME this is slow
+    $("#content").css({"position":"fixed" , "overflow":"auto", "top":77 , "bottom":0, "left":0, "right":0});
+    $("#header+hr").css({"position":"fixed" , "top":75 , "left":0, "right":0});
 
 
     tooltip.init();
@@ -348,6 +348,13 @@ $(function () {
     } else if (anchor_id != "") {
         highlight_items(anchor_id);
     }
+    if (anchor_id != "") {
+        // make sure the highlited item is visible
+        var ai = $("#" + anchor_id);
+        if (ai.position().top > $("#content").height()) {
+            $("#content").scrollTop(ai.position().top);
+        }
+    }
     var skipHighlightTimerId = null;
     skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600)
 
@@ -367,7 +374,7 @@ $(function () {
                     var target = $("#" + escape_selector(anchor));
                     if (target.length == 1) {
                         history.pushState({}, undefined, href); //so back goes back to the last location
-                        $("html,body").animate({scrollTop:target.offset().top}, 300);
+                        $("#content").animate({scrollTop:target.position().top + $("#content").scrollTop() }, 300);
                         e.preventDefault();
                         return false;
                     }
@@ -700,7 +707,8 @@ $(function () {
         }
         bread+= "'>" + paths[i] + "</a>/";
     }
-    bread += paths[paths.length -1] + "</p>";
+    bread += paths[paths.length -1];
+    bread += "<br/><span id='breadcrumb_symbol' </p>";
     $("#header").append(bread);
 
 
@@ -795,6 +803,28 @@ $(function () {
     });
 
 /*-------------------------------------------------------------------------------------*/
+
+    // Find the current context while scrolling
+    $("#content").scroll(function() {
+        var toppos = $("#content").offset().top;
+        $('tr').each(function() {
+            //console.log( scrolltop, $(this).offset().top,  $(this).text()  )
+            if ($(this).offset().top > toppos) {
+                var context = $(this).prevAll().find(".def").first();
+                var c = "";
+                if (context.length == 1 && context.hasClass("decl")) {
+                    c = context[0].title_;
+                    if (c === undefined)
+                        c = context.attr("title");
+                }
+
+                $("span#breadcrumb_symbol").text(c);
+
+
+                return false;
+            }
+        });
+    });
 
 /*-------------------------------------------------------------------------------------*/
 
