@@ -208,6 +208,15 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return Base::TraverseConstructorInitializer(Init);
     }
 
+    // try to put a link to the right constructor
+    bool VisitCXXConstructExpr(clang::CXXConstructExpr *ctr) {
+        if (clang::CXXConstructorDecl *decl = ctr->getConstructor()) {
+            // Highlight the opening parent
+            annotator.registerUse(decl, ctr->getParenRange().getBegin(), Annotator::Ref, currentContext);
+        }
+        return true;
+    }
+
     bool TraverseDecl(clang::Decl *d) {
         if (!d) return true;
         auto saved = currentContext;
