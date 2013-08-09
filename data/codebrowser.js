@@ -821,8 +821,13 @@ $(function () {
     });
     $("#header").append("<p id='options'><a class='opt_linenum' href='#'>Toggle line number</a> -  Style: <select class='opt_style'>" + styleOpt + "</select></p>")
 
-    var lineNumberShown = true;
+    var lineNumberShown = -1;
     $(".opt_linenum").click(function() {
+        if (lineNumberShown == -1) {
+            //add a space to the empty lines so that they keep their height.
+            $("td:empty, td i:only-child:empty").append("&nbsp;")
+            lineNumberShown = true;
+        }
         //toggle is too slow.
         lineNumberShown ? 
             $(".code th").hide() :
