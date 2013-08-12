@@ -24,7 +24,6 @@ if (APPLE)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -stdlib=libc++" )
 endif()
 
-
 #clang 3.1 requires -fexceptions, but clang 3.2 requires -fno-rtti (I guess it depends on how it has been compiled)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")

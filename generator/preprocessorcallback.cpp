@@ -25,6 +25,7 @@
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Basic/Version.h>
+#include <llvm/ADT/Twine.h>
 #include "stringbuilder.h"
 
 
@@ -124,6 +125,8 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
+
+#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 1
 void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok,
                                               llvm::StringRef FileName, bool IsAngled,
                                               clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
@@ -146,3 +149,4 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
 
     annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E-B);
 }
+#endif
