@@ -117,34 +117,3 @@ $(function() {
     });
 });
 
-
-//*******************************************
-// Google analytics
-
-var _gaq = _gaq || [];
-_gaq.push(['_setAccount', 'UA-221649-12']);
-_gaq.push(['_setDomainName', 'woboq.org']);
-_gaq.push(['_setAllowLinker', true]);
-_gaq.push(['_trackPageview']);
-
-(function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-})();
-
-
-// adds
-if (document.referrer.indexOf("google") !== -1) {
-    document.write("<div style='display:none; visibility: hidden'>"+
-    "<div id='googlead' style='position: absolute; right: 0; margin:1em;' >"+
-    "<script type='text/javascript'>google_ad_client = 'ca-pub-5892035981328708'; google_ad_slot = '6278880490'; google_ad_width = 200; google_ad_height = 200; </script>" +
-    "<script type=\"text/javascript\" src=\"http://pagead2.googlesyndication.com/pagead/show_ads.js\"> /* */ </script>" +
-    "</div></div>");
-    $(function() {
-        $("h2+hr").after($("#googlead"));
-        var tree = $("table#tree");
-        if (tree.height() < 200)
-            tree.css("padding-bottom", 210 - tree.height());
-    });
-}
