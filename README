@@ -23,8 +23,8 @@ development of your commercial software. If you intent to do so, consider
 purchasing a commercial licence.
 
 
-Compiling the generator
-=======================
+Compiling the generator on Linux
+================================
 
 You need:
  - The clang libraries version 3.1 or later (e.g. pre-3.2)
@@ -42,6 +42,27 @@ ln -s /opt/llvm/lib/ .
 
 
 If you have errors related to exceptions, edit generator/CMakeLists.txt and replace -fno-rtti by -fexceptions
+
+Compiling the generator on OS X 10.9 Mavericks
+==============================================
+
+You need:
+ - The clang libraries, for example in version 3.3
+ - XCode 5.x and the command line tools and includes
+
+Install XCode and then the command line tools:
+xcode-select --install
+
+Install the clang libraries via homebrew ( http://brew.sh/ ):
+brew tap homebrew/versions
+brew install -vd llvm33  --with-libcxx --with-clang --rtti
+
+Then compile the generator:
+cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/usr/local//bin/llvm-config-3.3  -DCMAKE_BUILD_TYPE=Release
+make
+# because clang searches for includes files in ../lib relative to the executable:
+ln -s /opt/local/lib/ ./lib
+
 
 
 Using the generator
