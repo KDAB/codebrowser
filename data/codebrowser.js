@@ -347,7 +347,7 @@ $(function () {
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
 
-        if (history && history.pushState && shouldFade && this.href) {
+        if (history && history.pushState && this.href) {
             var href = this.href;
             var hashPos = href.indexOf("#");
             if (hashPos >= 0) {
@@ -356,8 +356,12 @@ $(function () {
                 if (url == "" || url === location.origin + location.pathname) {
                     var target = $("#" + escape_selector(anchor));
                     if (target.length == 1) {
-                        history.pushState({}, undefined, href); //so back goes back to the last location
-                        $("#content").animate({scrollTop:target.position().top + $("#content").scrollTop() }, 300);
+                        //Smooth scrolling and let back go to the last location
+                        var contentTop = $("#content").scrollTop();
+                        history.replaceState({contentTop: contentTop, bodyTop: $("body").scrollTop() }, undefined)
+                        history.pushState({contentTop: target.position().top + contentTop, bodyTop: target.offset().top}, undefined, href);
+                        $("#content").animate({scrollTop:target.position().top + contentTop }, 300);
+                        $("html,body").animate({scrollTop:target.offset().top  }, 300);
                         e.preventDefault();
                         return false;
                     }
@@ -861,6 +865,19 @@ $(function () {
             }
         }
     }}, "th");
+
+/*-------------------------------------------------------------------------------------*/
+
+    window.onpopstate = function (e) {
+        if (!e.state)
+            return;
+        if (e.state.bodyTop > 0) {
+            $("html,body").animate({scrollTop: e.state.bodyTop  }, 300);
+        }
+        if (e.state.contentTop > 0) {
+            $("#content").animate({scrollTop: e.state.contentTop }, 300);
+        }
+    }
 
 /*-------------------------------------------------------------------------------------*/
 
