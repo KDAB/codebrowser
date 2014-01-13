@@ -42,7 +42,12 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
+
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
 #include <llvm/Support/PathV2.h>
+#else
+#include <llvm/Support/Path.h>
+#endif
 
 #include "stringbuilder.h"
 
