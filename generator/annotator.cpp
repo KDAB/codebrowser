@@ -47,6 +47,7 @@
 #include <llvm/Support/PathV2.h>
 #else
 #include <llvm/Support/Path.h>
+#include <boost/concept_check.hpp>
 #endif
 
 #include "stringbuilder.h"
@@ -293,6 +294,8 @@ bool Annotator::generate(clang::Preprocessor &PP)
                 case Override:
                     tag = "ovr";
                     break;
+                case Inherit:
+                    tag = "inh";
             }
             myfile << "<" << tag << " f='" << Generator::escapeAttr(fn)
                    << "' l='"<<  fixed.getLine()  <<"'";
@@ -563,10 +566,16 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
     clang::FileID FID = sm.getFileID(expensionloc);
     if (!shouldProcess(FID))
         return;
-    if (getVisibility(overrided) == Visibility::Global) {
-        auto c = getReferenceAndTitle(overrided);
-        references[c.first].push_back( std::make_tuple(Override, expensionloc, getReferenceAndTitle(decl).first) );
-    }
+    if (getVisibility(overrided) != Visibility::Global)
+        return;
+
+    auto ovrRef = getReferenceAndTitle(overrided).first;
+    auto declRef = getReferenceAndTitle(decl).first;
+    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef) );
+
+    // Register the reversed relation.
+    clang::SourceLocation ovrLoc = sm.getExpansionLoc(overrided->getCanonicalDecl()->getLocation());
+    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
 }
 
 

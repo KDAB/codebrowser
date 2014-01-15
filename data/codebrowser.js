@@ -475,7 +475,7 @@ $(function () {
                             } else {
                                 var url = proj_root_path + "/" + f + ".html#" + l;
                                 content += "<br/><a href='" + url +"' >" + f + ":" + l + "</a>";
-                                if (tag === "ovr") {
+                                if (tag === "ovr" || tag === "inh") {
                                     var c = th.attr("c");
                                     if (c)
                                         content += " (" + demangleFunctionName(c) + ")";
@@ -505,7 +505,9 @@ $(function () {
                     }
                     p("Definitions", "def");
                     p("Declarations", "dec");
-                    p("Overriden", "ovr");
+                    var isType = elem.hasClass("type");
+                    p(isType ? "Inherit" : "Overrides", "inh");
+                    p(isType ? "Inherited by" : "Overriden by", "ovr");
 
                     // Uses:
                     var uses = res.find("use");
