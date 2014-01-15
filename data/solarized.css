@@ -50,7 +50,8 @@ a.logo { float:right }
 
 
 
-body, table.code { background-color: #002b36; color: #839496;}
+body, table.code, input, select { background-color: #002b36; color: #839496;}
+
 .code th { background-color: #073642; color: #93a1a1; }
 a { color: #93a1a1; }
 #tooltip { background-color: #073642; color: #93a1a1 }
