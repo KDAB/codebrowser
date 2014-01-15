@@ -116,7 +116,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return true;
     }
     bool VisitEnumConstantDecl(clang::EnumConstantDecl *d) {
-        annotator.registerReference(d, d->getLocation(), Annotator::Enum, Annotator::Declaration);
+        annotator.registerReference(d, d->getLocation(), Annotator::EnumDecl, Annotator::Declaration, d->getInitVal().toString(10));
         return true;
     }
     bool VisitVarDecl(clang::VarDecl *d) {
@@ -140,7 +140,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     bool VisitDeclRefExpr(clang::DeclRefExpr *e) {
         clang::ValueDecl* decl = e->getDecl();
         annotator.registerUse(decl, e->getNameInfo().getSourceRange(),
-                            llvm::isa<clang::EnumConstantDecl>(decl) ? Annotator::Enum :
+                            llvm::isa<clang::EnumConstantDecl>(decl) ? Annotator::EnumDecl :
                             isMember(decl) ? Annotator::Member : Annotator::Ref, currentContext);
        return true;
    }

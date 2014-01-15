@@ -473,7 +473,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         case Decl: clas += " decl"; break;
         case Call: clas += " call"; break;
         case Namespace: clas += " namespace"; break;
-        case Enum: clas += " enum"; break;
+        case Enum:  // fall through
+        case EnumDecl: clas += " enum"; break;
     }
 
     if (declType == Definition && visibility != Visibility::Local) {
@@ -545,7 +546,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 void Annotator::addReference(const std::string &ref, clang::SourceLocation refLoc, TokenType type,
                              DeclType dt, const std::string &typeRef, clang::Decl *decl)
 {
-    if (type == Ref || type == Member || type == Decl || type == Call
+    if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
         || ((type == Type || type == Enum) && dt == Definition)) {
         references[ref].push_back( std::make_tuple(dt,  refLoc, typeRef) );
         if (dt != Use) {

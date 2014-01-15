@@ -82,7 +82,7 @@ namespace std {
 class Annotator {
 public:
     enum DeclType { Declaration, Definition, Use, Override };
-    enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum };
+    enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum, EnumDecl };
 private:
     enum class Visibility {
         Local, // Local to a Function
