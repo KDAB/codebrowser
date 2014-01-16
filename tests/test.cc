@@ -5,6 +5,12 @@ namespace NS {
     namespace Foo {
         namespace Bar {
             typedef int Type;
+
+            class T {
+                int m( T *t) {
+                    t->Foo::Bar::T::~T();
+                }
+            };
         }
     }
 }
@@ -17,7 +23,12 @@ struct MyBase {
     /* comment 4 (doc) */
     Type member;
     static Type static_member;
+    MyBase();
+
+    virtual ~MyBase() = default;
 };
+
+MyBase::MyBase() { }
 
 /* here is a static member */
 Type MyBase::static_member = 8;
@@ -45,6 +56,8 @@ struct MyClass /* ??? */ :  MyBase {
         bool a, b, c, d, e, f, g, h, i, j, k, l;
     }
 
+    ~ MyClass();
+
     static std::string function(int hi,
                                 bool ho,
                                 double = 4 + 5,
@@ -61,12 +74,19 @@ struct MyClass /* ??? */ :  MyBase {
     }
 
     int outofline(std::string foo);
+
+    operator std::string() const { return m(); }
 };
 
 
 int MyClass::outofline(std::string foo)
 {
     return foo.size();
+}
+
+MyClass::~ /* random  comment  */ MyClass()
+{
+
 }
 
 //Some enum

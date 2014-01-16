@@ -235,6 +235,11 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return true;
     }
 
+    bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo) {
+        // Do not visit the TypeLoc of constructor or destructors
+        return true;
+    }
+
 private:
     bool isMember(clang::NamedDecl *d) {
         if (!currentContext)
