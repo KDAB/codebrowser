@@ -712,11 +712,21 @@ $(function () {
         searchTerms = {}
 
         function reset()  {
+            var text_search = function(text) {
+                var location = "" + (window.location);
+                var idx = location.indexOf(file);
+                if (idx < 0)
+                    return;
+                location = location.substring(0, idx);
+                window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
+            }
+
             var activate = function(event,ui) {
                 var val = ui.item.value;
-                if (searchTerms[val].type == "file") {
+                var type = searchTerms[val] && searchTerms[val].type;
+                if (type == "file") {
                     window.location = root_path + '/' +  searchTerms[val].file + ".html";
-                } else if (searchTerms[val].type == "ref") {
+                } else if (type == "ref") {
                     var ref = searchTerms[val].ref;
                     var url = root_path + "/refs/" + ref;
                     $.get(url, function(data) {
@@ -741,17 +751,11 @@ $(function () {
                             window.location = newloc;
                         }
                     });
+                } else {
+                    text_search(val);
                 }
             };
 
-            var text_search = function(text) {
-                var location = "" + (window.location);
-                var idx = location.indexOf(file);
-                if (idx < 0)
-                    return;
-                location = location.substring(0, idx);
-                window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
-            }
 
             var list = [];
             for (xx in searchTerms) {
@@ -760,13 +764,8 @@ $(function () {
             }
             $("#searchline").autocomplete( {source: list, select: activate, minLength: 4  } );
             $("#searchline").keypress( function(e) { if(e.which == 13) {
-                        var val = $("#searchline").val();
-                        if ( $.inArray(val, list) < 0) {
-                            text_search(val);
-                        } else {
-                            window.location = root_path + "/" + val + ".html";
-                        }
-                } } );
+                    activate({}, { item: { value: $("#searchline").val() } });
+            } } );
         }
 
         $.get(root_path + '/fileIndex', function(data) {
