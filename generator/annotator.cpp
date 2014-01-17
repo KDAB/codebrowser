@@ -265,11 +265,11 @@ bool Annotator::generate(clang::Preprocessor &PP)
             continue;
         if (it.first == "main")
             continue;
-        std::string filename = outputPrefix + "/refs/" + it.first;
-        std::ofstream myfile;
-        myfile.open(filename, std::ios::app);
-        if (!myfile) {
-            std::cerr << "Error generating " << filename << std::endl;
+        std::string filename = outputPrefix % "/refs/" % it.first;
+        std::string error;
+        llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
+        if (!error.empty()) {
+            std::cerr << error<< std::endl;
             continue;
         }
         for (auto &it2 : it.second) {
@@ -280,7 +280,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
             if (fn.empty())
                 continue;
             clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
-            std::string tag;
+            const char *tag = "";
             switch(std::get<0>(it2)) {
                 case Use:
                     tag = "use";
@@ -297,19 +297,23 @@ bool Annotator::generate(clang::Preprocessor &PP)
                 case Inherit:
                     tag = "inh";
             }
-            myfile << "<" << tag << " f='" << Generator::escapeAttr(fn)
-                   << "' l='"<<  fixed.getLine()  <<"'";
+            myfile << "<" << tag << " f='";
+            Generator::escapeAttr(myfile, fn);
+            myfile << "' l='"<<  fixed.getLine()  <<"'";
             if (loc.isMacroID()) myfile << " macro='1'";
-            std::string refType = std::get<2>(it2);
+            const auto &refType = std::get<2>(it2);
             if (!refType.empty()) {
-                myfile << ((std::get<0>(it2) < Use) ? std::string(" type='") : std::string(" c='"))
-                       << Generator::escapeAttr(refType) <<"'";
+                myfile << ((std::get<0>(it2) < Use) ? " type='" : " c='");
+                Generator::escapeAttr(myfile, refType);
+                myfile <<"'";
             }
             myfile <<"/>\n";
         }
         auto range = docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
-            myfile << "<doc>" << Generator::escapeAttr(it2->second) << "</doc>\n";
+            myfile << "<doc>";
+            Generator::escapeAttr(myfile, it2->second);
+            myfile << "</doc>\n";
         }
     }
 
@@ -434,7 +438,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             if (id == 0) id = localeNumbers.size();
             llvm::StringRef name = decl->getName();
             ref = (llvm::Twine(id) + name).str();
-            tags %= " title='" % Generator::escapeAttr(name) % "'";
+            llvm::SmallString<40> buffer;
+            tags %= " title='" % Generator::escapeAttr(name, buffer) % "'";
             clas %= " local col" % llvm::Twine(id % 10).str();
         } else {
             auto cached =  getReferenceAndTitle(decl);
@@ -457,7 +462,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 //             }
         } else {
             if (!typeText.empty()) {
-                tags %= " data-type='" % Generator::escapeAttr(typeText) % "'";
+                llvm::SmallString<40> buffer;
+                tags %= " data-type='" % Generator::escapeAttr(typeText, buffer) % "'";
             }
         }
 
@@ -510,7 +516,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         return;
     }
 
-    auto escapedRef = Generator::escapeAttr(ref);
+    llvm::SmallString<40> escapedRefBuffer;
+    auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\" ";
 
     if (declType == Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
@@ -537,7 +544,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 return;
             }
         }
-        link %= "#" % (loc.isFileID() ? escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).str());
+        llvm::SmallString<6> locBuffer;
+        link %= "#" % (loc.isFileID() ? escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).toStringRef(locBuffer));
         std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
         generator(FID).addTag("a", tag, pos, len);
     } else {
@@ -608,8 +616,8 @@ void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& ms
     bool Invalid = false;
     if (Invalid)
         return;
-    std::string span = ("<span class='" % clas % "' title=\"" % Generator::escapeAttr(msg) % "\">");
-    generator(FID).addTag("span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg) % "\"", pos, len);
+    llvm::SmallString<40> buffer;
+    generator(FID).addTag("span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"", pos, len);
 }
 
 
@@ -681,7 +689,8 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
             std::replace(cached.first.begin(), cached.first.end(), '<' , '{');
             std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
         }
-        cached.second = Generator::escapeAttr(qualName);
+        llvm::SmallString<40> buffer;
+        cached.second = Generator::escapeAttr(qualName, buffer);
     }
     return cached;
 }

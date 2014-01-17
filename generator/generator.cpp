@@ -30,12 +30,16 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
 
-std::string Generator::escapeAttr(llvm::StringRef s)
+llvm::StringRef Generator::escapeAttr(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
+{
+    llvm::raw_svector_ostream os(buffer);
+    escapeAttr(os, s);
+    return os.str();
+}
+
+void Generator::escapeAttr(llvm::raw_ostream &os, llvm::StringRef s)
 {
     unsigned len = s.size();
-    std::string Str;
-    llvm::raw_string_ostream os(Str);
-
     for (unsigned i = 0 ; i < len; ++i) {
         char c = s[i];
         switch (c) {
@@ -49,7 +53,7 @@ std::string Generator::escapeAttr(llvm::StringRef s)
             case '\'': os << "&apos;"; break;
         }
     }
-    return os.str();
+
 }
 
 void Generator::Tag::open(std::ostream &myfile) const

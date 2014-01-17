@@ -24,9 +24,10 @@
 #include <string>
 #include <set>
 #include <map>
+#include <llvm/ADT/SmallString.h>
 
 namespace llvm {
-class StringRef;
+class raw_ostream;
 }
 
 
@@ -64,5 +65,6 @@ public:
                   const char *begin, const char *end,
                   const std::string &footer);
 
-    static std::string escapeAttr(llvm::StringRef);
+    static llvm::StringRef escapeAttr(llvm::StringRef, llvm::SmallVectorImpl<char> &buffer);
+    static void escapeAttr(llvm::raw_ostream& os, llvm::StringRef s);
 };

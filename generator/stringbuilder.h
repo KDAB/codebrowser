@@ -60,11 +60,9 @@ template<typename T> std::string &operator %=(std::string &s, const T &t) {
     return s;
 }
 
-#if 0
 #include <llvm/ADT/StringRef.h>
 template<> struct string_builder_helper<llvm::StringRef> {
   typedef llvm::StringRef T;
   static unsigned int size(llvm::StringRef s) { return s.size(); }
   static void append_to(std::string &s, llvm::StringRef a) { s+=a; }
 };
-#endif
