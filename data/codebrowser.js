@@ -777,7 +777,7 @@ $(function () {
             reset();
         });
 
-     /*   $.get(root_path + '/' + project + '/functionIndex', function(data) {
+        $.get(root_path + /*'/' + project + */ '/functionIndex', function(data) {
             var list = data.split("\n");
             for (var i = 0; i < list.length; ++i) {
                 var coma = list[i].indexOf(',');
@@ -786,7 +786,7 @@ $(function () {
                 searchTerms[name] = { type:"ref", ref: ref };
             }
             reset();
-        });*/
+        });
         reset();
         return false;
     });

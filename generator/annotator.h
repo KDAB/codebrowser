@@ -120,7 +120,7 @@ private:
     std::unordered_map<void *, std::pair<std::string, std::string> > mangle_cache;  // canonical Decl*  -> ref,  escapred_title
     std::pair<std::string, std::string> getReferenceAndTitle(clang::NamedDecl* decl);
     // project -> { pretty name, ref }
-    std::map<std::string, std::map<std::string, std::string>> functionIndex;
+    std::map<std::string, std::string> functionIndex;
 
     std::unordered_map<unsigned, int> localeNumbers;
 

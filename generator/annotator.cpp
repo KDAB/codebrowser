@@ -55,10 +55,6 @@
 Annotator::~Annotator()
 { }
 
-// static std::string projectFromName(const std::string &fn) {
-//     return fn.substr(0 ,  fn.find('/'));
-// }
-
 Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
 {
     if (llvm::isa<clang::EnumConstantDecl>(decl)  ||
@@ -317,21 +313,17 @@ bool Annotator::generate(clang::Preprocessor &PP)
         }
     }
 
-//     // now the function name
-//     for (auto &prIt : functionIndex) {
-//         const std::string &project = prIt.first;
-//         if (project == "include")
-//             continue;
-//         std::ofstream funcIndexFile;
-//         funcIndexFile.open(outputPrefix + "/" + project + "/functionIndex", std::ios::app);
-//         if (!funcIndexFile) {
-//             std::cerr << "Can't generate index for " << project << std::endl;
-//             continue;
-//         }
-//         for(auto &fnIt : prIt.second) {
-//             funcIndexFile << fnIt.second << ','<< fnIt.first << '\n';
-//         }
-//     }
+    // now the function name
+    std::string funcIndexFN = outputPrefix /*% "/" % project*/ % "/functionIndex";
+    std::string error;
+    llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
+    if (!error.empty()) {
+        std::cerr << error << std::endl;
+        return false;
+    }
+    for(auto &fnIt : functionIndex) {
+        funcIndexFile << fnIt.second << ','<< fnIt.first << '\n';
+    }
     return true;
 }
 
@@ -454,12 +446,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
             addReference(ref, range.getBegin(), type, declType, typeText, decl);
 
-//             if (declType == Definition && ref.find('{') >= ref.size() && decl->getLinkage() == clang::ExternalLinkage) {
-//                 if (clang::FunctionDecl* fun = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
-//                     std::string project = projectFromName(htmlNameForFile(FID));
-//                     functionIndex[project].insert({fun->getQualifiedNameAsString(), ref});
-//                 }
-//             }
+             if (declType == Definition && ref.find('{') >= ref.size()) {
+                 if (clang::FunctionDecl* fun = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+                     functionIndex.insert({fun->getQualifiedNameAsString(), ref});
+                 }
+             }
         } else {
             if (!typeText.empty()) {
                 llvm::SmallString<40> buffer;
