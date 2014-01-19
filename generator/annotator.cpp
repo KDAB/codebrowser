@@ -313,16 +313,22 @@ bool Annotator::generate(clang::Preprocessor &PP)
         }
     }
 
-    // now the function name
-    std::string funcIndexFN = outputPrefix /*% "/" % project*/ % "/functionIndex";
-    std::string error;
-    llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
-    if (!error.empty()) {
-        std::cerr << error << std::endl;
-        return false;
-    }
+    // now the function names
+    create_directories(llvm::Twine(outputPrefix, "/fnSearch"));
     for(auto &fnIt : functionIndex) {
-        funcIndexFile << fnIt.second << ','<< fnIt.first << '\n';
+        auto fnName = fnIt.first;
+        if (fnName.size() < 4 || fnName[0] == '_')
+            continue;
+        if (fnName == "main")
+            continue;
+        std::string funcIndexFN = outputPrefix % "/fnSearch/" % llvm::StringRef(fnName.c_str(), 2).lower();
+        std::string error;
+        llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
+        if (!error.empty()) {
+            std::cerr << error << std::endl;
+            return false;
+        }
+        funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
     }
     return true;
 }

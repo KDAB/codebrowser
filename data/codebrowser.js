@@ -711,7 +711,7 @@ $(function () {
             return;
         searchTerms = {}
         var fileList = [];
-        var functionList = [];
+        var functionDict = {};
 
 
         // Do a google seatch of the text on the project.
@@ -764,33 +764,56 @@ $(function () {
             var term = $.ui.autocomplete.escapeRegex(request.term);
             var rx1 = new RegExp(term, 'i');
             var rx2 = new RegExp("^"+term, 'i');
-            response(
-                functionList.filter(function(word) { return word.match(rx2) }).concat(
-                    fileList.filter(function(word) { return word.match(rx1); })));
+            var functionList = [];
+            if(request.term.length > 3 && request.term[0] != "/") {
+                var k = request.term.substr(0, 2).toLowerCase();
+                if (functionDict.hasOwnProperty(k)) {
+                    functionList = functionDict[k].filter(
+                        function(word) { return word.match(rx2) });
+                }
+            }
+            var l = functionList.concat(fileList.filter(
+                function(word) { return word.match(rx1); }))
+            l = l.slice(0,1000); // too big lists are too slow
+            response(l);
         };
 
         $("input#searchline").autocomplete( {source: autocomplete, select: activate, minLength: 4  } );
 
-        $("input#searchline").keypress( function(e) { if(e.which == 13) {
-            activate({}, { item: { value: $("#searchline").val() } });
-        } } );
+        $("input#searchline").keypress(function(e) {
+            var value = $("input#searchline").val();
+            if(e.which == 13) {
+                activate({}, { item: { value: value } });
+            }
+        });
 
+        // Fetch the list of all files
         $.get(root_path + '/fileIndex', function(data) {
             var list = data.split("\n");
+            fileList = list;
             for (var i = 0; i < list.length; ++i) {
                 searchTerms[list[i]] = { type:"file", file: list[i] };
             }
-            fileList = list;
         });
 
-        $.get(root_path + /*'/' + project + */ '/functionIndex', function(data) {
-            var list = data.split("\n");
-            for (var i = 0; i < list.length; ++i) {
-                var coma = list[i].indexOf(',');
-                var ref = list[i].slice(0, coma);
-                var name = list[i].slice(coma+1);
-                searchTerms[name] = { type:"ref", ref: ref };
-                functionList.push(name);
+        // When the content changes, fetch the list of function that starts with ...
+        $("input#searchline").on('input', function() {
+            var value = $(this).val();
+            if (value.length >= 2 && value[0] != '/') {
+                var k = value.substr(0, 2).toLowerCase();
+                if (!functionDict.hasOwnProperty(k)) {
+                    functionDict[k] = []
+                    $.get(root_path + '/fnSearch/' + k, function(data) {
+                        var list = data.split("\n");
+                        for (var i = 0; i < list.length; ++i) {
+                            var sep = list[i].indexOf('|');
+                            var ref = list[i].slice(0, sep);
+                            var name = list[i].slice(sep+1);
+                            searchTerms[name] = { type:"ref", ref: ref };
+                            functionDict[k].push(name);
+                        }
+                    });
+                }
             }
         });
         return false;
