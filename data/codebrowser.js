@@ -702,78 +702,85 @@ $(function () {
 
 
 /*-------------------------------------------------------------------------------------*/
-    
-    // Search Line
+
     var searchTerms;
+    // Search Line
     $("#header").prepend("<input id='searchline' type='text' placeholder='Search a file'/>");
-    $("#searchline").focus(function() {
+    $("input#searchline").focus(function() {
         if (searchTerms)
             return;
         searchTerms = {}
+        var fileList = [];
+        var functionList = [];
 
-        function reset()  {
-            var text_search = function(text) {
-                var location = "" + (window.location);
-                var idx = location.indexOf(file);
-                if (idx < 0)
-                    return;
-                location = location.substring(0, idx);
-                window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
-            }
 
-            var activate = function(event,ui) {
-                var val = ui.item.value;
-                var type = searchTerms[val] && searchTerms[val].type;
-                if (type == "file") {
-                    window.location = root_path + '/' +  searchTerms[val].file + ".html";
-                } else if (type == "ref") {
-                    var ref = searchTerms[val].ref;
-                    var url = root_path + "/refs/" + ref;
-                    $.get(url, function(data) {
-                        var res = $("<data>"+data+"</data>");
-                        var def =  res.find("def");
-                        var result = {  len: -1 };
-                        def.each( function() {
-                            var cur = { len : -1,
-                                        f : $(this).attr("f"),
-                                        l : $(this).attr("l") }
+        // Do a google seatch of the text on the project.
+        var text_search = function(text) {
+            var location = "" + (window.location);
+            var idx = location.indexOf(file);
+            if (idx < 0)
+                return;
+            location = location.substring(0, idx);
+            window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
+        }
 
-                            cur.len = prefixLen(cur.f, file)
-                            if (cur.len >= result.len) {
-                                result = cur;
-                                result.isMarcro = ($(this).attr("macro"));
-                            }
-                        });
+        // callback for jqueryui's autocomple activate
+        var activate = function(event,ui) {
+            var val = ui.item.value;
+            var type = searchTerms[val] && searchTerms[val].type;
+            if (type == "file") {
+                window.location = root_path + '/' +  searchTerms[val].file + ".html";
+            } else if (type == "ref") {
+                var ref = searchTerms[val].ref;
+                var url = root_path + "/refs/" + ref;
+                $.get(url, function(data) {
+                    var res = $("<data>"+data+"</data>");
+                    var def =  res.find("def");
+                    var result = {  len: -1 };
+                    def.each( function() {
+                        var cur = { len : -1,
+                                    f : $(this).attr("f"),
+                                    l : $(this).attr("l") }
 
-                        if (result.len >= 0) {
-                            var newloc = root_path + "/" + result.f + ".html#" +
-                                (result.isMarcro ? result.l : ref );
-                            window.location = newloc;
+                        cur.len = prefixLen(cur.f, file)
+                        if (cur.len >= result.len) {
+                            result = cur;
+                            result.isMarcro = ($(this).attr("macro"));
                         }
                     });
-                } else {
-                    text_search(val);
-                }
-            };
 
-
-            var list = [];
-            for (xx in searchTerms) {
-                if (searchTerms.hasOwnProperty(xx))
-                    list.push(xx);
+                    if (result.len >= 0) {
+                        var newloc = root_path + "/" + result.f + ".html#" +
+                            (result.isMarcro ? result.l : ref );
+                        window.location = newloc;
+                    }
+                });
+            } else {
+                text_search(val);
             }
-            $("#searchline").autocomplete( {source: list, select: activate, minLength: 4  } );
-            $("#searchline").keypress( function(e) { if(e.which == 13) {
-                    activate({}, { item: { value: $("#searchline").val() } });
-            } } );
-        }
+        };
+
+        var autocomplete = function(request, response) {
+            var term = $.ui.autocomplete.escapeRegex(request.term);
+            var rx1 = new RegExp(term, 'i');
+            var rx2 = new RegExp("^"+term, 'i');
+            response(
+                functionList.filter(function(word) { return word.match(rx2) }).concat(
+                    fileList.filter(function(word) { return word.match(rx1); })));
+        };
+
+        $("input#searchline").autocomplete( {source: autocomplete, select: activate, minLength: 4  } );
+
+        $("input#searchline").keypress( function(e) { if(e.which == 13) {
+            activate({}, { item: { value: $("#searchline").val() } });
+        } } );
 
         $.get(root_path + '/fileIndex', function(data) {
             var list = data.split("\n");
             for (var i = 0; i < list.length; ++i) {
                 searchTerms[list[i]] = { type:"file", file: list[i] };
             }
-            reset();
+            fileList = list;
         });
 
         $.get(root_path + /*'/' + project + */ '/functionIndex', function(data) {
@@ -783,10 +790,9 @@ $(function () {
                 var ref = list[i].slice(0, coma);
                 var name = list[i].slice(coma+1);
                 searchTerms[name] = { type:"ref", ref: ref };
+                functionList.push(name);
             }
-            reset();
         });
-        reset();
         return false;
     });
 
