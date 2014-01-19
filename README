@@ -30,10 +30,6 @@ You need:
  - The clang libraries version 3.1 or later (e.g. pre-3.2)
  - A recent C++ compiler (tested with clang 3.1 and gcc 4.7 on Linux)
 
-You may optionaly apply the patch in the patches/ directory to clang
-for better performances. (Note: the patch breaks binary compatibility!)
-
-
 Example:
 cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
 make
