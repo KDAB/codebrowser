@@ -186,6 +186,13 @@ ProjectInfo* Annotator::projectForFile(llvm::StringRef filename)
     return result;
 }
 
+static char normalizeForfnIndex(char c) {
+    if (c >= 'A' && c <= 'Z')
+        c = c - 'A' + 'a';
+    if (c < 'a' || c > 'z')
+        return '_';
+    return c;
+}
 
 bool Annotator::generate(clang::Preprocessor &PP)
 {
@@ -317,18 +324,39 @@ bool Annotator::generate(clang::Preprocessor &PP)
     create_directories(llvm::Twine(outputPrefix, "/fnSearch"));
     for(auto &fnIt : functionIndex) {
         auto fnName = fnIt.first;
-        if (fnName.size() < 4 || fnName[0] == '_')
+        if (fnName.size() < 4)
             continue;
+        if (fnName.find("__") != std::string::npos)
+            continue; // remove internals
+        if (fnName.find('<') != std::string::npos || fnName.find('>') != std::string::npos)
+            continue; // remove template stuff
         if (fnName == "main")
             continue;
-        std::string funcIndexFN = outputPrefix % "/fnSearch/" % llvm::StringRef(fnName.c_str(), 2).lower();
-        std::string error;
-        llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
-        if (!error.empty()) {
-            std::cerr << error << std::endl;
-            return false;
+
+        llvm::SmallString<8> saved;
+        size_t pos = 0;
+        while (true) {
+            if (fnName.size() - pos < 4)
+                break;
+            char idx[3] = { normalizeForfnIndex(fnName[pos]), normalizeForfnIndex(fnName[pos+1]) , '\0' };
+            llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
+            if (saved.find(idxRef) == std::string::npos) {
+                std::string funcIndexFN = outputPrefix % "/fnSearch/" % idx;
+                std::string error;
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
+                if (!error.empty()) {
+                    std::cerr << error << std::endl;
+                    return false;
+                }
+                funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
+                saved.append(idxRef); //include \0;
+            }
+            pos = fnName.find("::", pos);
+
+            if (pos == std::string::npos)
+                break;
+            pos += 2; // skip ::
         }
-        funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
     }
     return true;
 }

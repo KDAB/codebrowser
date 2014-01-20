@@ -760,17 +760,26 @@ $(function () {
             }
         };
 
+        var getFnNameKey = function (request) {
+            if (request.indexOf('/') != -1 || request.indexOf('.') != -1)
+                return false;
+            request = request.replace(/^:*/, "");
+            if (request.length < 2)
+                return false;
+            var k = request.substr(0, 2).toLowerCase();
+            return k.replace(/[^a-z]/, '_')
+        }
+
         var autocomplete = function(request, response) {
             var term = $.ui.autocomplete.escapeRegex(request.term);
             var rx1 = new RegExp(term, 'i');
-            var rx2 = new RegExp("^"+term, 'i');
+            var rx2 = new RegExp("(^|::)"+term.replace(/^:*/, ''), 'i');
             var functionList = [];
-            if(request.term.length > 3 && request.term[0] != "/") {
-                var k = request.term.substr(0, 2).toLowerCase();
-                if (functionDict.hasOwnProperty(k)) {
-                    functionList = functionDict[k].filter(
-                        function(word) { return word.match(rx2) });
-                }
+            var k = getFnNameKey(request.term)
+            console.log(k, rx2);
+            if (k && functionDict.hasOwnProperty(k)) {
+                functionList = functionDict[k].filter(
+                    function(word) { return word.match(rx2) });
             }
             var l = functionList.concat(fileList.filter(
                 function(word) { return word.match(rx1); }))
@@ -799,21 +808,19 @@ $(function () {
         // When the content changes, fetch the list of function that starts with ...
         $("input#searchline").on('input', function() {
             var value = $(this).val();
-            if (value.length >= 2 && value[0] != '/') {
-                var k = value.substr(0, 2).toLowerCase();
-                if (!functionDict.hasOwnProperty(k)) {
-                    functionDict[k] = []
-                    $.get(root_path + '/fnSearch/' + k, function(data) {
-                        var list = data.split("\n");
-                        for (var i = 0; i < list.length; ++i) {
-                            var sep = list[i].indexOf('|');
-                            var ref = list[i].slice(0, sep);
-                            var name = list[i].slice(sep+1);
-                            searchTerms[name] = { type:"ref", ref: ref };
-                            functionDict[k].push(name);
-                        }
-                    });
-                }
+            var k = getFnNameKey(value);
+            if (k && !functionDict.hasOwnProperty(k)) {
+                functionDict[k] = []
+                $.get(root_path + '/fnSearch/' + k, function(data) {
+                    var list = data.split("\n");
+                    for (var i = 0; i < list.length; ++i) {
+                        var sep = list[i].indexOf('|');
+                        var ref = list[i].slice(0, sep);
+                        var name = list[i].slice(sep+1);
+                        searchTerms[name] = { type:"ref", ref: ref };
+                        functionDict[k].push(name);
+                    }
+                });
             }
         });
         return false;
