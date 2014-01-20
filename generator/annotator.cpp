@@ -47,7 +47,6 @@
 #include <llvm/Support/PathV2.h>
 #else
 #include <llvm/Support/Path.h>
-#include <boost/concept_check.hpp>
 #endif
 
 #include "stringbuilder.h"
