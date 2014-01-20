@@ -781,8 +781,8 @@ $(function () {
                 functionList = functionDict[k].filter(
                     function(word) { return word.match(rx2) });
             }
-            var l = functionList.concat(fileList.filter(
-                function(word) { return word.match(rx1); }))
+            var l = fileList.filter( function(word) { return word.match(rx1); });
+            l = l.concat(functionList);
             l = l.slice(0,1000); // too big lists are too slow
             response(l);
         };
