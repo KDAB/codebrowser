@@ -22,35 +22,137 @@
 
 $(function() {
 
-    var fileIndex;
+    // remove trailing slash
+    root_path = root_path.replace(/\/$/, "");
+
+    var fileIndex = [];
+    var searchTerms = {}
+    var functionDict = {};
+    var file = path;
+
+    //compute the length of the common prefix between two strings
+    var prefixLen = function( s1 , s2) {
+        var maxMatchLen = Math.min(s1.length, s2.length);
+        res = -1;
+        while (++res < maxMatchLen) {
+            if (s1.charAt(res) != s2.charAt(res))
+                break;
+        }
+        return res * 256 + 256 - s1.length;
+    }
+
+    // Google text search (different than codebrowser.js)
+    var text_search = function(text) {
+        var location = "" + (window.location);
+        window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
+    }
+
+    var searchline = $("input#searchline");
+
+    //BEGIN  copied from codebrowser.js
+
+        // callback for jqueryui's autocomple activate
+        var activate = function(event,ui) {
+            var val = ui.item.value;
+            var type = searchTerms[val] && searchTerms[val].type;
+            if (type == "file") {
+                window.location = root_path + '/' +  searchTerms[val].file + ".html";
+            } else if (type == "ref") {
+                var ref = searchTerms[val].ref;
+                var url = root_path + "/refs/" + ref;
+                $.get(url, function(data) {
+                    var res = $("<data>"+data+"</data>");
+                    var def =  res.find("def");
+                    var result = {  len: -1 };
+                    def.each( function() {
+                        var cur = { len : -1,
+                                    f : $(this).attr("f"),
+                                    l : $(this).attr("l") }
+
+                        cur.len = prefixLen(cur.f, file)
+                        if (cur.len >= result.len) {
+                            result = cur;
+                            result.isMarcro = ($(this).attr("macro"));
+                        }
+                    });
+
+                    if (result.len >= 0) {
+                        var newloc = root_path + "/" + result.f + ".html#" +
+                            (result.isMarcro ? result.l : ref );
+                        window.location = newloc;
+                    }
+                });
+            } else {
+                text_search(val);
+            }
+        };
+
+        var getFnNameKey = function (request) {
+            if (request.indexOf('/') != -1 || request.indexOf('.') != -1)
+                return false;
+            request = request.replace(/^:*/, "");
+            if (request.length < 2)
+                return false;
+            var k = request.substr(0, 2).toLowerCase();
+            return k.replace(/[^a-z]/, '_')
+        }
+
+        var autocomplete = function(request, response) {
+            var term = $.ui.autocomplete.escapeRegex(request.term);
+            var rx1 = new RegExp(term, 'i');
+            var rx2 = new RegExp("(^|::)"+term.replace(/^:*/, ''), 'i');
+            var functionList = [];
+            var k = getFnNameKey(request.term)
+            if (k && functionDict.hasOwnProperty(k)) {
+                functionList = functionDict[k].filter(
+                    function(word) { return word.match(rx2) });
+            }
+            var l = fileIndex.filter( function(word) { return word.match(rx1); });
+            l = l.concat(functionList);
+            l = l.slice(0,1000); // too big lists are too slow
+            response(l);
+        };
+
+        searchline.autocomplete( {source: autocomplete, select: activate, minLength: 4  } );
+
+        searchline.keypress(function(e) {
+            var value = searchline.val();
+            if(e.which == 13) {
+                activate({}, { item: { value: value } });
+            }
+        });
+
+        // When the content changes, fetch the list of function that starts with ...
+        searchline.on('input', function() {
+            var value = $(this).val();
+            var k = getFnNameKey(value);
+            if (k && !functionDict.hasOwnProperty(k)) {
+                functionDict[k] = []
+                $.get(root_path + '/fnSearch/' + k, function(data) {
+                    var list = data.split("\n");
+                    for (var i = 0; i < list.length; ++i) {
+                        var sep = list[i].indexOf('|');
+                        var ref = list[i].slice(0, sep);
+                        var name = list[i].slice(sep+1);
+                        searchTerms[name] = { type:"ref", ref: ref };
+                        functionDict[k].push(name);
+                    }
+                });
+            }
+        });
+
+    //END  copied from codebrowser.js
 
 
-    $.get(root_path + 'fileIndex', function(data) {
+    $.get(root_path + '/fileIndex', function(data) {
         var list = data.split("\n");
         list.sort();
 
-        var activate = function(event,ui) {
-            var val = ui.item.value;
-            window.location = root_path +  val + ".html";
-        }
-
-        var text_search = function(text) {
-            var location = "" + (window.location);
-            window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
-        }
-
-        $("#searchline").autocomplete( {source: list, select: activate, minLength:4  } );
-        $("#searchline").keypress( function(e) { if(e.which == 13) {
-                var val = $("#searchline").val();
-                if ( $.inArray(val, list) < 0) {
-                    text_search(val);
-                } else {
-                    window.location = root_path + val + ".html";
-                }
-            } } );
-
-
         fileIndex = list;
+        for (var i = 0; i < list.length; ++i) {
+            searchTerms[list[i]] = { type:"file", file: list[i] };
+        }
+
 
         function openFolder() {
             var t = $(this);

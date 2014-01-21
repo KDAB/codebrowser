@@ -703,16 +703,16 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
-    var searchTerms;
     // Search Line
-    $("#header").prepend("<input id='searchline' type='text' placeholder='Search a file'/>");
-    $("input#searchline").focus(function() {
+    $("#header").prepend("<input id='searchline' type='text' placeholder='Search a file or function'/>");
+    var searchline = $("input#searchline");
+    var searchTerms;
+    searchline.focus(function() {
         if (searchTerms)
             return;
         searchTerms = {}
-        var fileList = [];
+        var fileIndex = [];
         var functionDict = {};
-
 
         // Do a google seatch of the text on the project.
         var text_search = function(text) {
@@ -776,37 +776,27 @@ $(function () {
             var rx2 = new RegExp("(^|::)"+term.replace(/^:*/, ''), 'i');
             var functionList = [];
             var k = getFnNameKey(request.term)
-            console.log(k, rx2);
             if (k && functionDict.hasOwnProperty(k)) {
                 functionList = functionDict[k].filter(
                     function(word) { return word.match(rx2) });
             }
-            var l = fileList.filter( function(word) { return word.match(rx1); });
+            var l = fileIndex.filter( function(word) { return word.match(rx1); });
             l = l.concat(functionList);
             l = l.slice(0,1000); // too big lists are too slow
             response(l);
         };
 
-        $("input#searchline").autocomplete( {source: autocomplete, select: activate, minLength: 4  } );
+        searchline.autocomplete( {source: autocomplete, select: activate, minLength: 4  } );
 
-        $("input#searchline").keypress(function(e) {
-            var value = $("input#searchline").val();
+        searchline.keypress(function(e) {
+            var value = searchline.val();
             if(e.which == 13) {
                 activate({}, { item: { value: value } });
             }
         });
 
-        // Fetch the list of all files
-        $.get(root_path + '/fileIndex', function(data) {
-            var list = data.split("\n");
-            fileList = list;
-            for (var i = 0; i < list.length; ++i) {
-                searchTerms[list[i]] = { type:"file", file: list[i] };
-            }
-        });
-
         // When the content changes, fetch the list of function that starts with ...
-        $("input#searchline").on('input', function() {
+        searchline.on('input', function() {
             var value = $(this).val();
             var k = getFnNameKey(value);
             if (k && !functionDict.hasOwnProperty(k)) {
@@ -823,6 +813,16 @@ $(function () {
                 });
             }
         });
+
+        // Fetch the list of all files
+        $.get(root_path + '/fileIndex', function(data) {
+            var list = data.split("\n");
+            fileIndex = list;
+            for (var i = 0; i < list.length; ++i) {
+                searchTerms[list[i]] = { type:"file", file: list[i] };
+            }
+        });
+
         return false;
     });
 
