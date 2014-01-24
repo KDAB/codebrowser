@@ -25,6 +25,7 @@ namespace clang {
 class CallExpr;
 class NamedDecl;
 class Expr;
+class CXXConstructExpr;
 }
 class Annotator;
 
@@ -39,6 +40,7 @@ struct QtSupport {
     clang::NamedDecl *currentContext;
 
     void visitCallExpr(clang::CallExpr *e);
+    void visitCXXConstructExpr(clang::CXXConstructExpr* e);
 
 private:
     void handleSignalOrSlot(clang::Expr *obj, clang::Expr *method);

@@ -238,6 +238,9 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
     if (!methodDecl || !methodDecl->getParent())
         return;
 
+    if (!methodDecl->getParent()->getName().startswith("Q"))
+        return; // only Qt classes
+
     if (methodDecl->getParent()->getName() == "QObject"
             && (methodDecl->getName() == "connect" || methodDecl->getName() == "disconnect")) {
 
@@ -257,6 +260,80 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
     if (methodDecl->getParent()->getName() == "QTimer" && methodDecl->getName() == "singleShot") {
         if (e->getNumArgs() >= 3) {
             handleSignalOrSlot(e->getArg(1), e->getArg(2));
+        }
+    }
+    if (methodDecl->getParent()->getName() == "QHostInfo" && methodDecl->getName() == "lookupHost") {
+        if (e->getNumArgs() >= 3) {
+            handleSignalOrSlot(e->getArg(1), e->getArg(2));
+        }
+    }
+    if (methodDecl->getParent()->getName() == "QNetworkAccessCache" && methodDecl->getName() == "requestEntry") {
+        if (e->getNumArgs() >= 3) {
+            handleSignalOrSlot(e->getArg(1), e->getArg(2));
+        }
+    }
+    if (methodDecl->getParent()->getName() == "QDBusAbstractInterface" && methodDecl->getName() == "callWithCallback") {
+        if (e->getNumArgs() == 4) {
+            handleSignalOrSlot(e->getArg(2), e->getArg(3));
+        } else if (e->getNumArgs() == 5) {
+            handleSignalOrSlot(e->getArg(2), e->getArg(3));
+            handleSignalOrSlot(e->getArg(2), e->getArg(4));
+        }
+    }
+    if (methodDecl->getName() == "open" && (
+            methodDecl->getParent()->getName() == "QFileDialog" ||
+            methodDecl->getParent()->getName() == "QColorDialog" ||
+            methodDecl->getParent()->getName() == "QFontDialog" ||
+            methodDecl->getParent()->getName() == "QMessageBox" ||
+            methodDecl->getParent()->getName() == "QInputDialog" ||
+            methodDecl->getParent()->getName() == "QPrintDialog" ||
+            methodDecl->getParent()->getName() == "QPageSetupDialog" ||
+            methodDecl->getParent()->getName() == "QPrintPreviewDialog" ||
+            methodDecl->getParent()->getName() == "QProgressDialog")) {
+        if (e->getNumArgs() == 2) {
+            handleSignalOrSlot(e->getArg(0), e->getArg(1));
+        }
+    }
+    if (methodDecl->getParent()->getName() == "QMenu" && methodDecl->getName() == "addAction") {
+        if (methodDecl->getNumParams() == 4 && e->getNumArgs() >= 3) {
+            handleSignalOrSlot(e->getArg(1), e->getArg(2));
+        } else if (methodDecl->getNumParams() == 5 && e->getNumArgs() >= 4) {
+            handleSignalOrSlot(e->getArg(2), e->getArg(3));
+        }
+    }
+    if (methodDecl->getParent()->getName() == "QToolbar" && methodDecl->getName() == "addAction") {
+        if (e->getNumArgs() == 3) {
+            handleSignalOrSlot(e->getArg(1), e->getArg(2));
+        } else if (e->getNumArgs() == 4) {
+            handleSignalOrSlot(e->getArg(2), e->getArg(3));
+        }
+    }
+}
+
+
+
+void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
+{
+    clang::CXXConstructorDecl *methodDecl = e->getConstructor();
+    if (!methodDecl || !methodDecl->getParent())
+        return;
+
+    auto parent = methodDecl->getParent();
+
+   // std::cout << methodDecl->getQualifiedNameAsString() << " -> " <<methodDecl->getName().str() << std::endl ;
+
+    if (!parent->getName().startswith("Q"))
+        return; // only Qt classes
+
+    if (parent->getName() == "QShortcut") {
+        if (e->getNumArgs() >= 3)
+            handleSignalOrSlot(e->getArg(1), e->getArg(2));
+        if (e->getNumArgs() >= 4)
+            handleSignalOrSlot(e->getArg(1), e->getArg(3));
+    }
+    if (parent->getName() == "QSignalSpy") {
+        if (e->getNumArgs() >= 2) {
+            handleSignalOrSlot(e->getArg(0), e->getArg(1));
         }
     }
 }

@@ -221,6 +221,8 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             // Highlight the opening parenthese
             annotator.registerUse(decl, parenLoc, Annotator::Ref, currentContext);
         }
+        QtSupport qt{annotator, currentContext};
+        qt.visitCXXConstructExpr(ctr);
         return true;
     }
 

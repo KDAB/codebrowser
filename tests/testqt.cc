@@ -1,4 +1,5 @@
 #include <QtGui/QtGui>
+#include <QtTest/QSignalSpy>
 
 class MyObject : public QObject {
     Q_OBJECT
@@ -51,9 +52,11 @@ void MyObject::superSlot2(void*)
 {
     QTimer::singleShot(154, this, SLOT(superSlot2()));
 
-    DO( _, connect(sender(), SIGNAL( destroyed(QObject*)), qApp, SLOT(quit())) );
+    DO( _, connect(sender(), SIGNAL( destroyed(QObject*)), qApp,  SLOT(quit())) );
 
     CONNECT;
+
+    QSignalSpy s(qApp, SIGNAL(applicationNameChanged()));
 }
 
 
