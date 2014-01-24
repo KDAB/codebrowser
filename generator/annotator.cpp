@@ -70,6 +70,9 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
         return Visibility::Global; //FIXME
     }
 
+    if (llvm::isa<clang::NonTypeTemplateParmDecl>(decl))
+        return Visibility::Static;
+
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
 
