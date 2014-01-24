@@ -403,6 +403,17 @@ std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
                             std::string(project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html"));
 }
 
+static const clang::Decl *getDefinitionDecl(clang::Decl *decl) {
+    if (const clang::RecordDecl* rec = llvm::dyn_cast<clang::RecordDecl>(decl)) {
+        rec = rec->getDefinition();
+        if (rec) return rec;
+    } else if (const clang::FunctionDecl* fnc = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+        if (fnc->hasBody(fnc) && fnc) {
+            return fnc;
+        }
+    }
+    return decl->getCanonicalDecl();
+}
 
 void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange range, Annotator::TokenType type,
                                   Annotator::DeclType declType, std::string typeText,
@@ -452,6 +463,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     std::string tags;
     std::string clas = computeClas(decl);
     std::string ref;
+
     const clang::Decl* canonDecl = decl->getCanonicalDecl();
     if (type != Namespace) {
         if (visibility == Visibility::Local) {
@@ -524,14 +536,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     // Include the whole end token in the range.
     len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
 
-    if (const clang::RecordDecl* rec = llvm::dyn_cast<clang::RecordDecl>(canonDecl)) {
-        rec = rec->getDefinition();
-        if (rec) canonDecl = rec;
-    } else if (const clang::FunctionDecl* fnc = llvm::dyn_cast<clang::FunctionDecl>(canonDecl)) {
-        if (fnc->hasBody(fnc) && fnc) {
-            canonDecl = fnc;
-        }
-    }
+    canonDecl = getDefinitionDecl(decl);
 
     if (clas[0] == ' ') clas = clas.substr(1);
 
@@ -606,7 +611,7 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
     references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef) );
 
     // Register the reversed relation.
-    clang::SourceLocation ovrLoc = sm.getExpansionLoc(overrided->getCanonicalDecl()->getLocation());
+    clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
     references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
 }
 
