@@ -1,5 +1,4 @@
 #include <QtGui/QtGui>
-#include <boost/concept_check.hpp>
 
 class MyObject : public QObject {
     Q_OBJECT
