@@ -63,7 +63,7 @@ a.logo { float:right }
 .code .type , #tooltip .type { color: #061 }
 .code .typedef { color: #35938D }
 .code .member { color: #B08000 }
-.code .call { color: #20f }
+.code .call { color: #207 }
 .code .namespace, .code .enum { color: #862a38 }
 .code .decl { color: #205; font-weight:bold; }
 .code .macro { background-color:#efe; color: inherit; }

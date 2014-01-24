@@ -22,6 +22,7 @@
 #pragma once
 
 #include "annotator.h"
+#include "qtsupport.h"
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/DeclGroup.h>
 #include <clang/AST/Decl.h>
@@ -237,6 +238,14 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
     bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo) {
         // Do not visit the TypeLoc of constructor or destructors
+        return true;
+    }
+
+
+    // This is only to support QObject::connect SIGNAL and SLOT
+    bool VisitCallExpr(clang::CallExpr *e) {
+        QtSupport qt{annotator, currentContext};
+        qt.visitCallExpr(e);
         return true;
     }
 
