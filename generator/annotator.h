@@ -28,6 +28,7 @@
 #include <vector>
 #include <llvm/ADT/OwningPtr.h>
 #include <clang/AST/Mangle.h>
+#include "commenthandler.h"
 #include "generator.h"
 
 class PreprocessorCallback;
@@ -110,11 +111,8 @@ private:
                       Annotator::DeclType dt, const std::string &typeRef, clang::Decl *decl);
     // ref -> [ what, loc, typeRef ]
     std::map<std::string, std::vector<std::tuple<DeclType, clang::SourceLocation, std::string>>> references;
-    std::multimap<std::string, std::string> docs;
-    // fileId -> [ref, visivility]
-    std::multimap<clang::SourceLocation, std::pair<std::string, Visibility>> decl_offsets;
-
     std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;
+    CommentHandler commentHandler;
 
     llvm::OwningPtr<clang::MangleContext> mangle;
     std::unordered_map<void *, std::pair<std::string, std::string> > mangle_cache;  // canonical Decl*  -> ref,  escapred_title
@@ -164,7 +162,6 @@ public:
 
     bool shouldProcess(clang::FileID);
     Generator &generator(clang::FileID fid) { return generators[fid]; }
-    
 
     std::string getTypeRef(clang::QualType type);
     std::string computeClas(clang::NamedDecl* decl);

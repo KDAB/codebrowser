@@ -314,7 +314,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
             }
             myfile <<"/>\n";
         }
-        auto range = docs.equal_range(it.first);
+        auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
             myfile << "<doc>";
             Generator::escapeAttr(myfile, it2->second);
@@ -508,7 +508,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
         if (visibility == Visibility::Static) {
             if (declType != Use)
-                decl_offsets.insert({ decl->getLocStart(), {ref, visibility} });
+                commentHandler.decl_offsets.insert({ decl->getLocStart(), {ref, false} });
             clas += " tu";
         }
     }
@@ -594,7 +594,7 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
         references[ref].push_back( std::make_tuple(dt,  refLoc, typeRef) );
         if (dt != Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
-            decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, Visibility::Global} });
+            commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
         }
     }
 }
@@ -837,6 +837,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                 bool startOfLine = Tok.isAtStartOfLine();
                 SourceLocation CommentBeginLocation = Tok.getLocation();
                 L.LexFromRawLexer(Tok);
+                // Merge consecutive comments
                 if (startOfLine /*&&  BufferStart[CommentBegin+1] == '/'*/) {
                     while (Tok.is(tok::comment)) {
                         unsigned int Off = SM.getFileOffset(Tok.getLocation());
@@ -846,22 +847,8 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                         L.LexFromRawLexer(Tok);
                     }
                 }
-                std::string attributes;
 
-                auto registerComment = [&](clang::SourceLocation begin, clang::SourceLocation end) {
-                    const auto &dof = decl_offsets;
-                    //is there one and one single decl in that range.
-                    auto it_before = dof.lower_bound(begin);
-                    auto it_after = dof.upper_bound(end);
-                    //                --it_after;
-                    if (it_before != dof.end() && it_before == (--it_after)) {
-                        if (it_before->second.second == Visibility::Global) {
-                            docs.insert({it_before->second.first, std::string(BufferStart+CommentBegin, BufferStart + CommentBegin + CommentLen)});
-                        } else {
-                            attributes = "data-doc=\"" % it_before->second.first % "\"";
-                        }
-                    }
-                };
+                std::string attributes;
 
                 if (startOfLine) {
                     unsigned int NonCommentBegin = SM.getFileOffset(Tok.getLocation());
@@ -869,18 +856,18 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                     const char *nl_it = BufferStart + NonCommentBegin;
                     while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
                         ++nl_it;
-                    registerComment(Tok.getLocation(),
-                                    Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)));
+                    commentHandler.handleComment(generator, BufferStart, CommentBegin, CommentLen,
+                                                 Tok.getLocation(),
+                                                 Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)));
                 } else {
                     //look up the location before
                     const char *nl_it = BufferStart + CommentBegin;
                     while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
                         --nl_it;
-                    registerComment(CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
-                                    CommentBeginLocation);
+                    commentHandler.handleComment(generator, BufferStart, CommentBegin, CommentLen,
+                                                 CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
+                                                 CommentBeginLocation);
                 }
-
-                generator.addTag("i", attributes, CommentBegin, CommentLen);
                 continue; //Don't skip next token
             }
             case tok::utf8_string_literal:
