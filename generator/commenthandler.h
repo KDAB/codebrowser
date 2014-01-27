@@ -32,6 +32,7 @@ class Preprocessor;
 class Generator;
 
 class CommentHandler {
+    struct CommentVisitor;
 public:
 
     std::multimap<std::string, std::string> docs;
@@ -43,7 +44,7 @@ public:
      * Handle the comment startig at @a commentstart within bufferStart with lenght @a len.
      * Search for corresponding declaration in the given source location interval
      */
-    void handleComment(Generator& generator,
+    void handleComment(Generator& generator, clang::Preprocessor & PP,
                        const char* bufferStart, int commentStart, int len,
                        clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd);
 

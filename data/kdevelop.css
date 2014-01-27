@@ -50,6 +50,11 @@ a.logo { float:right }
 
 /* color style */
 /*.comment, */  .code i { color: #888; font-style: oblique }
+                .code i.doc { color: #00f; font-style: oblique }
+                .code i .command { color: #CA60CA; font-weight: bold; font-style: normal;}
+                .code i .arg { color: #0095FF; font-weight: bold; font-style: normal;}
+                .code i .tag { color: #000; font-weight: bold; font-style: normal;}
+                .code i .verb { color: #888; }
 /*.keyword, */  .code b { font-weight: bold; }
 /*.keytype, */  .code em { color: #0057AE; font-style:normal }
 /*.string,  */  .code q { color: #BF0303; font-style: normal }

@@ -126,7 +126,7 @@ private:
     clang::SourceManager *sourceManager = nullptr;
     const clang::LangOptions *langOption = nullptr;
 
-    void syntaxHighlight(Generator& generator, clang::FileID FID, const clang::Preprocessor& PP);
+    void syntaxHighlight(Generator& generator, clang::FileID FID, clang::Preprocessor& PP);
 public:
     Annotator(std::string outputPrefix, std::string _dataPath) : outputPrefix(std::move(outputPrefix)) , dataPath(std::move(_dataPath)) {
         if (dataPath.empty()) dataPath = "../data";

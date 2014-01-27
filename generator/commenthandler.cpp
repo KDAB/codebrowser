@@ -22,11 +22,85 @@
 #include "commenthandler.h"
 #include "generator.h"
 #include "stringbuilder.h"
+#include <clang/AST/RawCommentList.h>
+#include <clang/AST/CommentParser.h>
+#include <clang/AST/CommentVisitor.h>
+#include <clang/Lex/Preprocessor.h>
+#include <clang/Basic/Version.h>
 
-void CommentHandler::handleComment(Generator& generator, const char *bufferStart,
-                                   int commentStart, int len,
+struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<CommentVisitor>  {
+    typedef clang::comments::ConstCommentVisitor<CommentVisitor> Base;
+    CommentVisitor(Generator &generator, const clang::comments::CommandTraits &traits)
+        : generator(generator) , traits(traits) {}
+    Generator &generator;
+    const clang::comments::CommandTraits &traits;
+
+    void visit(const clang::comments::Comment *C) {
+        Base::visit(C);
+        for (auto it = C->child_begin(); it != C->child_end(); ++it)
+            visit(*it);
+    }
+
+    // Inline content.
+    //void visitTextComment(const clang::comments::TextComment *C);
+    void visitInlineCommandComment(const clang::comments::InlineCommandComment *C) {
+
+        tag("command", C->getCommandNameRange());
+        for (int i = 0; i < C->getNumArgs(); ++i)
+            tag("arg", C->getArgRange(i));
+    }
+    void visitHTMLStartTagComment(const clang::comments::HTMLStartTagComment *C) {
+        tag("tag", C->getSourceRange());
+        /*for (int i = 0; i < C->getNumAttrs(); ++i) {
+            auto attr = C->getAttr(i);
+            tag("attr", attr.getNameRange());
+        }*/
+    }
+    void visitHTMLEndTagComment(const clang::comments::HTMLEndTagComment *C) {
+        tag("tag", C->getSourceRange());
+    }
+
+    // Block content.
+    //void visitParagraphComment(const clang::comments::ParagraphComment *C);
+    void visitBlockCommandComment(const clang::comments::BlockCommandComment *C) {
+        auto nameRange = C->getCommandNameRange(traits);
+        tag("command", {C->getLocStart(),  nameRange.getEnd()});
+        for (int i = 0; i < C->getNumArgs(); ++i)
+            tag("arg", C->getArgRange(i));
+    }
+    //void visitParamCommandComment(const clang::comments::ParamCommandComment *C);
+    //void visitTParamCommandComment(const clang::comments::TParamCommandComment *C);
+    /*void visitVerbatimBlockComment(const clang::comments::VerbatimBlockComment *C) {
+        Base::visitVerbatimBlockComment(C);
+        FIXME
+        // highlight the closing command
+        auto end = C->getLocEnd();
+        tag("arg", {end.getLocWithOffset(-C->getCloseName().size()) ,end});
+    }*/
+    void visitVerbatimBlockLineComment(const clang::comments::VerbatimBlockLineComment *C) {
+        tag("verb", C->getSourceRange());
+
+    }
+    void visitVerbatimLineComment(const clang::comments::VerbatimLineComment *C) {
+        tag("verb", C->getTextRange());
+        Base::visitVerbatimLineComment(C);
+    }
+
+    //void visitFullComment(const clang::comments::FullComment *C);
+
+private:
+    void tag(llvm::StringRef className, clang::SourceRange range) {
+        int len = range.getEnd().getRawEncoding() - range.getBegin().getRawEncoding() + 1;
+        if (len > 0)
+            generator.addTag("span", "class=\""%className%"\"", range.getBegin().getRawEncoding(), len);
+    }
+};
+
+void CommentHandler::handleComment(Generator& generator, clang::Preprocessor &PP,
+                                   const char *bufferStart, int commentStart, int len,
                                    clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd)
 {
+    llvm::StringRef rawString(bufferStart+commentStart, len);
     std::string attributes;
 
     // Try to find a matching declaration
@@ -36,12 +110,35 @@ void CommentHandler::handleComment(Generator& generator, const char *bufferStart
     auto it_after = dof.upper_bound(searchLocEnd);
     if (it_before != dof.end() && it_before == (--it_after)) {
         if (it_before->second.second) {
-            docs.insert({it_before->second.first, std::string(bufferStart + commentStart, bufferStart + commentStart + len)});
+            docs.insert({it_before->second.first, rawString.str()});
         } else {
             attributes = "data-doc=\"" % it_before->second.first % "\"";
         }
     }
 
+    if ((rawString.ltrim().startswith("/**") && !rawString.ltrim().startswith("/***"))
+            || rawString.ltrim().startswith("/*!") || rawString.ltrim().startswith("//!")
+            || (rawString.ltrim().startswith("///") && !rawString.ltrim().startswith("////")))
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=4
+        if (rawString.find("deprecated") == rawString.npos) // workaround crash in comments::Sema::checkDeprecatedCommand
+#endif
+    {
+        attributes %= " class=\"doc\"";
+
+        clang::comments::CommandTraits traits(PP.getPreprocessorAllocator(), clang::CommentOptions());
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=4
+        traits.registerBlockCommand("deprecated"); // avoid typo correction leading to crash.
+#endif
+        clang::comments::Lexer lexer(PP.getPreprocessorAllocator(), PP.getDiagnostics(), traits,
+                                     clang::SourceLocation::getFromRawEncoding(commentStart), bufferStart + commentStart, bufferStart + commentStart + len);
+        clang::comments::Sema sema(PP.getPreprocessorAllocator(), PP.getSourceManager(), PP.getDiagnostics(), traits, &PP);
+        clang::comments::Parser parser(lexer, sema, PP.getPreprocessorAllocator(), PP.getSourceManager(),
+                                       PP.getDiagnostics(), traits);
+
+        auto fullComment = parser.parseFullComment();
+        CommentVisitor visitor{generator, traits};
+        visitor.visit(fullComment);
+    }
 
     generator.addTag("i", attributes, commentStart, len);
 }

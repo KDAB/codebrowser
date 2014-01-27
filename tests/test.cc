@@ -38,12 +38,12 @@ Type MyBase::static_member = 8;
 //  } end
 struct MyClass /* ??? */ :  MyBase {
 
-    std::string string;  // documentation for string
-    std::string string2; /*  and for string 2 */ /* more on string 2 */
+    std::string string;  /// documentation for string
+    std::string string2; /**  and for string 2 */ /* more on string 2 */
 
     union {
         //this is an integer
-/*and this */      int integer; // plop
+/*!and this */      int integer; // plop
                                 // plop
 /* what is this */    double dbl;
     };
@@ -79,6 +79,24 @@ struct MyClass /* ??? */ :  MyBase {
 };
 
 
+/*!
+ * yo
+ * @param foo bar foo
+ *
+ * <a href="http://google.com">yo</a>
+ *
+ * @code
+ *  foo bar foo
+ * @endcode
+ *
+ * @c hello world  @c{yoyo m}
+ * @li djq skql qslk
+ *
+ * dsd
+ *
+ * whaaat?
+ */
+
 int MyClass::outofline(std::string foo)
 {
     return foo.size();
@@ -89,7 +107,9 @@ MyClass::~ /* random  comment  */ MyClass()
 
 }
 
-//Some enum
+///Some enum
+/// @brief Just an enum
+
 enum MyEnum { Val1, //comment1
 //comment2
 Val2 = 3 + 3 };
@@ -183,6 +203,10 @@ int InAnonymousNamspace::someFunction()
 {
     return member;
 }
+    /**
+     * @deprecated foobar
+     *
+     */
 
 static int some_static_func() {
     extern int extern_val;

@@ -768,7 +768,7 @@ std::string Annotator::computeClas(clang::NamedDecl* decl)
  * The tags names have been changed, and we make a difference between different kinds of
  * keywords
  */
-void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const clang::Preprocessor &PP) {
+void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::Preprocessor &PP) {
     using namespace clang;
 
     const SourceManager &SM = PP.getSourceManager();
@@ -856,7 +856,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                     const char *nl_it = BufferStart + NonCommentBegin;
                     while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
                         ++nl_it;
-                    commentHandler.handleComment(generator, BufferStart, CommentBegin, CommentLen,
+                    commentHandler.handleComment(generator, PP, BufferStart, CommentBegin, CommentLen,
                                                  Tok.getLocation(),
                                                  Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)));
                 } else {
@@ -864,7 +864,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, const c
                     const char *nl_it = BufferStart + CommentBegin;
                     while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
                         --nl_it;
-                    commentHandler.handleComment(generator, BufferStart, CommentBegin, CommentLen,
+                    commentHandler.handleComment(generator, PP, BufferStart, CommentBegin, CommentLen,
                                                  CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
                                                  CommentBeginLocation);
                 }
