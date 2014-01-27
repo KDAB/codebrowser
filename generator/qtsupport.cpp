@@ -29,7 +29,6 @@
 #include <clang/Basic/SourceManager.h>
 #include <llvm/Support/MemoryBuffer.h>
 
-
 /**
  * \a obj is an expression to a type of an QObject (or pointer to) that is the sender or the receiver
  * \a method is an expression like SIGNAL(....)  or SLOT(....)
@@ -83,17 +82,27 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 
     // Try to find the method which match this name in the given class or bases.
     llvm::SmallVector<clang::CXXMethodDecl *, 10> candidates;
+    clang::CXXMethodDecl *d_func = nullptr;
     auto classIt = objClass;
     while (classIt) {
+        if (!classIt->getDefinition())
+            break;
+
         for (auto mi = classIt->method_begin(); mi != classIt->method_end(); ++mi) {
             if ((*mi)->getName() == methodName)
                 candidates.push_back(*mi);
+            if (!d_func && (*mi)->getName() == "d_func" && !(*mi)->getResultType().isNull())
+                d_func = *mi;
         }
 
-        if (classIt->getNumBases() == 0)
-            break;
         // Look in the first base  (because the QObject need to be the first base class)
-        classIt = classIt->bases_begin()->getType()->getAsCXXRecordDecl();
+        classIt = classIt->getNumBases() == 0 ? nullptr :
+            classIt->bases_begin()->getType()->getAsCXXRecordDecl();
+
+        if (d_func && !classIt && candidates.empty()) {
+            classIt = d_func->getResultType()->getPointeeCXXRecordDecl();
+            d_func = nullptr;
+        }
     }
 
     clang::LangOptions lo;
@@ -310,8 +319,6 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
     }
 }
 
-
-
 void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
 {
     clang::CXXConstructorDecl *methodDecl = e->getConstructor();
@@ -319,9 +326,6 @@ void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
         return;
 
     auto parent = methodDecl->getParent();
-
-   // std::cout << methodDecl->getQualifiedNameAsString() << " -> " <<methodDecl->getName().str() << std::endl ;
-
     if (!parent->getName().startswith("Q"))
         return; // only Qt classes
 

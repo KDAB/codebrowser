@@ -1,8 +1,14 @@
 #include <QtGui/QtGui>
 #include <QtTest/QSignalSpy>
 
+class MyObjectPrivate {
+public:
+    void myPrivateSlot();
+};
+
 class MyObject : public QObject {
     Q_OBJECT
+    Q_DECLARE_PRIVATE(MyObject)
 public slots:
 
     void superSlot1(const QString &myString, const uint s);
@@ -39,8 +45,9 @@ void MyObject::superSlot1(const QString& myString, const uint s)
 
     connect(this, SIGNAL    (   destroyed(QObject*)   ), this, SLOT(superSlot2()));
 
-
     stackOj.connect(this, SIGNAL(mySignal1(QString,uint,QMap<int,QString>)), SLOT(superSlot1(QString,uint)));
+
+    connect(this, SIGNAL(pointerSignal(const QObject*))  ,this, SLOT(myPrivateSlot()));
 }
 
 
