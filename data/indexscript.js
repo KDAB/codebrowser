@@ -24,6 +24,7 @@ $(function() {
 
     // remove trailing slash
     root_path = root_path.replace(/\/$/, "");
+    if(!root_path) root_path = ".";
 
     var fileIndex = [];
     var searchTerms = {}
