@@ -180,7 +180,7 @@ public:
         v.TraverseDecl(Ctx.getTranslationUnitDecl());
 
 
-        annotator.generate(ci.getPreprocessor());
+        annotator.generate(ci.getSema());
     }
 
     virtual bool shouldSkipFunctionBody(clang::Decl *D) {

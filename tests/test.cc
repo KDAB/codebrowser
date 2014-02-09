@@ -250,6 +250,8 @@ int *oh() {
     return &nonstatic_val;
 }
 
+namespace rel_ops = std::rel_ops;
+
 
 /**
  * \class MyClassDerived

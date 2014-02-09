@@ -126,7 +126,7 @@ private:
     clang::SourceManager *sourceManager = nullptr;
     const clang::LangOptions *langOption = nullptr;
 
-    void syntaxHighlight(Generator& generator, clang::FileID FID, clang::Preprocessor& PP);
+    void syntaxHighlight(Generator& generator, clang::FileID FID, clang::Sema&);
 public:
     Annotator(std::string outputPrefix, std::string _dataPath) : outputPrefix(std::move(outputPrefix)) , dataPath(std::move(_dataPath)) {
         if (dataPath.empty()) dataPath = "../data";
@@ -141,7 +141,7 @@ public:
     const clang::LangOptions &getLangOpts() const { return *langOption; }
     void setArgs(std::string a) { args = std::move(a); }
 
-    bool generate(clang::Preprocessor& PP);
+    bool generate(clang::Sema&);
 
     std::string pathTo(clang::FileID From, clang::FileID To);
     std::string pathTo(clang::FileID From, const clang::FileEntry* To);
@@ -166,4 +166,9 @@ public:
     std::string getTypeRef(clang::QualType type);
     std::string computeClas(clang::NamedDecl* decl);
     std::string getContextStr(clang::NamedDecl* usedContext);
+    /**
+     * returns the reference of a class iff this class is visible
+     * (that is, if a tooltip file should be generated for it)
+     */
+    std::string getVisibleRef(clang::NamedDecl* Decl);
 };

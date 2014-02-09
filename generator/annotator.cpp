@@ -33,6 +33,7 @@
 #include <clang/AST/PrettyPrinter.h>
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
+#include <clang/Sema/Sema.h>
 
 #include <iostream>
 #include <sstream>
@@ -196,7 +197,7 @@ static char normalizeForfnIndex(char c) {
     return c;
 }
 
-bool Annotator::generate(clang::Preprocessor &PP)
+bool Annotator::generate(clang::Sema &Sema)
 {
     std::ofstream fileIndex;
     fileIndex.open(outputPrefix + "/fileIndex", std::ios::app);
@@ -230,7 +231,7 @@ bool Annotator::generate(clang::Preprocessor &PP)
 
         Generator &g = generator(FID);
 
-        syntaxHighlight(g, FID, PP);
+        syntaxHighlight(g, FID, Sema);
 //        clang::html::HighlightMacros(R, FID, PP);
 
         std::string footer;
@@ -748,6 +749,12 @@ std::string Annotator::getContextStr(clang::NamedDecl* usedContext)
     return {};
 }
 
+std::string Annotator::getVisibleRef(clang::NamedDecl* Decl)
+{
+    if (getVisibility(Decl) != Visibility::Global)
+        return {};
+    return getReferenceAndTitle(Decl).first;
+}
 
 //return the classes to add in the span
 std::string Annotator::computeClas(clang::NamedDecl* decl)
@@ -768,12 +775,13 @@ std::string Annotator::computeClas(clang::NamedDecl* decl)
  * The tags names have been changed, and we make a difference between different kinds of
  * keywords
  */
-void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::Preprocessor &PP) {
+void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::Sema &Sema) {
     using namespace clang;
 
-    const SourceManager &SM = PP.getSourceManager();
+    const clang::Preprocessor &PP = Sema.getPreprocessor();
+    const clang::SourceManager &SM = getSourceMgr();
     const llvm::MemoryBuffer *FromFile = SM.getBuffer(FID);
-    Lexer L(FID, FromFile, SM, PP.getLangOpts());
+    Lexer L(FID, FromFile, SM, getLangOpts());
     const char *BufferStart = FromFile->getBufferStart();
     const char *BufferEnd = FromFile->getBufferEnd();
 
@@ -856,7 +864,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
                     const char *nl_it = BufferStart + NonCommentBegin;
                     while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
                         ++nl_it;
-                    commentHandler.handleComment(generator, PP, BufferStart, CommentBegin, CommentLen,
+                    commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
                                                  Tok.getLocation(),
                                                  Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)));
                 } else {
@@ -864,7 +872,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
                     const char *nl_it = BufferStart + CommentBegin;
                     while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
                         --nl_it;
-                    commentHandler.handleComment(generator, PP, BufferStart, CommentBegin, CommentLen,
+                    commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
                                                  CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
                                                  CommentBeginLocation);
                 }

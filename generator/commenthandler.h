@@ -25,8 +25,10 @@
 #include <map>
 #include <clang/Basic/SourceLocation.h>
 
+class Annotator;
 namespace clang {
 class Preprocessor;
+class Sema;
 }
 
 class Generator;
@@ -44,7 +46,7 @@ public:
      * Handle the comment startig at @a commentstart within bufferStart with lenght @a len.
      * Search for corresponding declaration in the given source location interval
      */
-    void handleComment(Generator& generator, clang::Preprocessor & PP,
+    void handleComment(Annotator &A, Generator& generator, clang::Sema& Sema,
                        const char* bufferStart, int commentStart, int len,
                        clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd);
 
