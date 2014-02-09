@@ -203,10 +203,12 @@ protected:
     virtual clang::ASTConsumer *CreateASTConsumer(clang::CompilerInstance &CI,
                                            llvm::StringRef InFile) override {
         if (processed.count(InFile.str())) {
-            std::cerr << "####  Skipping already processed " << InFile.str()<< std::endl;
+            std::cerr << "Skipping already processed " << InFile.str()<< std::endl;
             return nullptr;
         }
         processed.insert(InFile.str());
+
+        std::cerr << "Processing " << InFile.str() << "\n";
 
         CI.getFrontendOpts().SkipFunctionBodies =
             sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
@@ -222,28 +224,58 @@ public:
 std::set<std::string> BrowserAction::processed;
 
 
-using namespace clang::tooling;
-
 int main(int argc, const char **argv) {
-  llvm::OwningPtr<CompilationDatabase> Compilations(
-    FixedCompilationDatabase::loadFromCommandLine(argc, argv));
-  llvm::cl::ParseCommandLineOptions(argc, argv);
-  if (!Compilations) {
-    std::string ErrorMessage;
-    Compilations.reset(CompilationDatabase::loadFromDirectory(BuildPath,
-                                                            ErrorMessage));
+    llvm::OwningPtr<clang::tooling::CompilationDatabase> Compilations(
+        clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv));
 
-    /*if (!BuildPath.empty()) {
-      Compilations.reset(
-         CompilationDatabase::autoDetectFromDirectory(BuildPath, ErrorMessage));
-    } else {
-      Compilations.reset(CompilationDatabase::autoDetectFromSource(
-          SourcePaths[0], ErrorMessage));
-    }*/
-    if (!Compilations)
-      llvm::report_fatal_error(ErrorMessage);
-  }
-  ClangTool Tool(*Compilations, SourcePaths);
-  return Tool.run(newFrontendActionFactory<BrowserAction>());
+    llvm::cl::ParseCommandLineOptions(argc, argv);
+    if (!Compilations) {
+        std::string ErrorMessage;
+        Compilations.reset(clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath,
+                                                            ErrorMessage));
+        if (!ErrorMessage.empty()) {
+            std::cerr << ErrorMessage << std::endl;
+        }
+    }
+
+    if (!Compilations) {
+        std::cerr << "Could not load compilationdatabase. "
+                     "Please use the -b option to a path containing a compile_commands.json, or use "
+                     "'--' followed by the compilation commands." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    clang::FileManager FM({"."});
+    FM.Retain();
+
+    for (const auto &it : SourcePaths) {
+        std::string file = clang::tooling::getAbsolutePath(it);
+
+
+        bool isInDatabase = false;
+
+        std::vector<std::string> command;
+
+        if (Compilations) {
+            std::vector<clang::tooling::CompileCommand> compileCommandsForFile =
+                Compilations->getCompileCommands(file);
+            if (!compileCommandsForFile.empty()) {
+                //FIXME: make all the patsh absolute.
+                command = compileCommandsForFile.front().CommandLine;
+                isInDatabase = true;
+            } else {
+                // TODO: Try to find a command line for a file in the same path
+                std::cerr << "Skiping " << file << "\n";
+                continue;
+            }
+        }
+
+        auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
+        Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
+        Ajust(clang::tooling::ClangStripOutputAdjuster());
+
+        clang::tooling::ToolInvocation Inv(command, clang::tooling::newFrontendActionFactory<BrowserAction>(), &FM);
+        Inv.run();
+    }
 }
 
