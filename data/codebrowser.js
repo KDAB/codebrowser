@@ -831,23 +831,24 @@ $(function () {
     // Find the current context while scrolling
     $("#content").scroll(function() {
         var toppos = $("#content").offset().top;
-        $('tr').each(function() {
-            //console.log( scrolltop, $(this).offset().top,  $(this).text()  )
-            if ($(this).offset().top > toppos) {
-                var context = $(this).prevAll().find(".def").first();
-                var c = "";
-                if (context.length == 1 && context.hasClass("decl")) {
-                    c = context[0].title_;
-                    if (c === undefined)
-                        c = context.attr("title");
-                }
-
-                $("span#breadcrumb_symbol").text(c);
-
-
+        var context = undefined;
+        $('.def').each(function() {
+            var t = $(this);
+            if (t.offset().top > toppos) {
                 return false;
             }
+            context = t;
         });
+        var c = "";
+        if (context !== undefined) {
+          if (context.hasClass("decl")) {
+              c = context[0].title_;
+              if (c === undefined)
+                  c = context.attr("title");
+          }
+        }
+
+        $("span#breadcrumb_symbol").text(c);
     });
 
 /*-------------------------------------------------------------------------------------*/
