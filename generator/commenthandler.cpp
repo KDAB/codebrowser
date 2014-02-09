@@ -82,7 +82,10 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
 
     }
     void visitVerbatimLineComment(const clang::comments::VerbatimLineComment *C) {
-        tag("verb", C->getTextRange());
+        auto R = C->getTextRange();
+        // We need to adjust because the text starts right after the name, which overlap with the
+        // command.  And also includes the end of line, which is useless.
+        tag("verb", {R.getBegin().getLocWithOffset(+1), R.getEnd().getLocWithOffset(-1)});
         Base::visitVerbatimLineComment(C);
     }
 

@@ -247,3 +247,18 @@ int *oh() {
     }
     return &nonstatic_val;
 }
+
+
+/**
+ * \class MyClassDerived
+ *
+ * out of line comment for MyClassDerived
+ *
+ */
+
+/**
+ * \fn MyClassDerived::m
+ *
+ * out of line comment for m
+ *
+ */
