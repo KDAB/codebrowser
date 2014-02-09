@@ -115,12 +115,12 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
     }
 };
 
-class MyASTConsumer : public clang::ASTConsumer
+class BrowserASTConsumer : public clang::ASTConsumer
 {
     clang::CompilerInstance &ci;
     Annotator annotator;
 public:
-    MyASTConsumer(clang::CompilerInstance &ci) : clang::ASTConsumer(), ci(ci),
+    BrowserASTConsumer(clang::CompilerInstance &ci) : clang::ASTConsumer(), ci(ci),
             annotator (OutputPath, DataPath)
 
     {
@@ -155,7 +155,7 @@ public:
         //ci.getLangOpts().DelayedTemplateParsing = (true);
         ci.getPreprocessor().enableIncrementalProcessing();
     }
-    virtual ~MyASTConsumer() {
+    virtual ~BrowserASTConsumer() {
 	        ci.getDiagnostics().setClient(new clang::IgnoringDiagConsumer, true);
 	 }
 
@@ -194,7 +194,7 @@ namespace HasShouldSkipBody_HELPER {
 
 
 
-class MyAction : public clang::ASTFrontendAction {
+class BrowserAction : public clang::ASTFrontendAction {
     static std::set<std::string> processed;
 protected:
     virtual clang::ASTConsumer *CreateASTConsumer(clang::CompilerInstance &CI,
@@ -208,7 +208,7 @@ protected:
         CI.getFrontendOpts().SkipFunctionBodies =
             sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
 
-        return new MyASTConsumer(CI);
+        return new BrowserASTConsumer(CI);
     }
 
 public:
@@ -216,7 +216,7 @@ public:
 };
 
 
-std::set<std::string> MyAction::processed;
+std::set<std::string> BrowserAction::processed;
 
 
 using namespace clang::tooling;
@@ -241,6 +241,6 @@ int main(int argc, const char **argv) {
       llvm::report_fatal_error(ErrorMessage);
   }
   ClangTool Tool(*Compilations, SourcePaths);
-  return Tool.run(newFrontendActionFactory<MyAction>());
+  return Tool.run(newFrontendActionFactory<BrowserAction>());
 }
 
