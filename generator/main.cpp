@@ -112,6 +112,9 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
                 return;
         }
         annotator.reportDiagnostic(Info.getLocation(), diag.c_str(), clas);
+
+        // Hack to ignore the fatal errors.
+        const_cast<clang::DiagnosticsEngine *>(Info.getDiags())->Reset();
     }
 };
 

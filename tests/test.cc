@@ -1,6 +1,8 @@
 #include <string>
 #include <boost/concept_check.hpp>
 
+#include "notexist.g"
+
 namespace NS {
     namespace Foo {
         namespace Bar {
