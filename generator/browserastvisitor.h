@@ -95,7 +95,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
                     }
                 }
             }
-            typeTextStream << annotator.getTypeRef(d->getResultType()) << " " << d->getQualifiedNameAsString() << "(";
+            typeTextStream << annotator.getTypeRef(getResultType(d)) << " " << d->getQualifiedNameAsString() << "(";
             for (uint i = 0; i < d->getNumParams(); i++) {
                 if (i!=0) typeTextStream << ", ";
                 clang::ParmVarDecl* PVD = d->getParamDecl(i);

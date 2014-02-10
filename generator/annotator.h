@@ -43,6 +43,11 @@ class Decl;
 class FileEntry;
 }
 
+/* Wrapper for the change in the name in clang 3.5 */
+template <typename T> auto getResultType(T *decl) -> decltype(decl->getResultType())
+{ return decl->getResultType(); }
+template <typename T> auto getResultType(T *decl) -> decltype(decl->getReturnType())
+{ return decl->getReturnType(); }
 
 struct ProjectInfo {
     std::string name;

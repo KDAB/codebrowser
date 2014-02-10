@@ -91,7 +91,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
         for (auto mi = classIt->method_begin(); mi != classIt->method_end(); ++mi) {
             if ((*mi)->getName() == methodName)
                 candidates.push_back(*mi);
-            if (!d_func && (*mi)->getName() == "d_func" && !(*mi)->getResultType().isNull())
+            if (!d_func && (*mi)->getName() == "d_func" && !getResultType(*mi).isNull())
                 d_func = *mi;
         }
 
@@ -100,7 +100,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
             classIt->bases_begin()->getType()->getAsCXXRecordDecl();
 
         if (d_func && !classIt && candidates.empty()) {
-            classIt = d_func->getResultType()->getPointeeCXXRecordDecl();
+            classIt = getResultType(d_func)->getPointeeCXXRecordDecl();
             d_func = nullptr;
         }
     }
