@@ -34,8 +34,7 @@
 
 #include <iostream>
 
-
-clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &Sema) {
+clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &Sema, bool isFunction) {
 
     clang::Preprocessor &PP = Sema.getPreprocessor();
 
@@ -47,18 +46,18 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
     clang::CXXScopeSpec SS;
     clang::Token Tok, Next;
     Lex.LexFromRawLexer(Tok);
-    if (Tok.is(clang::tok::coloncolon)) {
-        SS.MakeGlobal(Sema.getASTContext(), Tok.getLocation());
-        Lex.LexFromRawLexer(Next);
-    }
 
     for (; !Tok.is(clang::tok::eof); Tok = Next) {
         Lex.LexFromRawLexer(Next);
         clang::IdentifierInfo* II = nullptr;
-        if (Tok.is(clang::tok::raw_identifier))
+        if (Tok.is(clang::tok::raw_identifier)) {
             II = PP.LookUpIdentifierInfo(Tok);
+        }
 
-        if (Tok.is(clang::tok::identifier)) {
+        if (Tok.is(clang::tok::coloncolon)) {
+            SS.MakeGlobal(Sema.getASTContext(), Tok.getLocation());
+            continue;
+        } else if (Tok.is(clang::tok::identifier)) {
 
             if (Next.is(clang::tok::coloncolon)) {
                 if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), *II, Tok.getLocation(), Next.getLocation(), {}, false, SS))
@@ -67,20 +66,42 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                 continue;
             }
 
-            clang::LookupResult Found(Sema, II, Tok.getLocation(), clang::Sema::LookupAnyName);
+            if (Next.is(clang::tok::eof) || Next.is(clang::tok::l_paren)) {
+                clang::LookupResult Found(Sema, II, Tok.getLocation(), clang::Sema::LookupOrdinaryName);
+                Found.suppressDiagnostics();
 
-            if (SS.isEmpty())
-                Sema.LookupQualifiedName(Found, TuDecl);
-            else {
-                clang::DeclContext* DC = Sema.computeDeclContext(SS);
-                Sema.LookupQualifiedName(Found, DC ? DC : TuDecl);
+                if (SS.isEmpty())
+                    Sema.LookupQualifiedName(Found, TuDecl);
+                else {
+                    clang::DeclContext* DC = Sema.computeDeclContext(SS);
+                    Sema.LookupQualifiedName(Found, DC ? DC : TuDecl);
+                }
+
+                if (Found.isSingleResult()) {
+                    auto Decl = Found.getFoundDecl();
+                    if (isFunction && llvm::isa<clang::RecordDecl>(Decl)) {
+                        // TODO handle constructors.
+                        return nullptr;
+                    }
+                    return Decl;
+                }
+
+                if (Found.isOverloadedResult() && Next.is(clang::tok::l_paren)) {
+                    // TODO
+                }
+
+                return nullptr;
             }
-
-            if (Found.isSingleResult())
-                return Found.getFoundDecl();
+        }
+        if (Tok.is(clang::tok::tilde) || Tok.is(clang::tok::kw_operator)) {
+            //TODO
             return nullptr;
         }
-        return nullptr;
+
+        if (!isFunction)
+            return nullptr;
+        SS = {};
+        // Then it is probably the return type, just skip it.
     }
     return nullptr;
 }
@@ -149,7 +170,8 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
 
         auto Info = traits.getCommandInfo(C->getCommandID());
         if (Info->IsDeclarationCommand) {
-            auto D = parseDeclarationReference(C->getText(), Sema);
+            auto D = parseDeclarationReference(C->getText(), Sema,
+                Info->IsFunctionDeclarationCommand || Info->getID() ==  clang::comments::CommandTraits::KCI_fn);
             if (D)
                 Decl = D;
         }

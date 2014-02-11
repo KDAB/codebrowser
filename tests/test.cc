@@ -3,6 +3,8 @@
 
 #include "notexist.g"
 
+#include "doc.h"
+
 namespace NS {
     namespace Foo {
         namespace Bar {
@@ -251,18 +253,3 @@ int *oh() {
 }
 
 namespace rel_ops = std::rel_ops;
-
-
-/**
- * \class MyClassDerived
- *
- * out of line comment for MyClassDerived
- *
- */
-
-/**
- * \fn MyClassDerived::m
- *
- * out of line comment for m
- *
- */
