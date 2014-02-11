@@ -33,7 +33,7 @@
 #include <limits>
 #include <stdexcept>
 #include "annotator.h"
-
+#include "stringbuilder.h"
 #include "browserastvisitor.h"
 #include "preprocessorcallback.h"
 
@@ -223,7 +223,6 @@ public:
 
 std::set<std::string> BrowserAction::processed;
 
-
 int main(int argc, const char **argv) {
     llvm::OwningPtr<clang::tooling::CompilationDatabase> Compilations(
         clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv));
@@ -264,8 +263,30 @@ int main(int argc, const char **argv) {
             std::vector<clang::tooling::CompileCommand> compileCommandsForFile =
                 Compilations->getCompileCommands(file);
             if (!compileCommandsForFile.empty()) {
-                //FIXME: make all the patsh absolute.
                 command = compileCommandsForFile.front().CommandLine;
+
+                // This code change all the paths to be absolute paths
+                //  FIXME:  it is a bit fragile.
+                bool previousIsDashI = false;
+                std::for_each(command.begin(), command.end(), [&](std::string &A) {
+                    if (previousIsDashI && !A.empty() && A[0] != '/') {
+                        A = compileCommandsForFile.front().Directory % "/" % A;
+                        return;
+                    } else if (A == "-I") {
+                        previousIsDashI = true;
+                        return;
+                    }
+                    previousIsDashI = false;
+                    if (A.empty()) return;
+                    if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
+                        A = "-I" % compileCommandsForFile.front().Directory % "/" % llvm::StringRef(A).substr(2);
+                        return;
+                    }
+                    if (A[0] == '-' || A[0] == '/') return;
+                    std::string PossiblePath = compileCommandsForFile.front().Directory % "/" % A;
+                    if (llvm::sys::fs::exists(PossiblePath))
+                        A = PossiblePath;
+                } );
                 isInDatabase = true;
             } else {
                 // TODO: Try to find a command line for a file in the same path
