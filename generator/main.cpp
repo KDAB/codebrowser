@@ -245,6 +245,10 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
+
+    static int StaticSymbol;
+    std::string MainExecutable = llvm::sys::fs::getMainExecutable("clang_tool", &StaticSymbol);
+
     clang::FileManager FM({"."});
     FM.Retain();
 
@@ -273,6 +277,7 @@ int main(int argc, const char **argv) {
         auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
         Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
         Ajust(clang::tooling::ClangStripOutputAdjuster());
+        command[0] = MainExecutable;
 
         clang::tooling::ToolInvocation Inv(command, clang::tooling::newFrontendActionFactory<BrowserAction>(), &FM);
         Inv.run();
