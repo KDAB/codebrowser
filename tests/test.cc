@@ -252,4 +252,10 @@ int *oh() {
     return &nonstatic_val;
 }
 
+class ForwardDeclare;
+int func() {
+    ForwardDeclare thisIsAnError(34);
+}
+
+
 namespace rel_ops = std::rel_ops;

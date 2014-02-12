@@ -112,9 +112,6 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
                 return;
         }
         annotator.reportDiagnostic(Info.getLocation(), diag.c_str(), clas);
-
-        // Hack to ignore the fatal errors.
-        const_cast<clang::DiagnosticsEngine *>(Info.getDiags())->Reset();
     }
 };
 
@@ -167,6 +164,12 @@ public:
         annotator.setMangleContext(Ctx.createMangleContext());
         ci.getPreprocessor().addPPCallbacks(new PreprocessorCallback(annotator, ci.getPreprocessor()));
         ci.getDiagnostics().setClient(new BrowserDiagnosticClient(annotator), true);
+    }
+
+    virtual bool HandleTopLevelDecl(clang::DeclGroupRef D) {
+        // Reset errors: (Hack to ignore the fatal errors.)
+        ci.getDiagnostics().Reset();
+        return true;
     }
 
     virtual void HandleTranslationUnit(clang::ASTContext& Ctx) override {
