@@ -140,3 +140,18 @@ public:
 int wow;
 
 
+template <class T>
+class SuperList {
+public:
+    SuperList();
+    SuperList(T);
+    SuperList(int, int);
+    ~SuperList();
+    int at(int);
+};
+
+/*! \class SuperList  */
+
+/*! \fn SuperList::SuperList()  */
+/*! \fn SuperList::SuperList(T)  */
+/*! \fn SuperList::at  */

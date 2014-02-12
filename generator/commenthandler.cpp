@@ -27,6 +27,7 @@
 #include <clang/AST/CommentParser.h>
 #include <clang/AST/CommentVisitor.h>
 #include <clang/AST/ASTContext.h>
+#include <clang/AST/DeclTemplate.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Basic/Version.h>
 #include <clang/Sema/Sema.h>
@@ -77,9 +78,11 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                     Sema.LookupQualifiedName(Found, DC ? DC : TuDecl);
                 }
 
+
                 if (Found.isSingleResult()) {
                     auto Decl = Found.getFoundDecl();
-                    if (isFunction && llvm::isa<clang::RecordDecl>(Decl)) {
+                    if (isFunction && (llvm::isa<clang::RecordDecl>(Decl)
+                                       || llvm::isa<clang::ClassTemplateDecl>(Decl))) {
                         // TODO handle constructors.
                         return nullptr;
                     }
