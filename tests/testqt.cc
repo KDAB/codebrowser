@@ -134,4 +134,10 @@ public slots:
 
 }
 
+int ndbug(TestNS::C *c) {
+#define S1GNAL(X) "2" #X
+#define SL0T(X) "1" #X
+    QObject::connect(c, S1GNAL(sig2(TestNS::C*)), c, SL0T(MySlot()));
+}
+
 

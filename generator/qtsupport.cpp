@@ -39,6 +39,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 {
     if (!obj || !method) return;
     obj = obj->IgnoreImpCasts();
+    method = method->IgnoreImpCasts();
     auto objType = obj->getType().getTypePtrOrNull();
     if (!objType) return;
 
