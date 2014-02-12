@@ -443,8 +443,12 @@ $(function () {
                         var comment = $(this).html();
                         if ($.inArray(comment, seen_comments) !== -1)
                             return;
-                        content += "<br/><i>" + comment + "</i>";
                         seen_comments.push(comment);
+                        if (comment.length > 550) {
+                            // FIXME: we should not split in an escape code
+                            comment = comment.substr(0, 500) + "<a href='#' class='expandcomment'> [more...]</a><span style='display:none'>" + comment.substr(500) + "</span>";
+                        }
+                        content += "<br/><i>" + comment + "</i>";
                     });
 
                     var p = function (label, tag) {
@@ -568,6 +572,8 @@ $(function () {
                 tt.find(".uses").hide();
                 tt.find(".showuse").click(function(e) {
                     tt.find(".uses").toggle(); return false;});
+                tt.find(".expandcomment").click(function(e) {
+                    $(this).toggle(); $(this).next().toggle();return false;});
             }
 
             if (!this.title_) {
