@@ -107,6 +107,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 
     clang::LangOptions lo;
     lo.CPlusPlus = true;
+    lo.Bool = true;
     clang::PrintingPolicy policy(lo);
     policy.SuppressScope = true;
 

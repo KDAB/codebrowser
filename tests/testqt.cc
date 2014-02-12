@@ -27,6 +27,8 @@ signals:
 
     void pointerSignal(const QObject *);
 
+    void myBoolSignal(bool);
+
 
 //    void invalidSignal(InvalidTypeGoesHere);
 
@@ -47,7 +49,8 @@ void MyObject::superSlot1(const QString& myString, const uint s)
 
     stackOj.connect(this, SIGNAL(mySignal1(QString,uint,QMap<int,QString>)), SLOT(superSlot1(QString,uint)));
 
-    connect(this, SIGNAL(pointerSignal(const QObject*))  ,this, SLOT(myPrivateSlot()));
+    connect(this, SIGNAL(pointerSignal(const QObject*)) ,this, SLOT(myPrivateSlot()));
+    connect(this, SIGNAL(myBoolSignal(bool)) ,this, SLOT(deleteLater()));
 }
 
 
@@ -115,5 +118,20 @@ public slots:
 };
 
 
+namespace TestNS {
+
+class C : public QObject {
+    Q_OBJECT
+signals:
+    void sig1(C *foo);
+    void sig2(TestNS::C *foo);
+public slots:
+    void MySlot() {
+        connect(this, SIGNAL(sig1(C*)), this, SLOT(deleteLater()));
+        connect(this, SIGNAL(sig2(TestNS::C*)), this, SLOT(deleteLater()));
+    }
+};
+
+}
 
 
