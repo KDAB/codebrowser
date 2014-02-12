@@ -263,10 +263,12 @@ bool Annotator::generate(clang::Sema &Sema)
         fileIndex << fn << '\n';
     }
 
+    // make sure all the docs are in the references
+    // (There might not be when the comment is in the .cpp file (for \class))
+    for (auto it : commentHandler.docs) references[it.first];
+
     create_directories(llvm::Twine(outputPrefix, "/refs"));
     for (auto it : references) {
-        if (it.second.size() < 1)
-            continue;
         if (llvm::StringRef(it.first).startswith("__builtin"))
             continue;
         if (it.first == "main")
