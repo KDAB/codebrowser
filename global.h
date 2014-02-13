@@ -1,2 +1,2 @@
 
-#define CODEBROWSER_VERSION "1.5"
+#define CODEBROWSER_VERSION "1.6"
