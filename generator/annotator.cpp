@@ -114,13 +114,7 @@ void Annotator::addProject(ProjectInfo info) {
         filename += '/';
     info.source_path = filename.c_str();
 
-    auto it = projects.find(info.name);
-    if (it != projects.end()) {
-        it->second = std::move(info);
-    } else {
-        std::string name = info.name;
-        projects.insert( { std::move(name), std::move(info)});
-  }
+    projects.push_back( std::move(info) );
 }
 
 bool Annotator::shouldProcess(clang::FileID FID)
@@ -162,7 +156,7 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
             should_process =  !llvm::sys::fs::exists(p);
             // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
         }
-        project_cache[id] = project->name;
+        project_cache[id] = project;
         cache[id] = { should_process , fn};
         return fn;
     }
@@ -176,12 +170,12 @@ ProjectInfo* Annotator::projectForFile(llvm::StringRef filename)
     unsigned int match_length = 0;
     ProjectInfo *result = nullptr;
 
-    for (auto it = projects.begin(); it != projects.end(); ++it) {
-        const std::string &source_path = it->second.source_path;
+    for (auto &it : projects) {
+        const std::string &source_path = it.source_path;
         if (source_path.size() < match_length)
             continue;
         if (filename.startswith(source_path)) {
-            result = &it->second;
+            result = &it;
             match_length = source_path.size();
         }
     }
@@ -220,8 +214,8 @@ bool Annotator::generate(clang::Sema &Sema)
         done.insert(fn);
 
         auto project_it = std::find_if(projects.cbegin(), projects.cend(),
-                              [&fn](const std::pair<std::string, ProjectInfo> &it)
-                              { return llvm::StringRef(fn).startswith(it.second.name); } );
+                              [&fn](const ProjectInfo &it)
+                              { return llvm::StringRef(fn).startswith(it.name); } );
         if (project_it == projects.cend()) {
             std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
             continue;
@@ -245,7 +239,7 @@ bool Annotator::generate(clang::Sema &Sema)
         char buf[80];
         strftime(buf, sizeof(buf), "%Y-%b-%d", tm);
 
-        const ProjectInfo &projectinfo = project_it->second;
+        const ProjectInfo &projectinfo = *project_it;
         footer %= "Generated on <em>" % std::string(buf) % "</em>"
             % " from project " % projectinfo.name % "</a>";
         if (!projectinfo.revision.empty())
@@ -253,8 +247,6 @@ bool Annotator::generate(clang::Sema &Sema)
 
         /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) << "'>" << filename << "</a>"
         title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
-
-
 
         // Emit the HTML.
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
@@ -375,11 +367,11 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To)
     std::string fromFN = htmlNameForFile(From);
     std::string toFN = htmlNameForFile(To);
 
-    auto pr_it = projects.find(project_cache[To]);
-    if (pr_it == projects.end())
+    auto pr_it =  project_cache.find(To);
+    if (pr_it == project_cache.end())
         return result = {};
-    if (pr_it->second.type == ProjectInfo::External)
-        return result = pr_it->second.external_root_url % "/" % toFN % ".html";
+    if (pr_it->second->type == ProjectInfo::External)
+        return result = pr_it->second->external_root_url % "/" % toFN % ".html";
 
     return result = naive_uncomplete(llvm::sys::path::parent_path(fromFN), toFN) + ".html";
 }
@@ -560,11 +552,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         clang::SourceLocation loc = canonDecl->getLocation();
         clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
         if (declFID != FID) {
-            auto pr_it = projects.find(project_cache[declFID]);
-            if (pr_it != projects.end()) {
-                if (pr_it->second.type == ProjectInfo::External) {
-                    tags %= "data-proj=\"" % pr_it->second.name % "\" ";
-                    generator(FID).addProject(pr_it->second.name, pr_it->second.external_root_url);
+            auto pr_it = project_cache.find(declFID);
+            if (pr_it != project_cache.end()) {
+                if (pr_it->second->type == ProjectInfo::External) {
+                    tags %= "data-proj=\"" % pr_it->second->name % "\" ";
+                    generator(FID).addProject(pr_it->second->name, pr_it->second->external_root_url);
                 }
                 link = pathTo(FID, declFID);
             }

@@ -98,14 +98,14 @@ private:
 
     Visibility getVisibility(const clang::NamedDecl *);
 
-    std::map<std::string, ProjectInfo> projects =
-        {{"include", {"include", "/usr/include/", ProjectInfo::Internal }}};
+    std::vector<ProjectInfo> projects =
+        { {"include", "/usr/include/", ProjectInfo::Internal } };
 
     std::string outputPrefix;
     std::string dataPath;
 
     std::map<clang::FileID, std::pair<bool, std::string> > cache;
-    std::map<clang::FileID, std::string > project_cache;
+    std::map<clang::FileID, ProjectInfo* > project_cache;
     std::map<clang::FileID, Generator> generators;
 
     std::string htmlNameForFile(clang::FileID id); // keep a cache;
