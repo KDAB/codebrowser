@@ -122,13 +122,14 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
                 && signature[searchPos] != ')') {
             if (signature[searchPos] == '<') {
                 int depth = 0;
+                int templDepth;
                 searchPos++;
-                while(searchPos < signature.size() && depth >= 0) {
+                while(searchPos < signature.size() && depth >= 0 && templDepth >= 0) {
                     switch (signature[searchPos]) {
                         case '(': case '[': case '{': depth++; break;
                         case ')': case ']': case '}': depth--; break;
-                        case '>': if (depth == 0) depth--; break;
-                        case '<': if (depth == 0) depth++; break;
+                        case '>': if (depth == 0) templDepth--; break;
+                        case '<': if (depth == 0) templDepth++; break;
                     }
                     ++searchPos;
                 }
