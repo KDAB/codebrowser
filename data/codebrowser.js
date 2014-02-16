@@ -373,319 +373,319 @@ $(function () {
 
     // Mouse interaction (tooltip, ...)
     var onMouseEnterRef = function(e) {
-            if (skipHighlightTimerId) return false;
-            var elem = $(this);
-            var ref = elem.attr("data-ref");
-            var proj = elem.attr("data-proj");
+        if (skipHighlightTimerId) return false;
+        var elem = $(this);
+        var ref = elem.attr("data-ref");
+        var proj = elem.attr("data-proj");
 
-            var proj_root_path = root_path;
-            if (proj) { proj_root_path = projects[proj]; }
+        var proj_root_path = root_path;
+        if (proj) { proj_root_path = projects[proj]; }
 
-            var url = proj_root_path + "/refs/" + ref;
+        var url = proj_root_path + "/refs/" + ref;
 
-            if (!$(this).hasClass("highlight")) {
-                highlight_items(ref);
-            }
+        if (!$(this).hasClass("highlight")) {
+            highlight_items(ref);
+        }
 
-            var computeTooltipContent = function(data, title, id) {
-                var type ="", content ="";
-                if (elem.hasClass("local")) {
-                    type = $("#" + escape_selector(ref)).attr("data-type");
-                    content = "<br/>(local)";
-                } else if (elem.hasClass("tu")) {
-                    type = $("#" + escape_selector(ref)).attr("data-type");
+        var computeTooltipContent = function(data, title, id) {
+            var type ="", content ="";
+            if (elem.hasClass("local")) {
+                type = $("#" + escape_selector(ref)).attr("data-type");
+                content = "<br/>(local)";
+            } else if (elem.hasClass("tu")) {
+                type = $("#" + escape_selector(ref)).attr("data-type");
 
-                    var docs = $("i[data-doc='"+escape_selector(ref)+"']");
-                    docs.each(function() {
-                        var comment = $(this).html();
-                        content += "<br/><i>" + comment + "</i>";
-                    });
+                var docs = $("i[data-doc='"+escape_selector(ref)+"']");
+                docs.each(function() {
+                    var comment = $(this).html();
+                    content += "<br/><i>" + comment + "</i>";
+                });
 
-                    //var uses = highlighted_items;
-                    var uses = $("[data-ref='"+escape_selector(ref)+"']");
-                    var usesLis ="";
-                    var usesCount = 0;
-                    uses.each(function() {
-                        var t = $(this);
-                        var l = t.parent().prev("th").text();
+                //var uses = highlighted_items;
+                var uses = $("[data-ref='"+escape_selector(ref)+"']");
+                var usesLis ="";
+                var usesCount = 0;
+                uses.each(function() {
+                    var t = $(this);
+                    var l = t.parent().prev("th").text();
 
-                        if (t.hasClass("def")) {
-                            content += "<br/><a href='#"+ l +"'>Definition</a>";
-                        } else if (t.hasClass("decl")) {
-                            content += "<br/><a href='#"+ l +"'>Declaration</a>";
-                        } else {
-                            var c;
-                            var context = t.closest("tr").prevAll().find(".def").first();
-                            if (context.length == 1 && context.hasClass("decl")) {
-                                c = context[0].title_;
-                                if (c === undefined)
-                                    c = context.attr("title")
-                            }
-                            if (!c) c = "line " + l;
-                            usesLis += "<li><a href='#"+ l +"'>"+ escape_html(c) +"</a></li>"
-                            usesCount += 1;
+                    if (t.hasClass("def")) {
+                        content += "<br/><a href='#"+ l +"'>Definition</a>";
+                    } else if (t.hasClass("decl")) {
+                        content += "<br/><a href='#"+ l +"'>Declaration</a>";
+                    } else {
+                        var c;
+                        var context = t.closest("tr").prevAll().find(".def").first();
+                        if (context.length == 1 && context.hasClass("decl")) {
+                            c = context[0].title_;
+                            if (c === undefined)
+                                c = context.attr("title")
                         }
-                    });
-
-                    if (usesCount > 0)
-                        content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + usesCount + ")<br/><ul class='uses'>" + usesLis + "</ul>"
-
-                } else if (elem.hasClass("typedef")) {
-                    type = elem.attr("data-type");
-                } else {
-                    var res = $("<data>"+data+"</data>");
-
-                    var typePrefixLen = -1;
-
-                    //comments:
-                    var seen_comments = [];
-                    res.find("doc").each(function() {
-                        var comment = $(this).html();
-                        if ($.inArray(comment, seen_comments) !== -1)
-                            return;
-                        seen_comments.push(comment);
-                        if (comment.length > 550) {
-                            // FIXME: we should not split in an escape code
-                            comment = comment.substr(0, 500) + "<a href='#' class='expandcomment'> [more...]</a><span style='display:none'>" + comment.substr(500) + "</span>";
-                        }
-                        content += "<br/><i>" + comment + "</i>";
-                    });
-
-                    var p = function (label, tag) {
-                        var d = res.find(tag);
-                        if (!d.length)
-                            return;
-                        content += "<br/>" + label + ": (" + d.length + ")";
-                        var shouldCompress = d.length > 15;
-                        var dict = { number: 0 };
-                        d.each(function() {
-                            var th = $(this);
-                            var f = th.attr("f");
-                            var l = th.attr("l");
-                            var t = th.attr("type");
-                            if (t) {
-                                var prefixL = prefixLen(f, file)
-                                if (prefixL >= typePrefixLen) {
-                                    typePrefixLen = prefixL;
-                                    type = t;
-                                }
-                            }
-                            if (shouldCompress) {
-                                if (!dict[f]) {
-                                    dict[f] = [];
-                                    dict.number++;
-                                }
-                                dict[f].push(l);
-                            } else {
-                                var url = proj_root_path + "/" + f + ".html#" + l;
-                                content += "<br/><a href='" + url +"' >" + f + ":" + l + "</a>";
-                                if (tag === "ovr" || tag === "inh") {
-                                    var c = th.attr("c");
-                                    if (c)
-                                        content += " (" + demangleFunctionName(c) + ")";
-                                }
-                            }
-                        });
-                        if (shouldCompress) {
-                            if (dict.number > 20) {
-                                content += "<br/>(Too many)";
-                                return;
-                            }
-                            for(var f in dict) {
-                                if (!dict.hasOwnProperty(f) || f==="number") continue;
-                                var url_begin = proj_root_path + "/" + f + ".html";
-                                content += "<br/><a href='" + url_begin + "#" + dict[f][0] +"' >" + f +  "</a>";
-                                var len = dict[f].length;
-                                if (len > 100 || (f !== file && len >= 5))
-                                    content += " (" + len + " times)";
-                                else {
-                                    content += ": <a href='" + url_begin + "#" + dict[f][0] +"' >" + dict[f][0] +"</a>";
-                                    for(var i = 1; i < len; i++) {
-                                        content += ", <a href='" + url_begin + "#" + dict[f][i] +"' >" + dict[f][i] +"</a>";
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    p("Definitions", "def");
-                    p("Declarations", "dec");
-                    var isType = elem.hasClass("type");
-                    p(isType ? "Inherit" : "Overrides", "inh");
-                    p(isType ? "Inherited by" : "Overriden by", "ovr");
-
-                    // Uses:
-                    var uses = res.find("use");
-                    if (uses.length) {
-                        var dict = { };
-                        uses.each(function() {
-                            var t = $(this);
-                            var f = t.attr("f");
-                            var l = t.attr("l");
-                            var c = t.attr("c");
-                            var url = proj_root_path + "/" + f + ".html#" + l;
-                            if (!dict[f]) {
-                                dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
-                                            contexts: {},  prefixL: prefixLen(file, f), count: 0};
-                            }
-                            c = demangleFunctionName(c)
-                            if (!c) c = f + ":" + l;
-                            dict[f].count++;
-                            if (!dict[f].contexts[c]) {
-                                dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
-                                dict[f].contexts[c].count = 1;
-                            } else {
-                                dict[f].contexts[c].count++;
-                            }
-                        });
-                        var list = [];
-                        for (var xx in dict) {
-                            if (dict.hasOwnProperty(xx))
-                                list.push(dict[xx]);
-                        }
-                        list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : (b.f - a.f) });
-                        var ul = $("<ul class='uses'/>");
-                        for (var i = 0; i < list.length; ++i) {
-                            var subul = $("<ul/>");
-                            for (var xx in list[i].contexts) {
-                                if (list[i].contexts.hasOwnProperty(xx))
-                                    subul.append(list[i].contexts[xx].append(" (" + list[i].contexts[xx].count+")"));
-                            }
-                            ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
-                        }
-                        content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/>" + $("<span>").append(ul).html();
-                    }
-                }
-
-                var tt = tooltip.tooltip;
-                tt.empty();
-                if (id && id != "") {
-                    tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
-                } else {
-                    tt.append($("<b />").text(title));
-                }
-                if (type != "") {
-                    tt.append("<br/>");
-                    tt.append($("<span class='type' />").text(type));
-                }
-                tt.append($("<span />").html(content));
-                tooltip.ref = ref;
-                tt.find(".uses").hide();
-                tt.find(".showuse").click(function(e) {
-                    tt.find(".uses").toggle(); return false;});
-                tt.find(".expandcomment").click(function(e) {
-                    $(this).toggle(); $(this).next().toggle();return false;});
-            }
-
-            if (!this.title_) {
-                this.title_ = elem.attr("title");
-                elem.removeAttr("title");
-            }
-
-            var tt = this;
-            if (!this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu") && !elem.hasClass("typedef")) {
-                this.tooltip_loaded = true;
-                $.get(url, function(data) {
-                    tt.tooltip_data = data;
-                    if (tooltip.ref === ref)
-                        computeTooltipContent(data, tt.title_, tt.id);
-
-                    // attempt to change the href to the definition
-                    var res = $("<data>"+data+"</data>");
-                    var def =  res.find("def");
-                    if (def.length > 0) {
-
-                        var currentLine = elem.parents("tr").find("th").text();
-                        //if there are several definition we take the one closer in the hierarchy.
-                        var result = {  len: -1 };
-                        def.each( function() {
-                            var cur = { len : -1,
-                                        f : $(this).attr("f"),
-                                        l : $(this).attr("l") }
-
-
-                            if (cur.f === file && cur.l === currentLine)
-                                return;
-
-                            cur.len = prefixLen(cur.f, file)
-                            if (cur.len >= result.len) {
-                                result = cur;
-                                result.isMarcro = ($(this).attr("macro"));
-                            }
-                        });
-
-                        if (result.len >= 0) {
-                            var url = proj_root_path + "/" + result.f + ".html#" +
-                                (result.isMarcro ? result.l : ref );
-                            if (elem.attr("href")) {
-                                elem.attr("href", url);
-                            } else {
-                                if (result.f === file) //because there might be several declaration then
-                                    elem.removeAttr("id");
-                                elem.wrap("<a href='"+url+"'/>");
-                            }
-                        }
+                        if (!c) c = "line " + l;
+                        usesLis += "<li><a href='#"+ l +"'>"+ escape_html(c) +"</a></li>"
+                        usesCount += 1;
                     }
                 });
-            }
-            tooltip.showAfterDelay(elem, function() { computeTooltipContent(tt.tooltip_data, tt.title_, tt.id) })
 
-            return false;
-        };
+                if (usesCount > 0)
+                    content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + usesCount + ")<br/><ul class='uses'>" + usesLis + "</ul>"
 
-        // Macro tooltip
-        var onMouseEnterMacro = function(e) {
-            if (skipHighlightTimerId) return false;
-            if (highlighted_items) {
-                highlighted_items.removeClass("highlight");
-                highlighted_items = null;
-            }
-            var elem = $(this);
-            if (this.title_ === undefined) {
-                this.title_ = elem.attr("title");
-                elem.removeAttr("title");
-                if (this.title_ === undefined)
-                    return;
-                this.title_ = identAndHighlightMacro(this.title_);
-            }
-            var expansion = this.title_;
+            } else if (elem.hasClass("typedef")) {
+                type = elem.attr("data-type");
+            } else {
+                var res = $("<data>"+data+"</data>");
 
-            function computeMacroTooltipContent() {
-                var tt = tooltip.tooltip;
-                tt.empty();
-                tt.append($("<code class='code' style='white-space: pre-wrap' />").html(expansion));
-            }
-            tooltip.showAfterDelay(elem, computeMacroTooltipContent);
-        }
+                var typePrefixLen = -1;
 
-        //function is_touch_device() { return !!('ontouchstart' in window); }
-        function is_touch_device() {
-            return !!('ontouchstart' in document.documentElement) &&
-                // Arf, Konqueror support touch, even on desktop
-                (!navigator || (navigator.userAgent.indexOf("konqueror")===-1 && navigator.userAgent.indexOf("rekonq")===-1));
-        }
-        if (is_touch_device()) {
-            var elemWithTooltip;
-            function applyTo(func) { return function() {
-                if (this === elemWithTooltip) {
-                    return onMouseClick.apply(this, arguments);
-                } else {
-                    elemWithTooltip = this;
-                    var oldDelay = tooltip.showDelay;
-                    tooltip.showDelay = 1;
-                    func.apply(this, arguments);
-                    tooltip.showDelay = oldDelay;
-                    return false;
+                //comments:
+                var seen_comments = [];
+                res.find("doc").each(function() {
+                    var comment = $(this).html();
+                    if ($.inArray(comment, seen_comments) !== -1)
+                        return;
+                    seen_comments.push(comment);
+                    if (comment.length > 550) {
+                        // FIXME: we should not split in an escape code
+                        comment = comment.substr(0, 500) + "<a href='#' class='expandcomment'> [more...]</a><span style='display:none'>" + comment.substr(500) + "</span>";
+                    }
+                    content += "<br/><i>" + comment + "</i>";
+                });
+
+                var p = function (label, tag) {
+                    var d = res.find(tag);
+                    if (!d.length)
+                        return;
+                    content += "<br/>" + label + ": (" + d.length + ")";
+                    var shouldCompress = d.length > 15;
+                    var dict = { number: 0 };
+                    d.each(function() {
+                        var th = $(this);
+                        var f = th.attr("f");
+                        var l = th.attr("l");
+                        var t = th.attr("type");
+                        if (t) {
+                            var prefixL = prefixLen(f, file)
+                            if (prefixL >= typePrefixLen) {
+                                typePrefixLen = prefixL;
+                                type = t;
+                            }
+                        }
+                        if (shouldCompress) {
+                            if (!dict[f]) {
+                                dict[f] = [];
+                                dict.number++;
+                            }
+                            dict[f].push(l);
+                        } else {
+                            var url = proj_root_path + "/" + f + ".html#" + l;
+                            content += "<br/><a href='" + url +"' >" + f + ":" + l + "</a>";
+                            if (tag === "ovr" || tag === "inh") {
+                                var c = th.attr("c");
+                                if (c)
+                                    content += " (" + demangleFunctionName(c) + ")";
+                            }
+                        }
+                    });
+                    if (shouldCompress) {
+                        if (dict.number > 20) {
+                            content += "<br/>(Too many)";
+                            return;
+                        }
+                        for(var f in dict) {
+                            if (!dict.hasOwnProperty(f) || f==="number") continue;
+                            var url_begin = proj_root_path + "/" + f + ".html";
+                            content += "<br/><a href='" + url_begin + "#" + dict[f][0] +"' >" + f +  "</a>";
+                            var len = dict[f].length;
+                            if (len > 100 || (f !== file && len >= 5))
+                                content += " (" + len + " times)";
+                            else {
+                                content += ": <a href='" + url_begin + "#" + dict[f][0] +"' >" + dict[f][0] +"</a>";
+                                for(var i = 1; i < len; i++) {
+                                    content += ", <a href='" + url_begin + "#" + dict[f][i] +"' >" + dict[f][i] +"</a>";
+                                }
+                            }
+                        }
+                    }
                 }
-            }; };
-            $(".code").on({"click": applyTo(onMouseEnterRef) }, "[data-ref]");
-            $(".code").on({"click": applyTo(onMouseEnterMacro) }, ".macro");
-        } else {
-            $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": onMouseClick},
-                        "[data-ref]");
-            $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": onMouseClick},
-                          ".macro");
+                p("Definitions", "def");
+                p("Declarations", "dec");
+                var isType = elem.hasClass("type");
+                p(isType ? "Inherit" : "Overrides", "inh");
+                p(isType ? "Inherited by" : "Overriden by", "ovr");
+
+                // Uses:
+                var uses = res.find("use");
+                if (uses.length) {
+                    var dict = { };
+                    uses.each(function() {
+                        var t = $(this);
+                        var f = t.attr("f");
+                        var l = t.attr("l");
+                        var c = t.attr("c");
+                        var url = proj_root_path + "/" + f + ".html#" + l;
+                        if (!dict[f]) {
+                            dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
+                                        contexts: {},  prefixL: prefixLen(file, f), count: 0};
+                        }
+                        c = demangleFunctionName(c)
+                        if (!c) c = f + ":" + l;
+                        dict[f].count++;
+                        if (!dict[f].contexts[c]) {
+                            dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
+                            dict[f].contexts[c].count = 1;
+                        } else {
+                            dict[f].contexts[c].count++;
+                        }
+                    });
+                    var list = [];
+                    for (var xx in dict) {
+                        if (dict.hasOwnProperty(xx))
+                            list.push(dict[xx]);
+                    }
+                    list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : (b.f - a.f) });
+                    var ul = $("<ul class='uses'/>");
+                    for (var i = 0; i < list.length; ++i) {
+                        var subul = $("<ul/>");
+                        for (var xx in list[i].contexts) {
+                            if (list[i].contexts.hasOwnProperty(xx))
+                                subul.append(list[i].contexts[xx].append(" (" + list[i].contexts[xx].count+")"));
+                        }
+                        ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
+                    }
+                    content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/>" + $("<span>").append(ul).html();
+                }
+            }
+
+            var tt = tooltip.tooltip;
+            tt.empty();
+            if (id && id != "") {
+                tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
+            } else {
+                tt.append($("<b />").text(title));
+            }
+            if (type != "") {
+                tt.append("<br/>");
+                tt.append($("<span class='type' />").text(type));
+            }
+            tt.append($("<span />").html(content));
+            tooltip.ref = ref;
+            tt.find(".uses").hide();
+            tt.find(".showuse").click(function(e) {
+                tt.find(".uses").toggle(); return false;});
+            tt.find(".expandcomment").click(function(e) {
+                $(this).toggle(); $(this).next().toggle();return false;});
         }
-        tooltip.tooltip.on({"click": onMouseClick}, "a")
+
+        if (!this.title_) {
+            this.title_ = elem.attr("title");
+            elem.removeAttr("title");
+        }
+
+        var tt = this;
+        if (!this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu") && !elem.hasClass("typedef")) {
+            this.tooltip_loaded = true;
+            $.get(url, function(data) {
+                tt.tooltip_data = data;
+                if (tooltip.ref === ref)
+                    computeTooltipContent(data, tt.title_, tt.id);
+
+                // attempt to change the href to the definition
+                var res = $("<data>"+data+"</data>");
+                var def =  res.find("def");
+                if (def.length > 0) {
+
+                    var currentLine = elem.parents("tr").find("th").text();
+                    //if there are several definition we take the one closer in the hierarchy.
+                    var result = {  len: -1 };
+                    def.each( function() {
+                        var cur = { len : -1,
+                                    f : $(this).attr("f"),
+                                    l : $(this).attr("l") }
+
+
+                        if (cur.f === file && cur.l === currentLine)
+                            return;
+
+                        cur.len = prefixLen(cur.f, file)
+                        if (cur.len >= result.len) {
+                            result = cur;
+                            result.isMarcro = ($(this).attr("macro"));
+                        }
+                    });
+
+                    if (result.len >= 0) {
+                        var url = proj_root_path + "/" + result.f + ".html#" +
+                            (result.isMarcro ? result.l : ref );
+                        if (elem.attr("href")) {
+                            elem.attr("href", url);
+                        } else {
+                            if (result.f === file) //because there might be several declaration then
+                                elem.removeAttr("id");
+                            elem.wrap("<a href='"+url+"'/>");
+                        }
+                    }
+                }
+            });
+        }
+        tooltip.showAfterDelay(elem, function() { computeTooltipContent(tt.tooltip_data, tt.title_, tt.id) })
+
+        return false;
+    };
+
+    // Macro tooltip
+    var onMouseEnterMacro = function(e) {
+        if (skipHighlightTimerId) return false;
+        if (highlighted_items) {
+            highlighted_items.removeClass("highlight");
+            highlighted_items = null;
+        }
+        var elem = $(this);
+        if (this.title_ === undefined) {
+            this.title_ = elem.attr("title");
+            elem.removeAttr("title");
+            if (this.title_ === undefined)
+                return;
+            this.title_ = identAndHighlightMacro(this.title_);
+        }
+        var expansion = this.title_;
+
+        function computeMacroTooltipContent() {
+            var tt = tooltip.tooltip;
+            tt.empty();
+            tt.append($("<code class='code' style='white-space: pre-wrap' />").html(expansion));
+        }
+        tooltip.showAfterDelay(elem, computeMacroTooltipContent);
+    }
+
+    //function is_touch_device() { return !!('ontouchstart' in window); }
+    function is_touch_device() {
+        return !!('ontouchstart' in document.documentElement) &&
+            // Arf, Konqueror support touch, even on desktop
+            (!navigator || (navigator.userAgent.indexOf("konqueror")===-1 && navigator.userAgent.indexOf("rekonq")===-1));
+    }
+    if (is_touch_device()) {
+        var elemWithTooltip;
+        function applyTo(func) { return function() {
+            if (this === elemWithTooltip) {
+                return onMouseClick.apply(this, arguments);
+            } else {
+                elemWithTooltip = this;
+                var oldDelay = tooltip.showDelay;
+                tooltip.showDelay = 1;
+                func.apply(this, arguments);
+                tooltip.showDelay = oldDelay;
+                return false;
+            }
+        }; };
+        $(".code").on({"click": applyTo(onMouseEnterRef) }, "[data-ref]");
+        $(".code").on({"click": applyTo(onMouseEnterMacro) }, ".macro");
+    } else {
+        $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": onMouseClick},
+                    "[data-ref]");
+        $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": onMouseClick},
+                        ".macro");
+    }
+    tooltip.tooltip.on({"click": onMouseClick}, "a")
 
 /*-------------------------------------------------------------------------------------*/
 
