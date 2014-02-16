@@ -157,3 +157,25 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
     annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E-B);
 }
 #endif
+
+void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::SourceLocation IfLoc)
+{
+    if (!Loc.isValid() || !Loc.isFileID())
+        return;
+
+    clang::SourceManager &SM = annotator.getSourceMgr();
+    clang::FileID FID = SM.getFileID(Loc);
+    if (!annotator.shouldProcess(FID))
+        return;
+
+    while(ElifMapping.count(IfLoc)) {
+        IfLoc = Loc;
+    }
+
+    if (SM.getFileID(IfLoc) != FID) {
+        return;
+    }
+
+    annotator.generator(FID).addTag("span", ("data-ppcond=\"" + clang::Twine(SM.getExpansionLineNumber(IfLoc)) + "\"").str(),
+                                    SM.getFileOffset(Loc), clang::Lexer::MeasureTokenLength(Loc, SM, PP.getLangOpts()));
+}

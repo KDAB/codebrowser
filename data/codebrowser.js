@@ -657,6 +657,45 @@ $(function () {
         tooltip.showAfterDelay(elem, computeMacroTooltipContent);
     }
 
+    // #if/#else/... tooltip
+    var onMouseEnterPPCond = function(e) {
+        if (skipHighlightTimerId) return false;
+        if (highlighted_items) {
+            highlighted_items.removeClass("highlight");
+        }
+        var elem = $(this);
+        var ppcond = elem.attr("data-ppcond");
+        highlighted_items = $("[data-ppcond='"+escape_selector(ppcond)+"']");
+        highlighted_items.addClass("highlight")
+        var ppcondItems = highlighted_items;
+        var currentLine = elem.parents("tr").find("th").text();
+        function computePPCondTooltipContent() {
+            var tt = tooltip.tooltip;
+            tt.empty();
+
+            var contents = $("<ul />");
+            ppcondItems.each(function() {
+                var p = $(this).parent();
+                var l = p.parents("tr").find("th").text();
+                var t = p.text();
+                while (t[t.length - 1] === '\\') {
+                    p = p.parent().parent().next().find("u");
+                    if (p.length !== 1)
+                        break;
+                    t = t.slice(0, t.length-1) + "\n" + p.text();
+                }
+                if (currentLine === l) {
+                    contents.append($("<li/>").append($("<strong />").text(t)));
+                } else {
+                    contents.append($("<li/>").append($("<a href='#" + l + "' />").text(t)));
+                }
+            });
+            tt.append(contents);
+        }
+        tooltip.showAfterDelay(elem, computePPCondTooltipContent);
+    }
+
+
     //function is_touch_device() { return !!('ontouchstart' in window); }
     function is_touch_device() {
         return !!('ontouchstart' in document.documentElement) &&
@@ -679,11 +718,14 @@ $(function () {
         }; };
         $(".code").on({"click": applyTo(onMouseEnterRef) }, "[data-ref]");
         $(".code").on({"click": applyTo(onMouseEnterMacro) }, ".macro");
+        $(".code").on({"click": applyTo(onMouseEnterPPCond) }, "[data-ppcond]");
     } else {
         $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": onMouseClick},
                     "[data-ref]");
         $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": onMouseClick},
                         ".macro");
+        $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave/*, "click": onMouseClick*/},
+                      "[data-ppcond]");
     }
     tooltip.tooltip.on({"click": onMouseClick}, "a")
 

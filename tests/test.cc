@@ -5,6 +5,7 @@
 
 #include "doc.h"
 
+
 namespace NS {
     namespace Foo {
         namespace Bar {
@@ -20,6 +21,7 @@ namespace NS {
 }
 
 using namespace NS::Foo::Bar;
+
 
 /* comment 1 (NOT doc) */  /* comment 2 (NOT doc) */
 struct MyBase {
@@ -256,6 +258,24 @@ class ForwardDeclare;
 int func() {
     ForwardDeclare thisIsAnError(34);
 }
+
+#if 1
+
+#if false && \
+      true && false
+int foo_a;
+#elif truee && false
+int foo_r;
+#else
+int foo_d;
+#endif
+int foo_b:
+#endif
+#if some
+
+#endif
+
+#endif
 
 
 namespace rel_ops = std::rel_ops;

@@ -51,4 +51,23 @@ public:
                             bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;
 #endif
+
+    virtual void If(clang::SourceLocation Loc, clang::SourceRange ConditionRange, bool ConditionValue) override
+    { HandlePPCond(Loc, Loc); }
+    virtual void Ifndef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
+    { HandlePPCond(Loc, Loc); }
+    virtual void Ifdef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
+    { HandlePPCond(Loc, Loc); }
+    virtual void Elif(clang::SourceLocation Loc, clang::SourceRange ConditionRange, bool ConditionValue, clang::SourceLocation IfLoc) override {
+        ElifMapping[Loc] = IfLoc;
+        HandlePPCond(Loc, IfLoc);
+    }
+    virtual void Else(clang::SourceLocation Loc, clang::SourceLocation IfLoc) override
+    { HandlePPCond(Loc, IfLoc); }
+    virtual void Endif(clang::SourceLocation Loc, clang::SourceLocation IfLoc) override
+    { HandlePPCond(Loc, IfLoc); }
+
+private:
+    std::map<clang::SourceLocation, clang::SourceLocation> ElifMapping;     // Map an elif location to the real if;
+    void HandlePPCond(clang::SourceLocation Loc, clang::SourceLocation IfLoc);
 };
