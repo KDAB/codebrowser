@@ -116,11 +116,17 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
 
     clang::SourceLocation defLoc = MI->getDefinitionLoc();
     clang::FileID defFID = sm.getFileID(defLoc);
-    std::string link;
-    if (defFID != FID)
-        link = annotator.pathTo(FID, defFID);
-
     llvm::SmallString<128> expansionBuffer;
+    std::string link;
+    if (defFID != FID) {
+        link = annotator.pathTo(FID, defFID);
+        if (link.empty()) {
+            std::string tag = "class=\"macro\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer) % "\"";
+            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
+            return;
+        }
+    }
+
     std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
         % "\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer) % "\"";
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
