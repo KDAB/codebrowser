@@ -158,6 +158,7 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
 }
 #endif
 
+#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
 void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::SourceLocation IfLoc)
 {
     if (!Loc.isValid() || !Loc.isFileID())
@@ -179,3 +180,4 @@ void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::Source
     annotator.generator(FID).addTag("span", ("data-ppcond=\"" + clang::Twine(SM.getExpansionLineNumber(IfLoc)) + "\"").str(),
                                     SM.getFileOffset(Loc), clang::Lexer::MeasureTokenLength(Loc, SM, PP.getLangOpts()));
 }
+#endif

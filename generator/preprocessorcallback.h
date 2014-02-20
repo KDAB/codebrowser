@@ -52,6 +52,7 @@ public:
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;
 #endif
 
+#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
     virtual void If(clang::SourceLocation Loc, clang::SourceRange ConditionRange, bool ConditionValue) override
     { HandlePPCond(Loc, Loc); }
     virtual void Ifndef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
@@ -70,4 +71,5 @@ public:
 private:
     std::map<clang::SourceLocation, clang::SourceLocation> ElifMapping;     // Map an elif location to the real if;
     void HandlePPCond(clang::SourceLocation Loc, clang::SourceLocation IfLoc);
+#endif
 };

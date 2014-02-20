@@ -248,8 +248,8 @@ int main(int argc, const char **argv) {
     }
 
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
-    ClangTool Tool(*Compilations, SourcePaths);
-    return Tool.run(newFrontendActionFactory<BrowserAction>());
+    clang::tooling::ClangTool Tool(*Compilations, SourcePaths);
+    return Tool.run(clang::tooling::newFrontendActionFactory<BrowserAction>());
 #else
 
     static int StaticSymbol;
