@@ -77,7 +77,7 @@ Before generating, make sure the output directory is empty or does not contains 
 Call the codebrowser_generator. You use those arguments:
  -o with the output directory where the generated files will be put
  -b the "build directory" containing the compile_commands.json
- -p (one or more) with project specification. That is the name of the project, the absolute path of the source code, and the revision separated by comas
+ -p (one or more) with project specification. That is the name of the project, the absolute path of the source code, and the revision separated by colons
  
 Step 3: Generate the index HTML files using codebrowser_indexer
 
