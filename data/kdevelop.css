@@ -87,6 +87,8 @@ a.logo { float:right }
 .highlight { background-color: #FBFA96 !important; color: black !important;}
 
 #tooltip i { color: #888; white-space: pre-wrap; font-family: monospace }
+#tooltip .ppcond { color: #063; white-space: pre-wrap; font-family: monospace; font-weight:bold  }
+#tooltip .ppcond a { font-weight: normal; color:inherit  }
 
 /* disable the keywords in strings  (macro have that)  */
 .code q em, .code q b, .code q var { color:inherit; font-style:inherit; font-weight:inherit; }

@@ -673,7 +673,7 @@ $(function () {
             var tt = tooltip.tooltip;
             tt.empty();
 
-            var contents = $("<ul />");
+            var contents = $("<ul class='ppcond'/>");
             ppcondItems.each(function() {
                 var p = $(this).parent();
                 var l = p.parents("tr").find("th").text();
@@ -685,7 +685,7 @@ $(function () {
                     t = t.slice(0, t.length-1) + "\n" + p.text();
                 }
                 if (currentLine === l) {
-                    contents.append($("<li/>").append($("<strong />").text(t)));
+                    contents.append($("<li/>").text(t));
                 } else {
                     contents.append($("<li/>").append($("<a href='#" + l + "' />").text(t)));
                 }
