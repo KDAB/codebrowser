@@ -267,7 +267,11 @@ bool Annotator::generate(clang::Sema &Sema)
             continue;
         std::string filename = outputPrefix % "/refs/" % it.first;
         std::string error;
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
+        llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::raw_fd_ostream::F_Append);
+#else
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
+#endif
         if (!error.empty()) {
             std::cerr << error<< std::endl;
             continue;
@@ -340,7 +344,11 @@ bool Annotator::generate(clang::Sema &Sema)
             if (saved.find(idxRef) == std::string::npos) {
                 std::string funcIndexFN = outputPrefix % "/fnSearch/" % idx;
                 std::string error;
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::raw_fd_ostream::F_Append);
+#else
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
+#endif
                 if (!error.empty()) {
                     std::cerr << error << std::endl;
                     return false;

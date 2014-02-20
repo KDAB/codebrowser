@@ -247,6 +247,10 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
+    ClangTool Tool(*Compilations, SourcePaths);
+    return Tool.run(newFrontendActionFactory<BrowserAction>());
+#else
 
     static int StaticSymbol;
     std::string MainExecutable = llvm::sys::fs::getMainExecutable("clang_tool", &StaticSymbol);
@@ -306,5 +310,6 @@ int main(int argc, const char **argv) {
         clang::tooling::ToolInvocation Inv(command, clang::tooling::newFrontendActionFactory<BrowserAction>(), &FM);
         Inv.run();
     }
+#endif
 }
 
