@@ -570,9 +570,9 @@ $(function () {
             tt.append($("<span />").html(content));
             tooltip.ref = ref;
             tt.find(".uses").hide();
-            tt.find(".showuse").click(function(e) {
+            tt.find(".showuse").mouseup(function(e) {
                 tt.find(".uses").toggle(); return false;});
-            tt.find(".expandcomment").click(function(e) {
+            tt.find(".expandcomment").mouseup(function(e) {
                 $(this).toggle(); $(this).next().toggle();return false;});
         }
 
@@ -720,14 +720,14 @@ $(function () {
         $(".code").on({"click": applyTo(onMouseEnterMacro) }, ".macro");
         $(".code").on({"click": applyTo(onMouseEnterPPCond) }, "[data-ppcond]");
     } else {
-        $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": onMouseClick},
+        $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "mouseup": onMouseClick},
                     "[data-ref]");
-        $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": onMouseClick},
+        $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "mouseup": onMouseClick},
                         ".macro");
-        $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave/*, "click": onMouseClick*/},
+        $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave/*, "mouseup": onMouseClick*/},
                       "[data-ppcond]");
     }
-    tooltip.tooltip.on({"click": onMouseClick}, "a")
+    tooltip.tooltip.on({"mouseup": onMouseClick}, "a")
 
 /*-------------------------------------------------------------------------------------*/
 
