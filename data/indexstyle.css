@@ -5,6 +5,7 @@ a { color: #037; border: none; text-decoration: none }
 a:hover{  text-decoration: underline }
 #footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
 #footer img { vertical-align: middle; }
+#whatisit { width: 640px; margin: auto }
 img { border: none; }
 input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
 p {  margin:0 }
