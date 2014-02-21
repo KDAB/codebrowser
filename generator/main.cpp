@@ -48,7 +48,7 @@ cl::opt<std::string> BuildPath(
 cl::list<std::string> SourcePaths(
   cl::Positional,
   cl::desc("<source0> [... <sourceN>]"),
-  cl::OneOrMore);
+  cl::ZeroOrMore);
 
 cl::opt<std::string> OutputPath(
     "o",
@@ -71,6 +71,10 @@ cl::opt<std::string> DataPath(
     "d",
     cl::desc("<data path>"),
     cl::Optional);
+
+cl::opt<bool> ProcessAllSources(
+    "a",
+    cl::desc("Process all sources in the compilation_database.json (should not have sources then)"));
 
 
 #if 1
@@ -247,8 +251,24 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
+    std::vector<std::string> AllFiles;
+    llvm::ArrayRef<std::string> Sources = SourcePaths;
+    if (Sources.empty() && ProcessAllSources) {
+        AllFiles = Compilations->getAllFiles();
+        Sources = AllFiles;
+    } else if (ProcessAllSources) {
+        std::cerr << "Cannot use both sources and  '-a'" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (Sources.empty()) {
+        std::cerr << "No source files.  Please pass source files as argument, or use '-a'" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
-    clang::tooling::ClangTool Tool(*Compilations, SourcePaths);
+    clang::tooling::ClangTool Tool(*Compilations, Sources);
     return Tool.run(clang::tooling::newFrontendActionFactory<BrowserAction>());
 #else
 
@@ -258,7 +278,7 @@ int main(int argc, const char **argv) {
     clang::FileManager FM({"."});
     FM.Retain();
 
-    for (const auto &it : SourcePaths) {
+    for (const auto &it : Sources) {
         std::string file = clang::tooling::getAbsolutePath(it);
 
 
