@@ -12,7 +12,7 @@
 # export FORWARD_COMPILER=g++
 # CXX=/path/to/fake_compiler.sh ./configure
 # echo "[" > $COMPILATION_COMMANDS
-# make
+# make -j1
 # echo " { \"directory\": \".\", \"command\": \"true\", \"file\": \"/dev/null\" } ]" >> $COMPILATION_COMMANDS
 
 
