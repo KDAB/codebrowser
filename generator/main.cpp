@@ -281,8 +281,10 @@ int main(int argc, const char **argv) {
 
     for (const auto &it : Sources) {
         std::string file = clang::tooling::getAbsolutePath(it);
-        Progress ++;
+        Progress++;
 
+        if (it.empty() || it == "-")
+            continue;
 
         bool isInDatabase = false;
 
