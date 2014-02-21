@@ -215,8 +215,6 @@ protected:
         }
         processed.insert(InFile.str());
 
-        std::cerr << "Processing " << InFile.str() << "\n";
-
         CI.getFrontendOpts().SkipFunctionBodies =
             sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
 
@@ -255,6 +253,8 @@ int main(int argc, const char **argv) {
     llvm::ArrayRef<std::string> Sources = SourcePaths;
     if (Sources.empty() && ProcessAllSources) {
         AllFiles = Compilations->getAllFiles();
+        // Because else the order is too random
+        std::sort(AllFiles.begin(), AllFiles.end());
         Sources = AllFiles;
     } else if (ProcessAllSources) {
         std::cerr << "Cannot use both sources and  '-a'" << std::endl;
@@ -277,9 +277,11 @@ int main(int argc, const char **argv) {
 
     clang::FileManager FM({"."});
     FM.Retain();
+    int Progress = 0;
 
     for (const auto &it : Sources) {
         std::string file = clang::tooling::getAbsolutePath(it);
+        Progress ++;
 
 
         bool isInDatabase = false;
@@ -326,6 +328,9 @@ int main(int argc, const char **argv) {
         Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
         Ajust(clang::tooling::ClangStripOutputAdjuster());
         command[0] = MainExecutable;
+
+
+        std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
 
         clang::tooling::ToolInvocation Inv(command, clang::tooling::newFrontendActionFactory<BrowserAction>(), &FM);
         Inv.run();
