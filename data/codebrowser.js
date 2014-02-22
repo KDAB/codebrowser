@@ -415,7 +415,7 @@ $(function () {
                         content += "<br/><a href='#"+ l +"'>Declaration</a>";
                     } else {
                         var c;
-                        var context = t.closest("tr").prevAll().find(".def").first();
+                        var context = t.closest("tr").prevAll().find(".def").last();
                         if (context.length == 1 && context.hasClass("decl")) {
                             c = context[0].title_;
                             if (c === undefined)
