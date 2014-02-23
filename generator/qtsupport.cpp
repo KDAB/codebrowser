@@ -113,7 +113,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
     policy.SuppressScope = true;
 
     auto argPos = lParenPos + 1;
-    int arg = 0;
+    unsigned int arg = 0;
     while (argPos < signature.size() && !candidates.empty()) {
 
         // Find next comma to extract the next argument

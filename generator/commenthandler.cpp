@@ -129,7 +129,7 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
     //void visitTextComment(const clang::comments::TextComment *C);
     void visitInlineCommandComment(const clang::comments::InlineCommandComment *C) {
         tag("command", C->getCommandNameRange());
-        for (int i = 0; i < C->getNumArgs(); ++i)
+        for (unsigned int i = 0; i < C->getNumArgs(); ++i)
             tag("arg", C->getArgRange(i));
     }
     void visitHTMLStartTagComment(const clang::comments::HTMLStartTagComment *C) {
@@ -148,7 +148,7 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
     void visitBlockCommandComment(const clang::comments::BlockCommandComment *C) {
         auto nameRange = C->getCommandNameRange(traits);
         tag("command", {C->getLocStart(),  nameRange.getEnd().getLocWithOffset(-1)});
-        for (int i = 0; i < C->getNumArgs(); ++i)
+        for (unsigned int i = 0; i < C->getNumArgs(); ++i)
             tag("arg", C->getArgRange(i));
     }
     //void visitParamCommandComment(const clang::comments::ParamCommandComment *C);
