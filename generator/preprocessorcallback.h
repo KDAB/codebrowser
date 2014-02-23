@@ -52,14 +52,18 @@ public:
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;
 #endif
 
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 5
+    typedef bool ConditionValueKind;  // It's an enum in clang 3.5
+#endif
+
 #if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
-    virtual void If(clang::SourceLocation Loc, clang::SourceRange ConditionRange, bool ConditionValue) override
+    virtual void If(clang::SourceLocation Loc, clang::SourceRange ConditionRange, ConditionValueKind ConditionValue) override
     { HandlePPCond(Loc, Loc); }
     virtual void Ifndef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
     { HandlePPCond(Loc, Loc); }
     virtual void Ifdef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
     { HandlePPCond(Loc, Loc); }
-    virtual void Elif(clang::SourceLocation Loc, clang::SourceRange ConditionRange, bool ConditionValue, clang::SourceLocation IfLoc) override {
+    virtual void Elif(clang::SourceLocation Loc, clang::SourceRange ConditionRange, ConditionValueKind ConditionValue, clang::SourceLocation IfLoc) override {
         ElifMapping[Loc] = IfLoc;
         HandlePPCond(Loc, IfLoc);
     }
