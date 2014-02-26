@@ -11,7 +11,7 @@ img { border: none; }
 input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
 p {  margin:0 }
 
-h1 { float: right; font-weight: large; padding: 0px; margin:1px;
+h1 { float: right; padding: 0px; margin:1px;
     background-image: url(woboq-48.png); background-repeat: no-repeat;
     height:48px; width: 126px; overflow:hidden
 }
@@ -39,6 +39,7 @@ table#tree tr table { background-color: white }
 table#tree tr:hover  { background-color: #eee }
 table#tree tr:hover table { background-color: white }*/
 
+td  a { padding: 1px; }
 td.folder > a { padding-left: 22px; background: url("folder.png") no-repeat left }
 td.file > a { padding-left: 22px; background: url("txt.png") no-repeat left }
 td.parent > a { padding-left: 22px; background: url("back.png") no-repeat left }

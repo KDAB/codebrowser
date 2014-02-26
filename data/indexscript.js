@@ -203,7 +203,7 @@ $(function() {
                 state[t.attr("data-path")]=false;
             }
             if (history && history.replaceState)
-                history.replaceState(state);
+                history.replaceState(state, undefined);
             return false;
         }
 
