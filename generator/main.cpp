@@ -28,8 +28,12 @@
 
 #include <clang/Frontend/CompilerInstance.h>
 
+#include <sys/stat.h>
+#include <unistd.h>
 
+#include <ctime>
 #include <iostream>
+#include <fstream>
 #include <limits>
 #include <stdexcept>
 #include "annotator.h"
@@ -228,6 +232,26 @@ public:
 
 std::set<std::string> BrowserAction::processed;
 
+time_t get_mod_time(const std::string& path) {
+    if (access(path.c_str(), R_OK) != 0) {
+        // We couldn't read the file or directory at the path.
+        return 0;
+    }
+
+    struct stat attrib;
+    stat(path.c_str(), &attrib);
+
+    return attrib.st_mtime;
+}
+
+void create_ts_file() {
+    // Create a blank file called .ts in the output directory.
+    // Modification time of this file is used to avoid unnecessary processing.
+    std::ofstream output_file;
+    output_file.open(OutputPath + "/.ts");
+    output_file.close();
+}
+
 int main(int argc, const char **argv) {
     llvm::OwningPtr<clang::tooling::CompilationDatabase> Compilations(
         clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv));
@@ -266,6 +290,8 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
+    time_t output_dir_mod_time = get_mod_time(OutputPath);
+    time_t ts_file_mod_time = get_mod_time(OutputPath + "/.ts");
 
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
     clang::tooling::ClangTool Tool(*Compilations, Sources);
@@ -285,6 +311,21 @@ int main(int argc, const char **argv) {
 
         if (it.empty() || it == "-")
             continue;
+
+        // Compare with the modification time of either the output directory
+        // or the .ts file, whichever happens to be the latest.
+        time_t ref_mod_time = output_dir_mod_time > ts_file_mod_time ?
+            output_dir_mod_time : ts_file_mod_time;
+
+        // Check if this file really needs to be processed.
+        if (ref_mod_time != 0) {
+            time_t input_file_mod_time = get_mod_time(file);
+
+            // If the references mod time is greater than the file mod time,
+            // then the output directory is not stale and we can skip the file.
+            if (difftime(ref_mod_time, input_file_mod_time) > 0)
+                continue;
+        }
 
         bool isInDatabase = false;
 
@@ -337,6 +378,9 @@ int main(int argc, const char **argv) {
         clang::tooling::ToolInvocation Inv(command, clang::tooling::newFrontendActionFactory<BrowserAction>(), &FM);
         Inv.run();
     }
+
+    // Create the .ts file.
+    create_ts_file();
 #endif
 }
 
