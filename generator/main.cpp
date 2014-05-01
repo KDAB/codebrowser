@@ -43,6 +43,8 @@
 #include "compat.h"
 #include <ctime>
 
+#include "embedded_includes.h"
+
 namespace cl = llvm::cl;
 
 cl::opt<std::string> BuildPath(
@@ -205,7 +207,7 @@ ProjectManager *BrowserAction::projectManager = nullptr;
 
 #if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
 static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
-                           clang::FileManager *FM, llvm::StringRef MainExecutable, bool WasInDatabase) {
+                           clang::FileManager *FM, bool WasInDatabase) {
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
@@ -237,8 +239,16 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     command = clang::tooling::getClangSyntaxOnlyAdjuster()(command);
     command = clang::tooling::getClangStripOutputAdjuster()(command);
 #endif
-    command[0] = MainExecutable;
+    command.push_back("-isystem");
+    command.push_back("/builtins");
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
+
+    // Map the builtins includes
+    const EmbeddedFile *f = EmbeddedFiles;
+    while (f->filename) {
+        Inv.mapVirtualFile(f->filename, {f->content , f->size } );
+        f++;
+    }
 
     // the BrowserASTConsumer will re-create a new diagnostic consumer,
     // but we want to ignore all the driver warnings
@@ -356,9 +366,6 @@ int main(int argc, const char **argv) {
     clang::tooling::ClangTool Tool(*Compilations, Sources);
     return Tool.run(clang::tooling::newFrontendActionFactory<BrowserAction>());
 #else
-    static int StaticSymbol;
-    std::string MainExecutable = llvm::sys::fs::getMainExecutable("clang_tool", &StaticSymbol);
-
     clang::FileManager FM({"."});
     FM.Retain();
     int Progress = 0;
@@ -388,7 +395,7 @@ int main(int argc, const char **argv) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
             proceedCommand(compileCommandsForFile.front().CommandLine,
                            compileCommandsForFile.front().Directory,
-                           &FM, MainExecutable, true);
+                           &FM, true);
         } else {
             // TODO: Try to find a command line for a file in the same path
             std::cerr << "Delayed " << file << "\n";
@@ -402,7 +409,6 @@ int main(int argc, const char **argv) {
     for (const auto &it : NotInDB) {
         std::string file = clang::tooling::getAbsolutePath(it);
         Progress++;
-
         if (!projectManager.shouldProcess(file, projectManager.projectForFile(file))) {
             std::cerr << "Skipping already processed " << file.c_str() << std::endl;
             continue;
@@ -427,7 +433,7 @@ int main(int argc, const char **argv) {
                 command.push_back("-include");
                 command.push_back(llvm::StringRef(file).substr(0, file.size() - 5) % ".h");
             }
-            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, MainExecutable, false);
+            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, false);
         } else {
             std::cerr << "Could not find commands for " << file << "\n";
         }

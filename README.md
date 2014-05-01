@@ -49,8 +49,6 @@ Example:
 ```bash
 cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_CXX_COMPILER=/opt/llvm/bin/clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
 make
-# because clang searches for includes files in ../lib relative to the executable: 
-ln -s /opt/llvm/lib/ .
 ```
 
 
@@ -78,8 +76,6 @@ Then compile the generator:
 ```bash
 cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/usr/local//bin/llvm-config-3.3  -DCMAKE_BUILD_TYPE=Release
 make
-# because clang searches for includes files in ../lib relative to the executable:
-ln -s /opt/local/lib/ ./lib
 ```
 
 
