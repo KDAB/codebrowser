@@ -17,8 +17,13 @@ if (LLVM_INCLUDE_DIR)
   set(LLVM_FOUND TRUE)
 else (LLVM_INCLUDE_DIR)
 
+set(CONFIG_NAME "llvm-config")
+if (NOT "${LLVM_CONFIG_EXECUTABLE}" STREQUAL "")
+  set(CONFIG_NAME "${LLVM_CONFIG_EXECUTABLE}")
+  unset(LLVM_CONFIG_EXECUTABLE CACHE)
+endif()
 find_program(LLVM_CONFIG_EXECUTABLE
-  NAMES llvm-config
+  NAMES "${CONFIG_NAME}"
   PATHS
   /opt/local/bin
 )
