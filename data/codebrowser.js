@@ -554,6 +554,12 @@ $(function () {
                     }
                     content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/>" + $("<span>").append(ul).html();
                 }
+
+                // Size
+                size = elem.attr("data-size");
+                if (size) {
+                    content += "<br/>Size: " + (size / 8) + " bytes";
+                }
             }
 
             var tt = tooltip.tooltip;
