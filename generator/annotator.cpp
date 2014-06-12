@@ -31,6 +31,7 @@
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/DeclTemplate.h>
 #include <clang/AST/PrettyPrinter.h>
+#include <clang/AST/ASTContext.h>
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
@@ -51,6 +52,43 @@
 #endif
 
 #include "stringbuilder.h"
+
+
+namespace
+{
+
+template <class T>
+size_t getTypeSize(const T &t)
+{
+    const clang::ASTContext &ctx = t->getASTContext();
+    const clang::QualType &ty = ctx.getRecordType(t);
+    return ctx.getTypeSize(ty);
+}
+
+size_t getDeclSize(const clang::NamedDecl* decl)
+{
+    const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
+    if (cxx && (cxx = cxx->getDefinition())) {
+        /**
+         * XXX: avoid endless recursion inside
+         * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
+         */
+        if (cxx->isDependentContext()) {
+            return (size_t)-1;
+        }
+
+        return getTypeSize(cxx);
+    }
+
+    const clang::RecordDecl *c = llvm::dyn_cast<clang::RecordDecl>(decl);
+    if (c && (c = c->getDefinition())) {
+        return getTypeSize(c);
+    }
+
+    return (size_t)-1;
+}
+
+};
 
 Annotator::~Annotator()
 { }
@@ -530,6 +568,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     if (declType == Definition && visibility != Visibility::Local) {
         clas += " def";
+    }
+    if (type == Type) {
+        tags %= " data-size=";
+        tags += std::to_string(getDeclSize(decl));
     }
 
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
