@@ -356,7 +356,7 @@ bool Annotator::generate(clang::Sema &Sema)
             }
             const auto &size = std::get<3>(it2);
             if (size != -1) {
-                myfile << "' s='"<< size <<"'";
+                myfile << " s='"<< size <<"'";
             }
             myfile <<"/>\n";
         }
