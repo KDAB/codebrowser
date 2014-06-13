@@ -65,7 +65,9 @@ ssize_t getTypeSize(const T &t)
 {
     const clang::ASTContext &ctx = t->getASTContext();
     const clang::QualType &ty = ctx.getRecordType(t);
-    return ctx.getTypeSize(ty);
+
+    /** Return size in bytes */
+    return ctx.getTypeSize(ty) >> 3;
 }
 
 ssize_t getDeclSize(const clang::NamedDecl* decl)
