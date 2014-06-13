@@ -354,11 +354,11 @@ bool Annotator::generate(clang::Sema &Sema)
                 Generator::escapeAttr(myfile, refType);
                 myfile <<"'";
             }
-            const auto &size = std::get<3>(it2);
-            if (size != -1) {
-                myfile << " s='"<< size <<"'";
-            }
             myfile <<"/>\n";
+        }
+        auto itS = structure_sizes.find(it.first);
+        if (itS != structure_sizes.end() && itS->second != -1) {
+            myfile << "<struct s='"<< itS->second <<"'>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
@@ -642,7 +642,8 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
         || ((type == Type || type == Enum) && dt == Definition)) {
         ssize_t size = getDeclSize(decl);
-        references[ref].push_back( std::make_tuple(dt, refLoc, typeRef, size) );
+        structure_sizes[ref] = size;
+        references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
         if (dt != Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
@@ -659,15 +660,14 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
         return;
     if (getVisibility(overrided) != Visibility::Global)
         return;
-    ssize_t size = getDeclSize(decl);
 
     auto ovrRef = getReferenceAndTitle(overrided).first;
     auto declRef = getReferenceAndTitle(decl).first;
-    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef, size) );
+    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef) );
 
     // Register the reversed relation.
     clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
-    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef, size) );
+    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
 }
 
 
