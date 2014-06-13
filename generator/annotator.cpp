@@ -70,7 +70,7 @@ ssize_t getTypeSize(const T &t)
     return ctx.getTypeSize(ty) >> 3;
 }
 
-ssize_t getDeclSize(const clang::NamedDecl* decl)
+ssize_t getDeclSize(const clang::Decl* decl)
 {
     const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
     if (cxx && (cxx = cxx->getDefinition())) {
@@ -354,6 +354,8 @@ bool Annotator::generate(clang::Sema &Sema)
                 Generator::escapeAttr(myfile, refType);
                 myfile <<"'";
             }
+            const auto &size = std::get<3>(it2);
+            myfile << "' s='"<< size <<"'";
             myfile <<"/>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
@@ -575,12 +577,6 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         clas += " def";
     }
 
-    ssize_t size;
-    if (type == Type && (size = getDeclSize(decl)) != -1) {
-        llvm::SmallString<SSIZE_STR_MAX> sizeBuffer;
-        tags %= " data-size=" % llvm::Twine(size).toStringRef(sizeBuffer);
-    }
-
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
     clang::SourceLocation B = range.getBegin();
     clang::SourceLocation E = range.getEnd();
@@ -643,7 +639,8 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
 {
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
         || ((type == Type || type == Enum) && dt == Definition)) {
-        references[ref].push_back( std::make_tuple(dt,  refLoc, typeRef) );
+        ssize_t size = getDeclSize(decl);
+        references[ref].push_back( std::make_tuple(dt, refLoc, typeRef, size) );
         if (dt != Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
@@ -660,14 +657,15 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
         return;
     if (getVisibility(overrided) != Visibility::Global)
         return;
+    ssize_t size = getDeclSize(decl);
 
     auto ovrRef = getReferenceAndTitle(overrided).first;
     auto declRef = getReferenceAndTitle(decl).first;
-    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef) );
+    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef, size) );
 
     // Register the reversed relation.
     clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
-    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
+    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef, size) );
 }
 
 
