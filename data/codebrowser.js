@@ -555,8 +555,8 @@ $(function () {
                     content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/>" + $("<span>").append(ul).html();
                 }
 
-                // Size
-                size = elem.attr("data-size");
+                // Size:
+                size = $(this).attr("s");
                 if (size) {
                     content += "<br/>Size: " + size + " bytes";
                 }
@@ -794,7 +794,8 @@ $(function () {
                     def.each( function() {
                         var cur = { len : -1,
                                     f : $(this).attr("f"),
-                                    l : $(this).attr("l") }
+                                    l : $(this).attr("l"),
+                                    s : $(this).attr("s") }
 
                         cur.len = prefixLen(cur.f, file)
                         if (cur.len >= result.len) {
