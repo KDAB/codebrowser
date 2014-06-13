@@ -355,7 +355,9 @@ bool Annotator::generate(clang::Sema &Sema)
                 myfile <<"'";
             }
             const auto &size = std::get<3>(it2);
-            myfile << "' s='"<< size <<"'";
+            if (size != -1) {
+                myfile << "' s='"<< size <<"'";
+            }
             myfile <<"/>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
