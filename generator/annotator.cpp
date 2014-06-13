@@ -74,7 +74,7 @@ size_t getDeclSize(const clang::NamedDecl* decl)
          * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
          */
         if (cxx->isDependentContext()) {
-            return (size_t)-1;
+            return size_t(-1);
         }
 
         return getTypeSize(cxx);
@@ -85,7 +85,7 @@ size_t getDeclSize(const clang::NamedDecl* decl)
         return getTypeSize(c);
     }
 
-    return (size_t)-1;
+    return size_t(-1);
 }
 
 };
