@@ -58,14 +58,14 @@ namespace
 {
 
 template <class T>
-size_t getTypeSize(const T &t)
+ssize_t getTypeSize(const T &t)
 {
     const clang::ASTContext &ctx = t->getASTContext();
     const clang::QualType &ty = ctx.getRecordType(t);
     return ctx.getTypeSize(ty);
 }
 
-size_t getDeclSize(const clang::NamedDecl* decl)
+ssize_t getDeclSize(const clang::NamedDecl* decl)
 {
     const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
     if (cxx && (cxx = cxx->getDefinition())) {
@@ -74,7 +74,7 @@ size_t getDeclSize(const clang::NamedDecl* decl)
          * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
          */
         if (cxx->isDependentContext()) {
-            return size_t(-1);
+            return -1;
         }
 
         return getTypeSize(cxx);
@@ -85,7 +85,7 @@ size_t getDeclSize(const clang::NamedDecl* decl)
         return getTypeSize(c);
     }
 
-    return size_t(-1);
+    return -1;
 }
 
 };
@@ -569,9 +569,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     if (declType == Definition && visibility != Visibility::Local) {
         clas += " def";
     }
-    if (type == Type) {
+
+    ssize_t size;
+    if (type == Type && (size = getDeclSize(decl)) != -1) {
         tags %= " data-size=";
-        tags += std::to_string(getDeclSize(decl));
+        tags += std::to_string(size);
     }
 
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
