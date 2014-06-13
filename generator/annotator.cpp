@@ -53,6 +53,9 @@
 
 #include "stringbuilder.h"
 
+#define XSTRINGIFY(a) STRINGIFY(a)
+#define STRINGIFY(a) #a
+#define SSIZE_STR_MAX sizeof(XSTRINGIFY(SSIZE_MAX))
 
 namespace
 {
@@ -572,8 +575,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     ssize_t size;
     if (type == Type && (size = getDeclSize(decl)) != -1) {
-        tags %= " data-size=";
-        tags += std::to_string(size);
+        llvm::SmallString<SSIZE_STR_MAX> sizeBuffer;
+        tags %= " data-size=" % llvm::Twine(size).toStringRef(sizeBuffer);
     }
 
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
