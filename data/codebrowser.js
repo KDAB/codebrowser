@@ -558,7 +558,7 @@ $(function () {
                 // Size
                 size = elem.attr("data-size");
                 if (size) {
-                    content += "<br/>Size: " + (size / 8) + " bytes";
+                    content += "<br/>Size: " + size + " bytes";
                 }
             }
 
