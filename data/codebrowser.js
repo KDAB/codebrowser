@@ -554,6 +554,12 @@ $(function () {
                     }
                     content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/>" + $("<span>").append(ul).html();
                 }
+
+                // Size:
+                var size = res.find("size");
+                if (size.length === 1) {
+                    content += "<br/>Size: " + escape_html(size.text()) + " bytes";
+                }
             }
 
             var tt = tooltip.tooltip;
@@ -788,7 +794,8 @@ $(function () {
                     def.each( function() {
                         var cur = { len : -1,
                                     f : $(this).attr("f"),
-                                    l : $(this).attr("l") }
+                                    l : $(this).attr("l"),
+                                    s : $(this).attr("s") }
 
                         cur.len = prefixLen(cur.f, file)
                         if (cur.len >= result.len) {

@@ -31,6 +31,7 @@
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/DeclTemplate.h>
 #include <clang/AST/PrettyPrinter.h>
+#include <clang/AST/ASTContext.h>
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
@@ -51,6 +52,44 @@
 #endif
 
 #include "stringbuilder.h"
+
+namespace
+{
+
+template <class T>
+ssize_t getTypeSize(const T &t)
+{
+    const clang::ASTContext &ctx = t->getASTContext();
+    const clang::QualType &ty = ctx.getRecordType(t);
+
+    /** Return size in bytes */
+    return ctx.getTypeSize(ty) >> 3;
+}
+
+ssize_t getDeclSize(const clang::Decl* decl)
+{
+    const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
+    if (cxx && (cxx = cxx->getDefinition())) {
+        /**
+         * XXX: avoid endless recursion inside
+         * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
+         */
+        if (cxx->isDependentContext()) {
+            return -1;
+        }
+
+        return getTypeSize(cxx);
+    }
+
+    const clang::RecordDecl *c = llvm::dyn_cast<clang::RecordDecl>(decl);
+    if (c && (c = c->getDefinition())) {
+        return getTypeSize(c);
+    }
+
+    return -1;
+}
+
+};
 
 Annotator::~Annotator()
 { }
@@ -312,6 +351,10 @@ bool Annotator::generate(clang::Sema &Sema)
                 myfile <<"'";
             }
             myfile <<"/>\n";
+        }
+        auto itS = structure_sizes.find(it.first);
+        if (itS != structure_sizes.end() && itS->second != -1) {
+            myfile << "<size>"<< itS->second <<"</size>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
@@ -594,7 +637,11 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
 {
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
         || ((type == Type || type == Enum) && dt == Definition)) {
-        references[ref].push_back( std::make_tuple(dt,  refLoc, typeRef) );
+        ssize_t size = getDeclSize(decl);
+        if (size >= 0) {
+            structure_sizes[ref] = size;
+        }
+        references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
         if (dt != Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
