@@ -53,10 +53,6 @@
 
 #include "stringbuilder.h"
 
-#define XSTRINGIFY(a) STRINGIFY(a)
-#define STRINGIFY(a) #a
-#define SSIZE_STR_MAX sizeof(XSTRINGIFY(SSIZE_MAX))
-
 namespace
 {
 
