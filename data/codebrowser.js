@@ -556,9 +556,9 @@ $(function () {
                 }
 
                 // Size:
-                var struct = res.find("struct");
-                if (struct) {
-                    content += "<br/>Size: " + struct.attr("s") + " bytes";
+                var size = res.find("size");
+                if (size.length === 1) {
+                    content += "<br/>Size: " + escape_html(size.text()) + " bytes";
                 }
             }
 

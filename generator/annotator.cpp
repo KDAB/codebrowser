@@ -354,7 +354,7 @@ bool Annotator::generate(clang::Sema &Sema)
         }
         auto itS = structure_sizes.find(it.first);
         if (itS != structure_sizes.end() && itS->second != -1) {
-            myfile << "<struct s='"<< itS->second <<"'/>\n";
+            myfile << "<size>"<< itS->second <<"</size>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
