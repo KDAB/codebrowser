@@ -638,7 +638,9 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
         || ((type == Type || type == Enum) && dt == Definition)) {
         ssize_t size = getDeclSize(decl);
-        structure_sizes[ref] = size;
+        if (size >= 0) {
+            structure_sizes[ref] = size;
+        }
         references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
         if (dt != Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
