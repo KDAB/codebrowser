@@ -37,6 +37,7 @@
 #include "browserastvisitor.h"
 #include "preprocessorcallback.h"
 #include "projectmanager.h"
+#include "filesystem.h"
 
 
 namespace cl = llvm::cl;
@@ -291,6 +292,13 @@ int main(int argc, const char **argv) {
 
         if (it.empty() || it == "-")
             continue;
+
+        llvm::SmallString<256> filename;
+        canonicalize(file, filename);
+        if (!projectManager.shouldProcess(filename, projectManager.projectForFile(filename))) {
+            std::cerr << "Skipping already processed " << filename.c_str() << std::endl;
+            continue;
+        }
 
         bool isInDatabase = false;
 

@@ -67,7 +67,8 @@ struct ProjectManager {
     std::string outputPrefix;
     std::string dataPath;
 
-    ProjectInfo *projectForFile(llvm::StringRef filename); // don't keep a cache;
+    // the file name need to be canonicalized
+    ProjectInfo *projectForFile(llvm::StringRef filename); // don't keep a cache
 
     // return true if the filename should be proesseded.
     // 'project' is the value returned by projectForFile
