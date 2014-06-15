@@ -36,6 +36,7 @@
 #include "stringbuilder.h"
 #include "browserastvisitor.h"
 #include "preprocessorcallback.h"
+#include "projectmanager.h"
 
 
 namespace cl = llvm::cl;
@@ -75,7 +76,6 @@ cl::opt<std::string> DataPath(
 cl::opt<bool> ProcessAllSources(
     "a",
     cl::desc("Process all sources in the compilation_database.json (should not have sources then)"));
-
 
 #if 1
 std::string locationToString(clang::SourceLocation loc, clang::SourceManager& sm) {
@@ -124,38 +124,9 @@ class BrowserASTConsumer : public clang::ASTConsumer
     clang::CompilerInstance &ci;
     Annotator annotator;
 public:
-    BrowserASTConsumer(clang::CompilerInstance &ci) : clang::ASTConsumer(), ci(ci),
-            annotator (OutputPath, DataPath)
-
+    BrowserASTConsumer(clang::CompilerInstance &ci, ProjectManager &projectManager)
+        : clang::ASTConsumer(), ci(ci), annotator(projectManager)
     {
-        for(std::string &s : ProjectPaths) {
-            auto colonPos = s.find(':');
-            if (colonPos >= s.size()) {
-                std::cerr << "fail to parse project option : " << s << std::endl;
-                continue;
-            }
-            auto secondColonPos = s.find(':', colonPos+1);
-            ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
-                                secondColonPos < s.size() ? s.substr(secondColonPos + 1) : std::string() };
-            annotator.addProject(std::move(info));
-        }
-        for(std::string &s : ExternalProjectPaths) {
-            auto colonPos = s.find(':');
-            if (colonPos >= s.size()) {
-                std::cerr << "fail to parse project option : " << s << std::endl;
-                continue;
-            }
-            auto secondColonPos = s.find(':', colonPos+1);
-            if (secondColonPos >= s.size()) {
-                std::cerr << "fail to parse project option : " << s << std::endl;
-                continue;
-            }
-            ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
-                               ProjectInfo::External };
-            info.external_root_url = s.substr(secondColonPos + 1);
-            annotator.addProject(std::move(info));
-        }
-
         //ci.getLangOpts().DelayedTemplateParsing = (true);
         ci.getPreprocessor().enableIncrementalProcessing();
     }
@@ -197,6 +168,8 @@ public:
     }
 };
 
+
+
 namespace HasShouldSkipBody_HELPER {
     template<class T> static decltype(static_cast<T*>(nullptr)->shouldSkipFunctionBody(nullptr)) test(int);
     template<class T> static double test(...);
@@ -218,21 +191,55 @@ protected:
         CI.getFrontendOpts().SkipFunctionBodies =
             sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
 
-        return new BrowserASTConsumer(CI);
+        return new BrowserASTConsumer(CI, *projectManager);
     }
 
 public:
     virtual bool hasCodeCompletionSupport() const { return true; }
+    static ProjectManager *projectManager;
 };
 
 
 std::set<std::string> BrowserAction::processed;
+ProjectManager *BrowserAction::projectManager = nullptr;
 
 int main(int argc, const char **argv) {
     llvm::OwningPtr<clang::tooling::CompilationDatabase> Compilations(
         clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv));
 
     llvm::cl::ParseCommandLineOptions(argc, argv);
+
+    ProjectManager projectManager(OutputPath, DataPath);
+    for(std::string &s : ProjectPaths) {
+        auto colonPos = s.find(':');
+        if (colonPos >= s.size()) {
+            std::cerr << "fail to parse project option : " << s << std::endl;
+            continue;
+        }
+        auto secondColonPos = s.find(':', colonPos+1);
+        ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
+            secondColonPos < s.size() ? s.substr(secondColonPos + 1) : std::string() };
+        projectManager.addProject(std::move(info));
+    }
+    for(std::string &s : ExternalProjectPaths) {
+        auto colonPos = s.find(':');
+        if (colonPos >= s.size()) {
+            std::cerr << "fail to parse project option : " << s << std::endl;
+            continue;
+        }
+        auto secondColonPos = s.find(':', colonPos+1);
+        if (secondColonPos >= s.size()) {
+            std::cerr << "fail to parse project option : " << s << std::endl;
+            continue;
+        }
+        ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
+            ProjectInfo::External };
+            info.external_root_url = s.substr(secondColonPos + 1);
+        projectManager.addProject(std::move(info));
+    }
+    BrowserAction::projectManager = &projectManager;
+
+
     if (!Compilations) {
         std::string ErrorMessage;
         Compilations.reset(clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath,

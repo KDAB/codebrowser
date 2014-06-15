@@ -52,6 +52,7 @@
 #endif
 
 #include "stringbuilder.h"
+#include "projectmanager.h"
 
 namespace
 {
@@ -144,18 +145,6 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     }
 };
 
-void Annotator::addProject(ProjectInfo info) {
-    if (info.source_path.empty())
-        return;
-    llvm::SmallString<256> filename;
-    canonicalize(info.source_path, filename);
-    if (filename[filename.size()-1] != '/')
-        filename += '/';
-    info.source_path = filename.c_str();
-
-    projects.push_back( std::move(info) );
-}
-
 bool Annotator::shouldProcess(clang::FileID FID)
 {
     auto it = cache.find(FID);
@@ -186,40 +175,17 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
     llvm::SmallString<256> filename;
     canonicalize(entry->getName(), filename);
 
-    ProjectInfo *project = projectForFile(filename);
+    ProjectInfo *project = projectManager.projectForFile(filename);
     if (project) {
-        std::string fn = project->name % "/" % (filename.c_str() + project->source_path.size());
-        bool should_process = false;
-        if (project->type != ProjectInfo::External) {
-            std::string p(outputPrefix %  "/" % fn % ".html");
-            should_process =  !llvm::sys::fs::exists(p);
-            // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
-        }
+        bool should_process = projectManager.shouldProcess(filename, project);
         project_cache[id] = project;
+        std::string fn = project->name % "/" % filename.substr(project->source_path.size());
         cache[id] = { should_process , fn};
         return fn;
     }
 
     cache[id] = {false, {} };
     return {};
-}
-
-ProjectInfo* Annotator::projectForFile(llvm::StringRef filename)
-{
-    unsigned int match_length = 0;
-    ProjectInfo *result = nullptr;
-
-    for (auto &it : projects) {
-        const std::string &source_path = it.source_path;
-        if (source_path.size() < match_length)
-            continue;
-        if (filename.startswith(source_path)) {
-            result = &it;
-            match_length = source_path.size();
-        }
-    }
-
-    return result;
 }
 
 static char normalizeForfnIndex(char c) {
@@ -233,10 +199,10 @@ static char normalizeForfnIndex(char c) {
 bool Annotator::generate(clang::Sema &Sema)
 {
     std::ofstream fileIndex;
-    fileIndex.open(outputPrefix + "/fileIndex", std::ios::app);
+    fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
     if (!fileIndex) {
-        create_directories(outputPrefix);
-        fileIndex.open(outputPrefix + "/fileIndex", std::ios::app);
+        create_directories(projectManager.outputPrefix);
+        fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
         if (!fileIndex) {
             std::cerr << "Can't generate index for " << std::endl;
             return false;
@@ -252,10 +218,10 @@ bool Annotator::generate(clang::Sema &Sema)
             continue;
         done.insert(fn);
 
-        auto project_it = std::find_if(projects.cbegin(), projects.cend(),
+        auto project_it = std::find_if(projectManager.projects.cbegin(), projectManager.projects.cend(),
                               [&fn](const ProjectInfo &it)
                               { return llvm::StringRef(fn).startswith(it.name); } );
-        if (project_it == projects.cend()) {
+        if (project_it == projectManager.projects.cend()) {
             std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
             continue;
         }
@@ -289,7 +255,7 @@ bool Annotator::generate(clang::Sema &Sema)
 
         // Emit the HTML.
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(outputPrefix, dataPath, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer);
+        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer);
 
         fileIndex << fn << '\n';
     }
@@ -298,13 +264,13 @@ bool Annotator::generate(clang::Sema &Sema)
     // (There might not be when the comment is in the .cpp file (for \class))
     for (auto it : commentHandler.docs) references[it.first];
 
-    create_directories(llvm::Twine(outputPrefix, "/refs"));
+    create_directories(llvm::Twine(projectManager.outputPrefix, "/refs"));
     for (auto it : references) {
         if (llvm::StringRef(it.first).startswith("__builtin"))
             continue;
         if (it.first == "main")
             continue;
-        std::string filename = outputPrefix % "/refs/" % it.first;
+        std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
         std::string error;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::raw_fd_ostream::F_Append);
@@ -365,7 +331,7 @@ bool Annotator::generate(clang::Sema &Sema)
     }
 
     // now the function names
-    create_directories(llvm::Twine(outputPrefix, "/fnSearch"));
+    create_directories(llvm::Twine(projectManager.outputPrefix, "/fnSearch"));
     for(auto &fnIt : functionIndex) {
         auto fnName = fnIt.first;
         if (fnName.size() < 4)
@@ -385,7 +351,7 @@ bool Annotator::generate(clang::Sema &Sema)
             char idx[3] = { normalizeForfnIndex(fnName[pos]), normalizeForfnIndex(fnName[pos+1]) , '\0' };
             llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
             if (saved.find(idxRef) == std::string::npos) {
-                std::string funcIndexFN = outputPrefix % "/fnSearch/" % idx;
+                std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
                 std::string error;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::raw_fd_ostream::F_Append);
@@ -440,7 +406,7 @@ std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
     canonicalize(To->getName(), filename);
 
 
-    ProjectInfo *project = projectForFile(filename);
+    ProjectInfo *project = projectManager.projectForFile(filename);
     if (!project)
         return {};
 

@@ -31,6 +31,8 @@
 #include "commenthandler.h"
 #include "generator.h"
 
+struct ProjectManager;
+struct ProjectInfo;
 class PreprocessorCallback;
 
 namespace clang {
@@ -48,31 +50,6 @@ template <typename T> auto getResultType(T *decl) -> decltype(decl->getResultTyp
 { return decl->getResultType(); }
 template <typename T> auto getResultType(T *decl) -> decltype(decl->getReturnType())
 { return decl->getReturnType(); }
-
-struct ProjectInfo {
-    std::string name;
-    std::string source_path;
-//    std::string description;
-//    std::string version_info;
-//    std::string repo_url; //may contains tags;
-    std::string revision;
-
-    std::string external_root_url;
-
-    //TODO
-    std::string fileRepoUrl(const std::string &file) const { return {}; }
-    enum Type { Normal,
-                Internal, //includes and stuffs
-                External, //links to external projects somewhere else, do not generate refs or anything,
-                          // and link to a different ref source
-    } type = Normal;
-
-    ProjectInfo(std::string name, std::string source_path, Type t = Normal)
-        :   name(std::move(name)), source_path(std::move(source_path)), type(t)  {}
-    ProjectInfo(std::string name, std::string source_path, std::string rev)
-        :   name(std::move(name)), source_path(std::move(source_path)), revision(std::move(rev))  {}
-};
-
 
 typedef std::pair<unsigned, unsigned> pathTo_cache_key_t;
 namespace std {
@@ -98,19 +75,13 @@ private:
 
     Visibility getVisibility(const clang::NamedDecl *);
 
-    std::vector<ProjectInfo> projects =
-        { {"include", "/usr/include/", ProjectInfo::Internal } };
-
-    std::string outputPrefix;
-    std::string dataPath;
+    ProjectManager &projectManager;
 
     std::map<clang::FileID, std::pair<bool, std::string> > cache;
     std::map<clang::FileID, ProjectInfo* > project_cache;
     std::map<clang::FileID, Generator> generators;
 
     std::string htmlNameForFile(clang::FileID id); // keep a cache;
-    ProjectInfo *projectForFile(llvm::StringRef filename); // don't keep a cache;
-
 
     void addReference(const std::string& ref, clang::SourceLocation refLoc, Annotator::TokenType type,
                       Annotator::DeclType dt, const std::string &typeRef, clang::Decl *decl);
@@ -134,11 +105,8 @@ private:
 
     void syntaxHighlight(Generator& generator, clang::FileID FID, clang::Sema&);
 public:
-    Annotator(std::string outputPrefix, std::string _dataPath) : outputPrefix(std::move(outputPrefix)) , dataPath(std::move(_dataPath)) {
-        if (dataPath.empty()) dataPath = "../data";
-    }
+    explicit Annotator(ProjectManager &pm) : projectManager(pm) {}
     ~Annotator();
-    void addProject(ProjectInfo info);
 
     void setSourceMgr(clang::SourceManager &sm, const clang::LangOptions &lo)
     { sourceManager = &sm; langOption = &lo;  }
