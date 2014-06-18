@@ -1,6 +1,9 @@
 
 /** http://reviews.llvm.org/rL201729 */
-#if (__clang__ == 1) && !defined(__CLANG_MAX_ALIGN_T_DEFINED)
+#if ((__clang__ == 1) &&                                    \
+     (__clang_major__ == 3) && (__clang_minor__ == 4) &&    \
+     (__clang_patchlevel__ == 0) &&                         \
+     !defined(__CLANG_MAX_ALIGN_T_DEFINED))
 # if __STDC_VERSION__ >= 201112L || __cplusplus >= 201103L
 typedef struct {
   long long __clang_max_align_nonce1
