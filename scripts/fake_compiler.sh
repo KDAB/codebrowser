@@ -16,12 +16,12 @@
 # echo " { \"directory\": \".\", \"command\": \"true\", \"file\": \"/dev/null\" } ]" >> $COMPILATION_COMMANDS
 
 
-directory=$PWD;
-args=$@;
-file=`echo $args | sed 's/.* \([^ ]*\)/\1/'`; 
-new_file=`cd $directory && readlink -f $file 2>/dev/null | xargs echo -n`;
+directory=$PWD
+args=$@
+file=`echo $args | sed 's/.* \([^ ]*\)/\1/'`
+new_file=`cd $directory && readlink -f $file 2>/dev/null | xargs echo -n`
 args=`echo $args | sed "s, -I\.\./, -I$directory/../,g" | sed "s, -I\. , -I$directory ,g" | sed "s, -I\./, -I$directory,g" | sed "s, -I\(/]\), -I$directory/\1,g" | sed 's,\\\\,\\\\\\\\,g' | sed 's/"/\\\\"/g'`
-echo "{ \"directory\": \"$directory\", \"command\": \"c++ $args\", \"file\": \"$new_file\" } , " >> $COMPILATION_COMMANDS;
+echo "{ \"directory\": \"$directory\", \"command\": \"c++ $args\", \"file\": \"$new_file\" } , " >> $COMPILATION_COMMANDS
 
 if [ -z $FORWARD_COMPILER ]; then
     true
