@@ -26,5 +26,5 @@ echo "{ \"directory\": \"$directory\", \"command\": \"c++ $args\", \"file\": \"$
 if [ -z $FORWARD_COMPILER ]; then
     true
 else
-    $FORWARD_COMPILER $@
+    $FORWARD_COMPILER "$@"
 fi
