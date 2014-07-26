@@ -75,8 +75,8 @@ a.logo { float:right }
 .code .macro { background-color:#efe; color: inherit; }
 .code .macro:hover { background-color:#BEFF9B; }
 
-.ref.col0 {color:#2400FF} .ref.col1 {color:#9C00FF} .ref.col2 {color:#D1008A} .ref.col3 {color:#FF0000} .ref.col4 {color:#FF4F00}
-.ref.col5 {color:#F69D00} .ref.col6 {color:#72D200} .ref.col7 {color:#00F718} .ref.col8 {color:#00BBCD} .ref.col9 {color:#0053FF}
+.code .col0 {color:#2400FF} .code .col1 {color:#9C00FF} .code .col2 {color:#D1008A} .code .col3 {color:#FF0000} .code .col4 {color:#FF4F00}
+.code .col5 {color:#F69D00} .code .col6 {color:#72D200} .code .col7 {color:#00F718} .code .col8 {color:#00BBCD} .code .col9 {color:#0053FF}
 
 .code dfn {  font-style:normal }
 .code .virtual { font-style: italic; }

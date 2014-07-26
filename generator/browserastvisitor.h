@@ -122,7 +122,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     }
     bool VisitVarDecl(clang::VarDecl *d) {
         if(!shouldProcess(d)) return false;
-        annotator.registerReference(d, d->getLocation(), Annotator::Ref,
+        annotator.registerReference(d, d->getLocation(), Annotator::Decl,
                              d->isThisDeclarationADefinition() ? Annotator::Definition : Annotator::Declaration,
                              annotator.getTypeRef(d->getType()));
         return true;
