@@ -37,7 +37,7 @@
 #include <iostream>
 
 
-llvm::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {
+std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {
     std::string p = path.str();
 #ifdef PATH_MAX
     int path_max = PATH_MAX;
@@ -49,23 +49,23 @@ llvm::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<cha
     result.resize(path_max);
     realpath(p.c_str(), result.data());
     result.resize(strlen(result.data()));
-    return llvm::error_code::success();
+    return {};
 }
 
 /* Based on the one from Support/Unix/PathV2 but with different default rights */
-static llvm::error_code create_directory(const llvm::Twine& path)
+static std::error_code create_directory(const llvm::Twine& path)
 {
     using namespace llvm;
     SmallString<128> path_storage;
     StringRef p = path.toNullTerminatedStringRef(path_storage);
     if (::mkdir(p.begin(), 0755) == -1) {
         if (errno != errc::file_exists)
-            return error_code(errno, system_category());
+            return {errno, std::system_category()};
     }
-    return error_code::success();
+    return {};
 }
 
-llvm::error_code create_directories(const llvm::Twine& path)
+std::error_code create_directories(const llvm::Twine& path)
 {
     using namespace llvm;
     using namespace llvm::sys;
@@ -74,10 +74,10 @@ llvm::error_code create_directories(const llvm::Twine& path)
     StringRef parent = path::parent_path(p);
     if (!parent.empty()) {
         bool parent_exists;
-        if (error_code ec = fs::exists(parent, parent_exists)) return ec;
+        if (auto ec = fs::exists(parent, parent_exists)) return ec;
 
         if (!parent_exists)
-            if (error_code ec = create_directories(parent)) return ec;
+            if (auto ec = create_directories(parent)) return ec;
     }
 
     return create_directory(p);

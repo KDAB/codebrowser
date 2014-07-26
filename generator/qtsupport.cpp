@@ -24,6 +24,7 @@
 #include "qtsupport.h"
 #include "annotator.h"
 #include <clang/AST/DeclCXX.h>
+#include <clang/AST/ExprCXX.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <clang/Lex/Lexer.h>
 #include <clang/Basic/SourceManager.h>

@@ -24,15 +24,16 @@
 #include <llvm/Support/system_error.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/SmallString.h>
+#include <system_error>
 
 namespace llvm {
 class Twine;
 }
 
 /* Is declared in llvm::sys::fs,  but not implemented */
-llvm::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result);
+std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result);
 
 /* The one in llvm::sys::fs do not create the directory with the right peromissions */
-llvm::error_code create_directories(const llvm::Twine &path);
+std::error_code create_directories(const llvm::Twine &path);
 
 std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path);

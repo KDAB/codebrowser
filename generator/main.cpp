@@ -271,7 +271,6 @@ int main(int argc, const char **argv) {
     clang::tooling::ClangTool Tool(*Compilations, Sources);
     return Tool.run(clang::tooling::newFrontendActionFactory<BrowserAction>());
 #else
-
     static int StaticSymbol;
     std::string MainExecutable = llvm::sys::fs::getMainExecutable("clang_tool", &StaticSymbol);
 
@@ -333,8 +332,7 @@ int main(int argc, const char **argv) {
 
 
         std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
-
-        clang::tooling::ToolInvocation Inv(command, clang::tooling::newFrontendActionFactory<BrowserAction>(), &FM);
+        clang::tooling::ToolInvocation Inv(command, new BrowserAction, &FM);
         Inv.run();
     }
 #endif
