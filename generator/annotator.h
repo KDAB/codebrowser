@@ -115,7 +115,7 @@ public:
     const clang::LangOptions &getLangOpts() const { return *langOption; }
     void setArgs(std::string a) { args = std::move(a); }
 
-    bool generate(clang::Sema&);
+    bool generate(clang::Sema&, bool WasInDatabase);
 
     std::string pathTo(clang::FileID From, clang::FileID To);
     std::string pathTo(clang::FileID From, const clang::FileEntry* To);

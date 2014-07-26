@@ -196,7 +196,7 @@ static char normalizeForfnIndex(char c) {
     return c;
 }
 
-bool Annotator::generate(clang::Sema &Sema)
+bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 {
     std::ofstream fileIndex;
     fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
@@ -255,7 +255,7 @@ bool Annotator::generate(clang::Sema &Sema)
 
         // Emit the HTML.
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer);
+        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer, WasInDatabase);
 
         fileIndex << fn << '\n';
     }

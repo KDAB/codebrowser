@@ -75,8 +75,7 @@ void Generator::Tag::close(std::ostream &myfile) const
 }
 
 void Generator::generate(const std::string &outputPrefix, std::string data_path, const std::string &filename,
-                         const char *begin, const char *end,
-                         const std::string &footer)
+                         const char *begin, const char *end, const std::string &footer, bool WasInDatabase)
 {
     std::string real_filename = outputPrefix % "/" % filename % ".html";
     // Make sure the parent directory exist:
@@ -119,6 +118,11 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
               "<script src='" << data_path << "/codebrowser.js'></script>\n";
 
     myfile << "</head>\n<body><div id='header'> </div><hr/><div id='content'>";
+
+    if (!WasInDatabase) {
+        myfile << "<p class=\"warnmsg\">Warning: That file was not part of the compilation database. "
+                  "It may have many parsing errors.</p>";
+    }
 
     //** here we put the code
     myfile << "<table class=\"code\">\n";
@@ -200,7 +204,14 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
 
     myfile << "</td></tr>\n"
               "</table>"
-              "<hr/><p id='footer'>\n";
+              "<hr/>";
+
+    if (!WasInDatabase) {
+        myfile << "<p class=\"warnmsg\">Warning: That file was not part of the compilation database. "
+                  "It may have many parsing errors.</p>";
+    }
+
+    myfile << "<p id='footer'>\n";
 
     myfile << footer;
 

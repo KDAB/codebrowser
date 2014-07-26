@@ -124,9 +124,10 @@ class BrowserASTConsumer : public clang::ASTConsumer
 {
     clang::CompilerInstance &ci;
     Annotator annotator;
+    bool WasInDatabase;
 public:
-    BrowserASTConsumer(clang::CompilerInstance &ci, ProjectManager &projectManager)
-        : clang::ASTConsumer(), ci(ci), annotator(projectManager)
+    BrowserASTConsumer(clang::CompilerInstance &ci, ProjectManager &projectManager, bool WasInDatabase)
+        : clang::ASTConsumer(), ci(ci), annotator(projectManager), WasInDatabase(WasInDatabase)
     {
         //ci.getLangOpts().DelayedTemplateParsing = (true);
         ci.getPreprocessor().enableIncrementalProcessing();
@@ -159,7 +160,7 @@ public:
         v.TraverseDecl(Ctx.getTranslationUnitDecl());
 
 
-        annotator.generate(ci.getSema());
+        annotator.generate(ci.getSema(), WasInDatabase);
     }
 
     virtual bool shouldSkipFunctionBody(clang::Decl *D) {
@@ -180,6 +181,7 @@ namespace HasShouldSkipBody_HELPER {
 
 class BrowserAction : public clang::ASTFrontendAction {
     static std::set<std::string> processed;
+    bool WasInDatabase;
 protected:
     virtual clang::ASTConsumer *CreateASTConsumer(clang::CompilerInstance &CI,
                                            llvm::StringRef InFile) override {
@@ -192,10 +194,11 @@ protected:
         CI.getFrontendOpts().SkipFunctionBodies =
             sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
 
-        return new BrowserASTConsumer(CI, *projectManager);
+        return new BrowserASTConsumer(CI, *projectManager, WasInDatabase);
     }
 
 public:
+    BrowserAction(bool WasInDatabase = true) : WasInDatabase(WasInDatabase) {}
     virtual bool hasCodeCompletionSupport() const { return true; }
     static ProjectManager *projectManager;
 };
@@ -203,6 +206,41 @@ public:
 
 std::set<std::string> BrowserAction::processed;
 ProjectManager *BrowserAction::projectManager = nullptr;
+
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
+static void proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
+                           clang::FileManager *FM, llvm::StringRef MainExecutable, bool WasInDatabase) {
+    // This code change all the paths to be absolute paths
+    //  FIXME:  it is a bit fragile.
+    bool previousIsDashI = false;
+    std::for_each(command.begin(), command.end(), [&](std::string &A) {
+        if (previousIsDashI && !A.empty() && A[0] != '/') {
+            A = Directory % "/" % A;
+            return;
+        } else if (A == "-I") {
+            previousIsDashI = true;
+            return;
+        }
+        previousIsDashI = false;
+        if (A.empty()) return;
+                  if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
+                      A = "-I" % Directory % "/" % llvm::StringRef(A).substr(2);
+                      return;
+                  }
+                  if (A[0] == '-' || A[0] == '/') return;
+                  std::string PossiblePath = Directory % "/" % A;
+        if (llvm::sys::fs::exists(PossiblePath))
+            A = PossiblePath;
+    } );
+
+    auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
+    Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
+    Ajust(clang::tooling::ClangStripOutputAdjuster());
+    command[0] = MainExecutable;
+    clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
+    Inv.run();
+}
+#endif
 
 int main(int argc, const char **argv) {
     llvm::OwningPtr<clang::tooling::CompilationDatabase> Compilations(
@@ -257,12 +295,11 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
-    std::vector<std::string> AllFiles;
+    std::vector<std::string> AllFiles = Compilations->getAllFiles();
+    std::sort(AllFiles.begin(), AllFiles.end());
     llvm::ArrayRef<std::string> Sources = SourcePaths;
     if (Sources.empty() && ProcessAllSources) {
-        AllFiles = Compilations->getAllFiles();
         // Because else the order is too random
-        std::sort(AllFiles.begin(), AllFiles.end());
         Sources = AllFiles;
     } else if (ProcessAllSources) {
         std::cerr << "Cannot use both sources and  '-a'" << std::endl;
@@ -286,6 +323,8 @@ int main(int argc, const char **argv) {
     FM.Retain();
     int Progress = 0;
 
+    std::vector<std::string> NotInDB;
+
     for (const auto &it : Sources) {
         std::string file = clang::tooling::getAbsolutePath(it);
         Progress++;
@@ -300,55 +339,44 @@ int main(int argc, const char **argv) {
             continue;
         }
 
-        bool isInDatabase = false;
-
-        std::vector<std::string> command;
-
-        if (Compilations) {
-            std::vector<clang::tooling::CompileCommand> compileCommandsForFile =
-                Compilations->getCompileCommands(file);
-            if (!compileCommandsForFile.empty()) {
-                command = compileCommandsForFile.front().CommandLine;
-
-                // This code change all the paths to be absolute paths
-                //  FIXME:  it is a bit fragile.
-                bool previousIsDashI = false;
-                std::for_each(command.begin(), command.end(), [&](std::string &A) {
-                    if (previousIsDashI && !A.empty() && A[0] != '/') {
-                        A = compileCommandsForFile.front().Directory % "/" % A;
-                        return;
-                    } else if (A == "-I") {
-                        previousIsDashI = true;
-                        return;
-                    }
-                    previousIsDashI = false;
-                    if (A.empty()) return;
-                    if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
-                        A = "-I" % compileCommandsForFile.front().Directory % "/" % llvm::StringRef(A).substr(2);
-                        return;
-                    }
-                    if (A[0] == '-' || A[0] == '/') return;
-                    std::string PossiblePath = compileCommandsForFile.front().Directory % "/" % A;
-                    if (llvm::sys::fs::exists(PossiblePath))
-                        A = PossiblePath;
-                } );
-                isInDatabase = true;
-            } else {
-                // TODO: Try to find a command line for a file in the same path
-                std::cerr << "Skiping " << file << "\n";
-                continue;
-            }
+        auto compileCommandsForFile = Compilations->getCompileCommands(file);
+        if (!compileCommandsForFile.empty()) {
+            std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
+            proceedCommand(compileCommandsForFile.front().CommandLine,
+                           compileCommandsForFile.front().Directory,
+                           &FM, MainExecutable, true);
+        } else {
+            // TODO: Try to find a command line for a file in the same path
+            std::cerr << "Delayed " << file << "\n";
+            Progress--;
+            NotInDB.push_back(file);
+            continue;
         }
 
-        auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
-        Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
-        Ajust(clang::tooling::ClangStripOutputAdjuster());
-        command[0] = MainExecutable;
+    }
+
+    for (const auto &it : NotInDB) {
+        std::string file = clang::tooling::getAbsolutePath(it);
+        Progress++;
+
+        llvm::StringRef similar;
+
+        // Find the element with the bigger prefix
+        auto lower = std::lower_bound(AllFiles.cbegin(), AllFiles.cend(), file);
+        if (lower == AllFiles.cend())
+            lower = AllFiles.cbegin();
 
 
-        std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
-        clang::tooling::ToolInvocation Inv(command, new BrowserAction, &FM);
-        Inv.run();
+        auto compileCommandsForFile = Compilations->getCompileCommands(*lower);
+        if (!compileCommandsForFile.empty()) {
+            std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
+            auto command = compileCommandsForFile.front().CommandLine;
+            std::replace(command.begin(), command.end(), *lower, it);
+            proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, MainExecutable, false);
+        } else {
+            std::cerr << "Could not find commands for " << file << "\n";
+            continue;
+        }
     }
 #endif
 }
