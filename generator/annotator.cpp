@@ -316,6 +316,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             Generator::escapeAttr(myfile, fn);
             myfile << "' l='"<<  fixed.getLine()  <<"'";
             if (loc.isMacroID()) myfile << " macro='1'";
+            if (!WasInDatabase) myfile << " brk='1'";
             const auto &refType = std::get<2>(it2);
             if (!refType.empty()) {
                 myfile << ((std::get<0>(it2) < Use) ? " type='" : " c='");

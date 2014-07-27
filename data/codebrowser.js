@@ -537,7 +537,9 @@ $(function () {
                         var url = proj_root_path + "/" + f + ".html#" + l;
                         if (!dict[f]) {
                             dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
-                                        contexts: {},  prefixL: prefixLen(file, f), count: 0};
+                                        contexts: {},  prefixL: prefixLen(file, f), count: 0,
+                                        f: f, brk: t.attr("brk")
+                            };
                         }
                         c = demangleFunctionName(c)
                         if (!c) c = f + ":" + l;
@@ -554,7 +556,7 @@ $(function () {
                         if (dict.hasOwnProperty(xx))
                             list.push(dict[xx]);
                     }
-                    list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : (b.f - a.f) });
+                    list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : a.brk ? 1 : b.f - a.f });
                     var ul = $("<ul class='uses'/>");
                     for (var i = 0; i < list.length; ++i) {
                         var subul = $("<ul/>");
