@@ -616,18 +616,18 @@ $(function () {
 
                     var currentLine = elem.parents("tr").find("th").text();
                     //if there are several definition we take the one closer in the hierarchy.
-                    var result = {  len: -1 };
+                    var result = {  len: -2, brk: true };
                     def.each( function() {
                         var cur = { len : -1,
                                     f : $(this).attr("f"),
-                                    l : $(this).attr("l") }
-
+                                    l : $(this).attr("l"),
+                                    brk : $(this).attr("brk") };
 
                         if (cur.f === file && cur.l === currentLine)
                             return;
 
                         cur.len = prefixLen(cur.f, file)
-                        if (cur.len >= result.len) {
+                        if (result.brk == cur.brk ? (cur.len > result.len) : result.brk) {
                             result = cur;
                             result.isMarcro = ($(this).attr("macro"));
                         }
