@@ -74,8 +74,8 @@ void Generator::Tag::close(std::ostream &myfile) const
     myfile << "</" << name << ">";
 }
 
-void Generator::generate(const std::string &outputPrefix, std::string data_path, const std::string &filename,
-                         const char *begin, const char *end, const std::string &footer, bool WasInDatabase)
+void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, const std::string &filename,
+                         const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage)
 {
     std::string real_filename = outputPrefix % "/" % filename % ".html";
     // Make sure the parent directory exist:
@@ -93,16 +93,16 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
     for (int i = 0; i < count - 1; i++)
         root_path += "/..";
 
-    if (data_path.size() && data_path[0] == '.')
-        data_path = root_path % "/" % data_path;
+    if (dataPath.size() && dataPath[0] == '.')
+        dataPath = root_path % "/" % dataPath;
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
     "<html>\n<head>\n";
     myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " [" << filename << "] - Woboq Code Browser</title>\n";
-    myfile << "<link rel=\"stylesheet\" href=\"" << data_path << "/kdevelop.css\" title=\"KDevelop\"/>\n";
-    myfile << "<link rel=\"alternate stylesheet\" href=\"" << data_path << "/qtcreator.css\" title=\"QtCreator\"/>\n";
-    myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
-    myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";
+    myfile << "<link rel=\"stylesheet\" href=\"" << dataPath << "/kdevelop.css\" title=\"KDevelop\"/>\n";
+    myfile << "<link rel=\"alternate stylesheet\" href=\"" << dataPath << "/qtcreator.css\" title=\"QtCreator\"/>\n";
+    myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery.min.js\"></script>\n";
+    myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery-ui.min.js\"></script>\n";
     myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"';";
     if (!projects.empty()) {
         myfile << "var projects = {";
@@ -115,13 +115,14 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
         myfile << "};";
     }
     myfile << "</script>\n"
-              "<script src='" << data_path << "/codebrowser.js'></script>\n";
+              "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
     myfile << "</head>\n<body><div id='header'> </div><hr/><div id='content'>";
 
-    if (!WasInDatabase) {
-        myfile << "<p class=\"warnmsg\">Warning: That file was not part of the compilation database. "
-                  "It may have many parsing errors.</p>";
+    if (!warningMessage.empty()) {
+        myfile << "<p class=\"warnmsg\">";
+        myfile.write(warningMessage.begin(), warningMessage.size());
+        myfile << "</p>\n";
     }
 
     //** here we put the code
@@ -206,14 +207,15 @@ void Generator::generate(const std::string &outputPrefix, std::string data_path,
               "</table>"
               "<hr/>";
 
-    if (!WasInDatabase) {
-        myfile << "<p class=\"warnmsg\">Warning: That file was not part of the compilation database. "
-                  "It may have many parsing errors.</p>";
+    if (!warningMessage.empty()) {
+        myfile << "<p class=\"warnmsg\">";
+        myfile.write(warningMessage.begin(), warningMessage.size());
+        myfile << "</p>\n";
     }
 
     myfile << "<p id='footer'>\n";
 
-    myfile << footer;
+    myfile.write(footer.begin(), footer.size());
 
     myfile << "<br />Powered by <a href='http://woboq.com'><img alt='Woboq' src='http://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='http://code.woboq.org'>Code Browser</a> "
               CODEBROWSER_VERSION "\n</p>\n</div></body></html>\n";

@@ -25,7 +25,6 @@
 #include <string>
 #include <vector>
 
-
 struct ProjectInfo {
     std::string name;
     std::string source_path;

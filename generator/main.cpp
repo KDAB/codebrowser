@@ -30,6 +30,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <limits>
 #include <stdexcept>
 #include "annotator.h"
@@ -38,7 +39,7 @@
 #include "preprocessorcallback.h"
 #include "projectmanager.h"
 #include "filesystem.h"
-
+#include <ctime>
 
 namespace cl = llvm::cl;
 
@@ -311,7 +312,6 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
-
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
     clang::tooling::ClangTool Tool(*Compilations, Sources);
     return Tool.run(clang::tooling::newFrontendActionFactory<BrowserAction>());
@@ -371,6 +371,7 @@ int main(int argc, const char **argv) {
         if (lower == AllFiles.cend())
             lower = AllFiles.cbegin();
 
+        bool success = false;
         auto compileCommandsForFile = Compilations->getCompileCommands(*lower);
         if (!compileCommandsForFile.empty()) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
@@ -379,13 +380,53 @@ int main(int argc, const char **argv) {
             if (llvm::StringRef(file).endswith(".qdoc")) {
                 command.insert(command.begin() + 1, "-xc++");
             }
-            proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, MainExecutable, false);
+            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, MainExecutable, false);
         } else {
             std::cerr << "Could not find commands for " << file << "\n";
         }
-    }
+
+        if (!success) {
+            ProjectInfo *projectinfo = projectManager.projectForFile(file);
+            if (!projectinfo)
+                continue;
+            if (!projectManager.shouldProcess(file, projectinfo))
+                continue;
+
+            auto now = std::time(0);
+            auto tm = localtime(&now);
+            char buf[80];
+            std::strftime(buf, sizeof(buf), "%Y-%b-%d", tm);
+
+            std::string footer = "Generated on <em>" % std::string(buf) % "</em>"
+                                % " from project " % projectinfo->name % "</a>";
+            if (!projectinfo->revision.empty())
+                footer %= " revision <em>" % projectinfo->revision % "</em>";
+
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
+            llvm::OwningPtr<llvm::MemoryBuffer> Buf;
+            if (!llvm::MemoryBuffer::getFile(file, Buf))
+                continue;
+#else
+            auto B = llvm::MemoryBuffer::getFile(file);
+            if (!B)
+                continue;
+            std::unique_ptr<llvm::MemoryBuffer> Buf = std::move(B.get());
 #endif
 
+            std::string fn = projectinfo->name % "/" % llvm::StringRef(file).substr(projectinfo->source_path.size());
 
+            Generator g;
+            g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
+                       Buf->getBufferStart(), Buf->getBufferEnd(), footer,
+                       "Warning: This file is not a C or C++ file. It does not have highlighting.");
+
+            std::ofstream fileIndex;
+            fileIndex.open(projectManager.outputPrefix + "/otherIndex", std::ios::app);
+            if (!fileIndex)
+                continue;
+            fileIndex << fn << '\n';
+        }
+    }
+#endif
 }
 

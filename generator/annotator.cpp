@@ -258,7 +258,10 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
         // Emit the HTML.
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf->getBufferStart(), Buf->getBufferEnd(), footer, WasInDatabase);
+        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
+                   Buf->getBufferStart(), Buf->getBufferEnd(), footer,
+                   WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
+                                        "It may have many parsing errors.</p>");
 
         fileIndex << fn << '\n';
     }

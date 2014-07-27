@@ -61,8 +61,8 @@ public:
         projects.insert({std::move(a), std::move(b) });
     }
 
-    void generate(const std::string &outputPrefix, std::string dataPath, const std::string &filename,
-                  const char *begin, const char *end, const std::string &footer, bool WasInDatabase);
+    void generate(llvm::StringRef outputPrefix, std::string dataPath, const std::string &filename,
+                  const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage);
 
     static llvm::StringRef escapeAttr(llvm::StringRef, llvm::SmallVectorImpl<char> &buffer);
     static void escapeAttr(llvm::raw_ostream& os, llvm::StringRef s);
