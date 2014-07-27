@@ -209,6 +209,9 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         }
     }
 
+    // make sure the main file is in the cache.
+    htmlNameForFile(getSourceMgr().getMainFileID());
+
     std::set<std::string> done;
     for(auto it : cache) {
         if (!it.second.first)

@@ -208,7 +208,7 @@ std::set<std::string> BrowserAction::processed;
 ProjectManager *BrowserAction::projectManager = nullptr;
 
 #if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
-static void proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
+static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
                            clang::FileManager *FM, llvm::StringRef MainExecutable, bool WasInDatabase) {
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
@@ -238,7 +238,7 @@ static void proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     Ajust(clang::tooling::ClangStripOutputAdjuster());
     command[0] = MainExecutable;
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
-    Inv.run();
+    return Inv.run();
 }
 #endif
 
@@ -349,7 +349,7 @@ int main(int argc, const char **argv) {
             // TODO: Try to find a command line for a file in the same path
             std::cerr << "Delayed " << file << "\n";
             Progress--;
-            NotInDB.push_back(file);
+            NotInDB.push_back(filename.str());
             continue;
         }
 
@@ -359,6 +359,11 @@ int main(int argc, const char **argv) {
         std::string file = clang::tooling::getAbsolutePath(it);
         Progress++;
 
+        if (!projectManager.shouldProcess(file, projectManager.projectForFile(file))) {
+            std::cerr << "Skipping already processed " << file.c_str() << std::endl;
+            continue;
+        }
+
         llvm::StringRef similar;
 
         // Find the element with the bigger prefix
@@ -366,18 +371,21 @@ int main(int argc, const char **argv) {
         if (lower == AllFiles.cend())
             lower = AllFiles.cbegin();
 
-
         auto compileCommandsForFile = Compilations->getCompileCommands(*lower);
         if (!compileCommandsForFile.empty()) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
             auto command = compileCommandsForFile.front().CommandLine;
             std::replace(command.begin(), command.end(), *lower, it);
+            if (llvm::StringRef(file).endswith(".qdoc")) {
+                command.insert(command.begin() + 1, "-xc++");
+            }
             proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, MainExecutable, false);
         } else {
             std::cerr << "Could not find commands for " << file << "\n";
-            continue;
         }
     }
 #endif
+
+
 }
 
