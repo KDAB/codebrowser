@@ -65,8 +65,39 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
         } else if (Tok.is(clang::tok::identifier)) {
 
             if (Next.is(clang::tok::coloncolon)) {
-                if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), *II, Tok.getLocation(), Next.getLocation(), {}, false, SS))
-                    SS.SetInvalid(Tok.getLocation());
+
+                clang::Sema::TemplateTy Template;
+                clang::UnqualifiedId Name;
+                Name.setIdentifier(II, Tok.getLocation());
+                bool dummy;
+                auto TemplateKind = Sema.isTemplateName(Sema.getScopeForContext(TuDecl), SS, false, Name, {}, false, Template, dummy);
+                if (TemplateKind == clang::TNK_Non_template) {
+                    if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), *II, Tok.getLocation(), Next.getLocation(), {}, false, SS))
+                        SS.SetInvalid(Tok.getLocation());
+                } else if (auto T = Template.get().getAsTemplateDecl()) {
+                    // FIXME: For template, it is a bit tricky
+                    // It is still a bit broken but works in some cases for most normal functions
+                    auto T2 = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(T->getTemplatedDecl());
+                    if (T2) {
+                        Lex.LexFromRawLexer(Tok);
+                        if (!Tok.is(clang::tok::raw_identifier))
+                            return nullptr;
+                        II = PP.LookUpIdentifierInfo(Tok);
+                        Lex.LexFromRawLexer(Next);
+                        if (!Next.is(clang::tok::eof) && !Next.is(clang::tok::l_paren))
+                            return nullptr;
+                        auto Result = T2->lookup(II);
+                        if (Result.size() != 1)
+                            return nullptr;
+                        auto D = Result.front();
+                        if (isFunction && (llvm::isa<clang::RecordDecl>(D)
+                                    || llvm::isa<clang::ClassTemplateDecl>(D))) {
+                            // TODO constructor
+                            return nullptr;
+                        }
+                        return D;
+                    }
+                }
                 Lex.LexFromRawLexer(Next);
                 continue;
             }
@@ -96,7 +127,6 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                 if (Found.isOverloadedResult() && Next.is(clang::tok::l_paren)) {
                     // TODO
                 }
-
                 return nullptr;
             }
         }
@@ -115,13 +145,15 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
 
 struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<CommentVisitor>  {
     typedef clang::comments::ConstCommentVisitor<CommentVisitor> Base;
-    CommentVisitor(Generator &generator, const clang::comments::CommandTraits &traits, clang::Sema &Sema)
-        : generator(generator) , traits(traits), Sema(Sema) {}
+    CommentVisitor(Annotator &annotator, Generator &generator, const clang::comments::CommandTraits &traits, clang::Sema &Sema)
+        : annotator(annotator), generator(generator) , traits(traits), Sema(Sema) {}
+    Annotator &annotator;
     Generator &generator;
     const clang::comments::CommandTraits &traits;
     clang::Sema &Sema;
 
     clang::NamedDecl *Decl = nullptr;
+    std::string DeclRef;
 
     void visit(const clang::comments::Comment *C) {
         Base::visit(C);
@@ -172,25 +204,32 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
         auto R = C->getTextRange();
         // We need to adjust because the text starts right after the name, which overlap with the
         // command.  And also includes the end of line, which is useless.
-        tag("verb", {R.getBegin().getLocWithOffset(+1), R.getEnd().getLocWithOffset(-1)});
         Base::visitVerbatimLineComment(C);
 
+        std::string ref;
         auto Info = traits.getCommandInfo(C->getCommandID());
         if (Info->IsDeclarationCommand) {
             auto D = parseDeclarationReference(C->getText(), Sema,
                 Info->IsFunctionDeclarationCommand || Info->getID() ==  clang::comments::CommandTraits::KCI_fn);
-            if (D)
+            if (D) {
                 Decl = D;
+                DeclRef = annotator.getVisibleRef(Decl);
+                ref = DeclRef;
+            }
         }
+        tag("verb", {R.getBegin().getLocWithOffset(+1), R.getEnd().getLocWithOffset(-1)}, ref);
     }
 
     //void visitFullComment(const clang::comments::FullComment *C);
 
 private:
-    void tag(llvm::StringRef className, clang::SourceRange range) {
+    void tag(llvm::StringRef className, clang::SourceRange range, llvm::StringRef ref = llvm::StringRef()) {
         int len = range.getEnd().getRawEncoding() - range.getBegin().getRawEncoding() + 1;
-        if (len > 0)
-            generator.addTag("span", "class=\""%className%"\"", range.getBegin().getRawEncoding(), len);
+        if (len > 0) {
+            auto s = "class=\""%className%"\"";
+            std::string attr = ref.empty() ? s : std::string(s % " data-ref=\""% ref % "\"");
+            generator.addTag("span", attr, range.getBegin().getRawEncoding(), len);
+        }
     }
 };
 
@@ -201,7 +240,7 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
 {
     llvm::StringRef rawString(bufferStart+commentStart, len);
     std::string attributes;
-    clang::NamedDecl *Decl = nullptr;
+    std::string DeclRef;
 
 
     if ((rawString.ltrim().startswith("/**") && !rawString.ltrim().startswith("/***"))
@@ -224,18 +263,15 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
         clang::comments::Parser parser(lexer, sema, PP.getPreprocessorAllocator(), PP.getSourceManager(),
                                        PP.getDiagnostics(), traits);
         auto fullComment = parser.parseFullComment();
-        CommentVisitor visitor{generator, traits, Sema};
+        CommentVisitor visitor{A, generator, traits, Sema};
         visitor.visit(fullComment);
-        Decl = visitor.Decl;
+        DeclRef = visitor.DeclRef;
     }
 
-    if (Decl) {
-        auto Ref = A.getVisibleRef(Decl);
-        if (!Ref.empty()) {
-            docs.insert({std::move(Ref), { rawString.str() , commentLoc }});
-            generator.addTag("i", attributes, commentStart, len);
-            return;
-        }
+    if (!DeclRef.empty()) {
+        docs.insert({std::move(DeclRef), { rawString.str() , commentLoc }});
+        generator.addTag("i", attributes, commentStart, len);
+        return;
     }
 
     // Try to find a matching declaration

@@ -379,6 +379,9 @@ int main(int argc, const char **argv) {
             std::replace(command.begin(), command.end(), *lower, it);
             if (llvm::StringRef(file).endswith(".qdoc")) {
                 command.insert(command.begin() + 1, "-xc++");
+                // include the header for this .qdoc file
+                command.push_back("-include");
+                command.push_back(llvm::StringRef(file).substr(0, file.size() - 5) % ".h");
             }
             success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, MainExecutable, false);
         } else {
