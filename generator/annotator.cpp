@@ -330,8 +330,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
-            myfile << "<doc>";
-            Generator::escapeAttr(myfile, it2->second);
+            clang::SourceManager &sm = getSourceMgr();
+            clang::SourceLocation exp = sm.getExpansionLoc(it2->second.loc);
+            clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
+            std::string fn = htmlNameForFile(sm.getFileID(exp));
+            myfile << "<doc f='";
+            Generator::escapeAttr(myfile, fn);
+            myfile << "' l='" << fixed.getLine() << "'>";
+            Generator::escapeAttr(myfile, it2->second.content);
             myfile << "</doc>\n";
         }
     }
@@ -887,7 +893,8 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
                         ++nl_it;
                     commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
                                                  Tok.getLocation(),
-                                                 Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)));
+                                                 Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)),
+                                                 CommentBeginLocation);
                 } else {
                     //look up the location before
                     const char *nl_it = BufferStart + CommentBegin;
@@ -895,7 +902,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
                         --nl_it;
                     commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
                                                  CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
-                                                 CommentBeginLocation);
+                                                 CommentBeginLocation, CommentBeginLocation);
                 }
                 continue; //Don't skip next token
             }

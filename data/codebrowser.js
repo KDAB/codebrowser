@@ -399,6 +399,12 @@ $(function () {
                 docs.each(function() {
                     var comment = $(this).html();
                     content += "<br/><i>" + comment + "</i>";
+                    var l = $(this).parent().prev("th").text();
+                    if (l) {
+                        var url = "#" + l;
+                        content += " <a href='" + url +"'>&#8618;</a>";
+                    }
+
                 });
 
                 //var uses = highlighted_items;
@@ -449,6 +455,12 @@ $(function () {
                         comment = comment.substr(0, 500) + "<a href='#' class='expandcomment'> [more...]</a><span style='display:none'>" + comment.substr(500) + "</span>";
                     }
                     content += "<br/><i>" + comment + "</i>";
+                    var f = $(this).attr("f");
+                    var l = $(this).attr("l");
+                    if (f && l) {
+                        var url = proj_root_path + "/" + f + ".html#" + l;
+                        content += " <a href='" + url +"'>&#8618;</a>";
+                    }
                 });
 
                 var p = function (label, tag) {

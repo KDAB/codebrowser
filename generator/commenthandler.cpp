@@ -196,7 +196,8 @@ private:
 
 void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Sema &Sema,
                                    const char *bufferStart, int commentStart, int len,
-                                   clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd)
+                                   clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd,
+                                   clang::SourceLocation commentLoc)
 {
     llvm::StringRef rawString(bufferStart+commentStart, len);
     std::string attributes;
@@ -231,7 +232,7 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
     if (Decl) {
         auto Ref = A.getVisibleRef(Decl);
         if (!Ref.empty()) {
-            docs.insert({std::move(Ref), rawString.str()});
+            docs.insert({std::move(Ref), { rawString.str() , commentLoc }});
             generator.addTag("i", attributes, commentStart, len);
             return;
         }
@@ -244,7 +245,7 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
     auto it_after = dof.upper_bound(searchLocEnd);
     if (it_before != dof.end() && it_before == (--it_after)) {
         if (it_before->second.second) {
-            docs.insert({it_before->second.first, rawString.str()});
+            docs.insert({it_before->second.first, { rawString.str() , commentLoc }});
         } else {
             attributes %= " data-doc=\"" % it_before->second.first % "\"";
         }
