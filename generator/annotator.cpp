@@ -261,7 +261,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
                    Buf->getBufferStart(), Buf->getBufferEnd(), footer,
                    WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
-                                        "It may have many parsing errors.</p>");
+                                        "It may have many parsing errors.");
 
         fileIndex << fn << '\n';
     }

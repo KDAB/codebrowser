@@ -43,6 +43,8 @@ a.logo { float:right }
 #tooltip b a { color:inherit }
 /*#tooltip li { border: 1px solid blue; margin:0 }*/
 
+p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0 }
+
 .code a { text-decoration:none; color:inherit }
 .code a:hover {  text-decoration: none }
 
