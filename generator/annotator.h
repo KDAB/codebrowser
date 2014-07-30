@@ -26,7 +26,6 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-#include <llvm/ADT/OwningPtr.h>
 #include <clang/AST/Mangle.h>
 #include "commenthandler.h"
 #include "generator.h"
@@ -91,7 +90,7 @@ private:
     std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;
     CommentHandler commentHandler;
 
-    llvm::OwningPtr<clang::MangleContext> mangle;
+    std::unique_ptr<clang::MangleContext> mangle;
     std::unordered_map<void *, std::pair<std::string, std::string> > mangle_cache;  // canonical Decl*  -> ref,  escapred_title
     std::pair<std::string, std::string> getReferenceAndTitle(clang::NamedDecl* decl);
     // project -> { pretty name, ref }

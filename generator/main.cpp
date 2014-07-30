@@ -244,7 +244,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
 #endif
 
 int main(int argc, const char **argv) {
-    llvm::OwningPtr<clang::tooling::CompilationDatabase> Compilations(
+    std::unique_ptr<clang::tooling::CompilationDatabase> Compilations(
         clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv));
 
     llvm::cl::ParseCommandLineOptions(argc, argv);

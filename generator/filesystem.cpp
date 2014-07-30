@@ -60,7 +60,7 @@ static std::error_code create_directory(const llvm::Twine& path)
     SmallString<128> path_storage;
     StringRef p = path.toNullTerminatedStringRef(path_storage);
     if (::mkdir(p.begin(), 0755) == -1) {
-        if (errno != errc::file_exists)
+        if (errno != static_cast<int>(std::errc::file_exists))
             return {errno, std::system_category()};
     }
     return {};
