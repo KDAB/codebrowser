@@ -259,6 +259,14 @@ int func() {
     ForwardDeclare thisIsAnError(34);
 }
 
+struct ClassWithForward {
+    ForwardDeclare anotherError;
+};
+int func2() {
+    ClassWithForward yo;
+}
+
+
 #if 1
 
 #if false && \

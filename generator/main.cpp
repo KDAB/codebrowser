@@ -145,8 +145,12 @@ public:
     }
 
     virtual bool HandleTopLevelDecl(clang::DeclGroupRef D) {
-        // Reset errors: (Hack to ignore the fatal errors.)
-        ci.getDiagnostics().Reset();
+        if (ci.getDiagnostics().hasFatalErrorOccurred()) {
+            // Reset errors: (Hack to ignore the fatal errors.)
+            ci.getDiagnostics().Reset();
+            // When there was fatal error, processing the warnings may cause crashes
+            ci.getDiagnostics().setIgnoreAllWarnings(true);
+        }
         return true;
     }
 
