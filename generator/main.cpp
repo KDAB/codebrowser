@@ -117,7 +117,10 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
             default:
                 return;
         }
-        annotator.reportDiagnostic(Info.getLocation(), diag.c_str(), clas);
+        clang::SourceRange Range = Info.getLocation();
+        if (Info.getRanges().size())
+            Range = {Info.getRanges().front().getBegin(), Info.getRanges().back().getBegin() };
+        annotator.reportDiagnostic(Range, diag.c_str(), clas);
     }
 };
 
