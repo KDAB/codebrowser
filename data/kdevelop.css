@@ -57,7 +57,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0 }
                 .code i .arg { color: #0095FF; font-weight: bold; font-style: normal;}
                 .code i .tag { color: #000; font-weight: bold; font-style: normal;}
                 .code i .verb { color: #888; }
-                .code i .command  + .verb { color: #f00; font-style:normal }
+                .code i .command  + .verb, .code i .command  + a .verb { color: #f00; font-style:normal }
 /*.keyword, */  .code b { font-weight: bold; }
 /*.keytype, */  .code em { color: #0057AE; font-style:normal }
 /*.string,  */  .code q { color: #BF0303; font-style: normal }
