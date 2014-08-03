@@ -279,7 +279,7 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
     //is there one and one single decl in that range.
     auto it_before = dof.lower_bound(searchLocBegin);
     auto it_after = dof.upper_bound(searchLocEnd);
-    if (it_before != dof.end() && it_before == (--it_after)) {
+    if (it_before != dof.end() && it_after != dof.begin() && it_before == (--it_after)) {
         if (it_before->second.second) {
             docs.insert({it_before->second.first, { rawString.str() , commentLoc }});
         } else {
