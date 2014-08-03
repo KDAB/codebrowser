@@ -669,7 +669,7 @@ void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& ms
     clang::SourceLocation E = range.getEnd();
 
     uint pos = sm.getFileOffset(B);
-    uint len = sm.getFileOffset(E) - pos;
+    int len = sm.getFileOffset(E) - pos;
 
     // Include the whole end token in the range.
     len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());

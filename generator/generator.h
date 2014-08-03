@@ -55,6 +55,9 @@ class Generator {
 public:
 
     void addTag(std::string name, std::string attributes, int pos, int len) {
+        if (len < 0) {
+            return;
+        }
         tags.insert({std::move(name), std::move(attributes), pos, len});
     }
     void addProject(std::string a, std::string b) {
