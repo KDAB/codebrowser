@@ -47,10 +47,12 @@ You need:
  - A recent C++ compiler (tested with clang 3.1 and gcc 4.7 on Linux)
 
 Example:
+```bash
 cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_CXX_COMPILER=/opt/llvm/bin/clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
 make
 # because clang searches for includes files in ../lib relative to the executable: 
-ln -s /opt/llvm/lib/ .  
+ln -s /opt/llvm/lib/ .
+```
 
 
 If you have errors related to exceptions, edit generator/CMakeLists.txt and replace -fno-rtti by -fexceptions
@@ -63,17 +65,23 @@ You need:
  - XCode 5.x and the command line tools and includes
 
 Install XCode and then the command line tools:
+```bash
 xcode-select --install
+```
 
 Install the clang libraries via homebrew ( http://brew.sh/ ):
+```bash
 brew tap homebrew/versions
 brew install -vd llvm33  --with-libcxx --with-clang --rtti
+```
 
 Then compile the generator:
+```bash
 cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/usr/local//bin/llvm-config-3.3  -DCMAKE_BUILD_TYPE=Release
 make
 # because clang searches for includes files in ../lib relative to the executable:
 ln -s /opt/local/lib/ ./lib
+```
 
 
 Using the generator
@@ -92,7 +100,7 @@ Before generating, make sure the output directory is empty or does not contains
 stale files from a previous generation.
 
 Call the codebrowser_generator. See later for argument specification
- 
+
 Step 3: Generate the index HTML files using codebrowser_indexer
 
 By running the codebrowser_indexer with the output directory as an argument
@@ -102,17 +110,21 @@ Step 4: Copy the data/ directory one level above the generated html
 Example:
 To generate the code for this project itself:
 
- cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
- ./generator/codebrowser_generator -b $PWD -a -o ~/public_html/codebrowser -p codebrowser:$PWD:`git describe --always --tags`
- ./indexgenerator/codebrowser_indexgenerator ~/public_html/codebrowser
- ln -s ./data ~/public_html/
- 
+```bash
+cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+./generator/codebrowser_generator -b $PWD -a -o ~/public_html/codebrowser -p codebrowser:$PWD:`git describe --always --tags`
+./indexgenerator/codebrowser_indexgenerator ~/public_html/codebrowser
+ln -s ./data ~/public_html/
+```
+
 Step 5: Open it in a browser or upload it to your webserver
 
 Arguments to codebrowser_generator
 ==================================
 
+```bash
 codebrowser_generator -a -o <output_dir> -b <buld_dir> -p <projectname>:<source_dir>[:<revision>] [-d <data_url>] [-e <remote_path>:<source_dir>:<remote_url>]
+```
 
  -a process all files from the compile_commands.json.  If this argument is not
     passed, the list of files to process need to be passed
