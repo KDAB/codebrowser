@@ -226,8 +226,12 @@ private:
     void tag(llvm::StringRef className, clang::SourceRange range, llvm::StringRef ref = llvm::StringRef()) {
         int len = range.getEnd().getRawEncoding() - range.getBegin().getRawEncoding() + 1;
         if (len > 0) {
-            auto s = "class=\""%className%"\"";
-            std::string attr = ref.empty() ? s : std::string(s % " data-ref=\""% ref % "\"");
+            std::string attr;
+            if (ref.empty()) {
+                attr = "class=\"" % className % "\"";
+            } else {
+                attr = "class=\"" % className % "\" data-ref=\"" % ref % "\"";
+            }
             generator.addTag("span", attr, range.getBegin().getRawEncoding(), len);
         }
     }
