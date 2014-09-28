@@ -119,6 +119,10 @@ ln -s ./data ~/public_html/
 
 Step 5: Open it in a browser or upload it to your webserver
 
+Note: By default, browsers do not allow AJAX on `file://` for security reasons. 
+You need to upload the output directory on a web server, or serve your files with a local apache or nginx server. 
+Alternatively, you can disable that security in Firefox by setting security.fileuri.strict_origin_policy to false in about:config (http://kb.mozillazine.org/Security.fileuri.strict_origin_policy) or start Chrome with the [--allow-file-access-from-files](http://www.chrome-allow-file-access-from-file.com/) option.
+
 Arguments to codebrowser_generator
 ==================================
 
