@@ -74,14 +74,7 @@ std::error_code create_directories(const llvm::Twine& path)
     StringRef p = path.toStringRef(path_storage);
     StringRef parent = path::parent_path(p);
     if (!parent.empty()) {
-        bool parent_exists;
-        if (auto ec = fs::exists(parent, parent_exists)) {
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=4
-            return std::error_code(ec.value(), std::system_category());
-#else
-            return ec;
-#endif
-        }
+        auto parent_exists = fs::exists(parent);
 
         if (!parent_exists)
             if (auto ec = create_directories(parent)) return ec;

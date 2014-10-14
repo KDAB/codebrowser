@@ -277,14 +277,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         if (it.first == "main")
             continue;
         std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
-        std::string error;
+        std::error_code error;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::raw_fd_ostream::F_Append);
 #else
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
 #endif
-        if (!error.empty()) {
-            std::cerr << error<< std::endl;
+        if (error) {
+            std::cerr << error.message()<< std::endl;
             continue;
         }
         for (auto &it2 : it.second) {
@@ -365,14 +365,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
             if (saved.find(idxRef) == std::string::npos) {
                 std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
-                std::string error;
+                std::error_code error;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::raw_fd_ostream::F_Append);
 #else
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
 #endif
-                if (!error.empty()) {
-                    std::cerr << error << std::endl;
+                if (error) {
+                    std::cerr << error.message() << std::endl;
                     return false;
                 }
                 funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';

@@ -141,7 +141,7 @@ public:
     virtual void Initialize(clang::ASTContext& Ctx) override {
         annotator.setSourceMgr(Ctx.getSourceManager(), Ctx.getLangOpts());
         annotator.setMangleContext(Ctx.createMangleContext());
-        ci.getPreprocessor().addPPCallbacks(new PreprocessorCallback(annotator, ci.getPreprocessor()));
+        ci.getPreprocessor().addPPCallbacks(std::unique_ptr<PreprocessorCallback>(new PreprocessorCallback(annotator, ci.getPreprocessor())));
         ci.getDiagnostics().setClient(new BrowserDiagnosticClient(annotator), true);
     }
 
@@ -189,7 +189,7 @@ class BrowserAction : public clang::ASTFrontendAction {
     static std::set<std::string> processed;
     bool WasInDatabase;
 protected:
-    virtual clang::ASTConsumer *CreateASTConsumer(clang::CompilerInstance &CI,
+    virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &CI,
                                            llvm::StringRef InFile) override {
         if (processed.count(InFile.str())) {
             std::cerr << "Skipping already processed " << InFile.str()<< std::endl;
@@ -200,7 +200,7 @@ protected:
         CI.getFrontendOpts().SkipFunctionBodies =
             sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
 
-        return new BrowserASTConsumer(CI, *projectManager, WasInDatabase);
+        return std::unique_ptr<clang::ASTConsumer>(new BrowserASTConsumer(CI, *projectManager, WasInDatabase));
     }
 
 public:
@@ -288,7 +288,7 @@ int main(int argc, const char **argv) {
     if (!Compilations) {
         std::string ErrorMessage;
         Compilations.reset(clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath,
-                                                            ErrorMessage));
+                                                            ErrorMessage).get());
         if (!ErrorMessage.empty()) {
             std::cerr << ErrorMessage << std::endl;
         }
