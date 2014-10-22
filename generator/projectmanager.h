@@ -26,50 +26,51 @@
 #include <vector>
 
 struct ProjectInfo {
-    std::string name;
-    std::string source_path;
-//    std::string description;
-//    std::string version_info;
-//    std::string repo_url; //may contains tags;
-    std::string revision;
+  std::string name;
+  std::string source_path;
+  //    std::string description;
+  //    std::string version_info;
+  //    std::string repo_url; //may contains tags;
+  std::string revision;
 
-    std::string external_root_url;
+  std::string external_root_url;
 
-    //TODO
-    std::string fileRepoUrl(const std::string &file) const { return {}; }
-    enum Type { Normal,
-                Internal, //includes and stuffs
-                External, //links to external projects somewhere else, do not generate refs or anything,
-                          // and link to a different ref source
-    } type = Normal;
+  // TODO
+  std::string fileRepoUrl(const std::string &file) const { return {}; }
+  enum Type {
+    Normal,
+    Internal, // includes and stuffs
+    External, // links to external projects somewhere else, do not generate refs
+              // or anything,
+    // and link to a different ref source
+  } type = Normal;
 
-    ProjectInfo(std::string name, std::string source_path, Type t = Normal)
-        :   name(std::move(name)), source_path(std::move(source_path)), type(t)  {}
-    ProjectInfo(std::string name, std::string source_path, std::string rev)
-        :   name(std::move(name)), source_path(std::move(source_path)), revision(std::move(rev))  {}
+  ProjectInfo(std::string name, std::string source_path, Type t = Normal)
+      : name(std::move(name)), source_path(std::move(source_path)), type(t) {}
+  ProjectInfo(std::string name, std::string source_path, std::string rev)
+      : name(std::move(name)), source_path(std::move(source_path)),
+        revision(std::move(rev)) {}
 };
 
-
 struct ProjectManager {
-    explicit ProjectManager(std::string outputPrefix, std::string _dataPath)
-            : outputPrefix(std::move(outputPrefix)) , dataPath(std::move(_dataPath))
-    {
-        if (dataPath.empty())
-            dataPath = "../data";
-    }
+  explicit ProjectManager(std::string outputPrefix, std::string _dataPath)
+      : outputPrefix(std::move(outputPrefix)), dataPath(std::move(_dataPath)) {
+    if (dataPath.empty())
+      dataPath = "../data";
+  }
 
-    void addProject(ProjectInfo info);
+  void addProject(ProjectInfo info);
 
-    std::vector<ProjectInfo> projects =
-        { {"include", "/usr/include/", ProjectInfo::Internal } };
+  std::vector<ProjectInfo> projects = {
+      {"include", "/usr/include/", ProjectInfo::Internal}};
 
-    std::string outputPrefix;
-    std::string dataPath;
+  std::string outputPrefix;
+  std::string dataPath;
 
-    // the file name need to be canonicalized
-    ProjectInfo *projectForFile(llvm::StringRef filename); // don't keep a cache
+  // the file name need to be canonicalized
+  ProjectInfo *projectForFile(llvm::StringRef filename); // don't keep a cache
 
-    // return true if the filename should be proesseded.
-    // 'project' is the value returned by projectForFile
-    bool shouldProcess(llvm::StringRef filename, ProjectInfo *project);
+  // return true if the filename should be proesseded.
+  // 'project' is the value returned by projectForFile
+  bool shouldProcess(llvm::StringRef filename, ProjectInfo *project);
 };

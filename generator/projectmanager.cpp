@@ -24,45 +24,46 @@
 #include "stringbuilder.h"
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
+#include <iostream>
 
 void ProjectManager::addProject(ProjectInfo info) {
-    if (info.source_path.empty())
-        return;
-    llvm::SmallString<256> filename;
-    canonicalize(info.source_path, filename);
-    if (filename[filename.size()-1] != '/')
-        filename += '/';
-    info.source_path = filename.c_str();
+  if (info.source_path.empty())
+    return;
+  llvm::SmallString<256> filename;
+  canonicalize(info.source_path, filename);
+  if (filename[filename.size() - 1] != '/')
+    filename += '/';
+  info.source_path = filename.c_str();
+  std::cout << "adding project = " << filename.c_str() << std::endl;
 
-    projects.push_back( std::move(info) );
+  projects.push_back(std::move(info));
 }
 
-ProjectInfo* ProjectManager::projectForFile(llvm::StringRef filename)
-{
-    unsigned int match_length = 0;
-    ProjectInfo *result = nullptr;
+ProjectInfo *ProjectManager::projectForFile(llvm::StringRef filename) {
+  unsigned int match_length = 0;
+  ProjectInfo *result = nullptr;
 
-    for (auto &it : projects) {
-        const std::string &source_path = it.source_path;
-        if (source_path.size() < match_length)
-            continue;
-        if (filename.startswith(source_path)) {
-            result = &it;
-            match_length = source_path.size();
-        }
+  for (auto &it : projects) {
+    const std::string &source_path = it.source_path;
+    if (source_path.size() < match_length)
+      continue;
+    if (filename.startswith(source_path)) {
+      result = &it;
+      match_length = source_path.size();
     }
-    return result;
+  }
+  return result;
 }
 
-bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo* project)
-{
-    if (!project)
-        return false;
-    if (project->type == ProjectInfo::External)
-        return false;
+bool ProjectManager::shouldProcess(llvm::StringRef filename,
+                                   ProjectInfo *project) {
+  if (!project)
+    return false;
+  if (project->type == ProjectInfo::External)
+    return false;
 
-    std::string fn = outputPrefix % "/" % project->name % "/" % filename.substr(project->source_path.size()) % ".html";
-    return !llvm::sys::fs::exists(fn);
-            // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
+  std::string fn = outputPrefix % "/" % project->name % "/" %
+                   filename.substr(project->source_path.size()) % ".html";
+  return !llvm::sys::fs::exists(fn);
+  // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
 }
-

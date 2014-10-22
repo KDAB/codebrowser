@@ -45,7 +45,7 @@
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
 #include <llvm/Support/PathV2.h>
 #else
 #include <llvm/Support/Path.h>
@@ -54,908 +54,962 @@
 #include "stringbuilder.h"
 #include "projectmanager.h"
 
-namespace
-{
+namespace {
 
-template <class T>
-ssize_t getTypeSize(const T &t)
-{
-    const clang::ASTContext &ctx = t->getASTContext();
-    const clang::QualType &ty = ctx.getRecordType(t);
+template <class T> ssize_t getTypeSize(const T &t) {
+  const clang::ASTContext &ctx = t->getASTContext();
+  const clang::QualType &ty = ctx.getRecordType(t);
 
-    /** Return size in bytes */
-    return ctx.getTypeSize(ty) >> 3;
+  /** Return size in bytes */
+  return ctx.getTypeSize(ty) >> 3;
 }
 
-ssize_t getDeclSize(const clang::Decl* decl)
-{
-    const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
-    if (cxx && (cxx = cxx->getDefinition())) {
-        /**
-         * XXX: avoid endless recursion inside
-         * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
-         */
-        if (cxx->isDependentContext()) {
-            return -1;
-        }
-
-        return getTypeSize(cxx);
+ssize_t getDeclSize(const clang::Decl *decl) {
+  const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
+  if (cxx && (cxx = cxx->getDefinition())) {
+    /**
+     * XXX: avoid endless recursion inside
+     * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
+     */
+    if (cxx->isDependentContext()) {
+      return -1;
     }
 
-    const clang::RecordDecl *c = llvm::dyn_cast<clang::RecordDecl>(decl);
-    if (c && (c = c->getDefinition())) {
-        return getTypeSize(c);
-    }
+    return getTypeSize(cxx);
+  }
 
-    return -1;
+  const clang::RecordDecl *c = llvm::dyn_cast<clang::RecordDecl>(decl);
+  if (c && (c = c->getDefinition())) {
+    return getTypeSize(c);
+  }
+
+  return -1;
 }
-
 };
 
-Annotator::~Annotator()
-{ }
+Annotator::~Annotator() {}
 
-Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
-{
-    if (llvm::isa<clang::EnumConstantDecl>(decl)  ||
-        llvm::isa<clang::EnumDecl>(decl)  ||
-        llvm::isa<clang::NamespaceDecl>(decl) ||
-        llvm::isa<clang::NamespaceAliasDecl>(decl) ||
-        llvm::isa<clang::TypedefDecl>(decl) ||
-        llvm::isa<clang::TypedefNameDecl>(decl)) {
+Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl) {
+  if (llvm::isa<clang::EnumConstantDecl>(decl) ||
+      llvm::isa<clang::EnumDecl>(decl) ||
+      llvm::isa<clang::NamespaceDecl>(decl) ||
+      llvm::isa<clang::NamespaceAliasDecl>(decl) ||
+      llvm::isa<clang::TypedefDecl>(decl) ||
+      llvm::isa<clang::TypedefNameDecl>(decl)) {
 
-        if (!decl->isDefinedOutsideFunctionOrMethod())
-            return Visibility::Local;
-        if (decl->isInAnonymousNamespace())
-            return Visibility::Static;
-        return Visibility::Global; //FIXME
+    if (!decl->isDefinedOutsideFunctionOrMethod())
+      return Visibility::Local;
+    if (decl->isInAnonymousNamespace())
+      return Visibility::Static;
+    return Visibility::Global; // FIXME
+  }
+
+  if (llvm::isa<clang::NonTypeTemplateParmDecl>(decl))
+    return Visibility::Static;
+
+  clang::SourceManager &sm = getSourceMgr();
+  clang::FileID mainFID = sm.getMainFileID();
+
+  switch (decl->getLinkageInternal()) {
+  default:
+  case clang::NoLinkage:
+    return Visibility::Local;
+  case clang::ExternalLinkage:
+    if (decl->getDeclContext()->isRecord() &&
+        mainFID ==
+            sm.getFileID(sm.getSpellingLoc(
+                llvm::dyn_cast<clang::NamedDecl>(decl->getDeclContext())
+                    ->getCanonicalDecl()
+                    ->getSourceRange()
+                    .getBegin()))) {
+      // private class
+      const clang::CXXMethodDecl *fun =
+          llvm::dyn_cast<clang::CXXMethodDecl>(decl);
+      if (fun && fun->isVirtual())
+        return Visibility::Global; // because we need to check overrides
+      return Visibility::Static;
     }
-
-    if (llvm::isa<clang::NonTypeTemplateParmDecl>(decl))
-        return Visibility::Static;
-
-    clang::SourceManager &sm = getSourceMgr();
-    clang::FileID mainFID = sm.getMainFileID();
-
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-    switch (decl->getLinkage())
-#else
-    switch (decl->getLinkageInternal())
-#endif
-    {
-        default:
-        case clang::NoLinkage:
-            return Visibility::Local;
-        case clang::ExternalLinkage:
-            if (decl->getDeclContext()->isRecord()
-                && mainFID == sm.getFileID(sm.getSpellingLoc(llvm::dyn_cast<clang::NamedDecl>(decl->getDeclContext())->getCanonicalDecl()->getSourceRange().getBegin()))) {
-                // private class
-                const clang::CXXMethodDecl* fun = llvm::dyn_cast<clang::CXXMethodDecl>(decl);
-                if (fun && fun->isVirtual())
-                    return Visibility::Global; //because we need to check overrides
-                return Visibility::Static;
-            }
-            return Visibility::Global;
-        case clang::InternalLinkage:
-            if (mainFID != sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
-                return Visibility::Global;
-            return Visibility::Static;
-        case clang::UniqueExternalLinkage:
-            return Visibility::Static;
-    }
+    return Visibility::Global;
+  case clang::InternalLinkage:
+    if (mainFID !=
+        sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
+      return Visibility::Global;
+    return Visibility::Static;
+  case clang::UniqueExternalLinkage:
+    return Visibility::Static;
+  }
 };
 
-bool Annotator::shouldProcess(clang::FileID FID)
-{
-    auto it = cache.find(FID);
-    if (it == cache.end()) {
-        htmlNameForFile(FID);
-        it = cache.find(FID);
-        assert(it != cache.end());
-    }
-    return it->second.first;
+bool Annotator::shouldProcess(clang::FileID FID) {
+  auto it = cache.find(FID);
+  if (it == cache.end()) {
+    htmlNameForFile(FID);
+    it = cache.find(FID);
+    assert(it != cache.end());
+  }
+  return it->second.first;
 }
 
-
-std::string Annotator::htmlNameForFile(clang::FileID id)
-{
-    {
-        auto it = cache.find(id);
-        if (it != cache.end()) {
-            return it->second.second;
-        }
+std::string Annotator::htmlNameForFile(clang::FileID id) {
+  {
+    auto it = cache.find(id);
+    if (it != cache.end()) {
+      return it->second.second;
     }
+  }
 
-    const clang::FileEntry* entry = getSourceMgr().getFileEntryForID(id);
-    if (!entry || !entry->getName())
-    {
-        cache[id] = {false, {} };
-        return {};
-    }
-    llvm::SmallString<256> filename;
-    canonicalize(entry->getName(), filename);
-
-    ProjectInfo *project = projectManager.projectForFile(filename);
-    if (project) {
-        bool should_process = projectManager.shouldProcess(filename, project);
-        project_cache[id] = project;
-        std::string fn = project->name % "/" % filename.substr(project->source_path.size());
-        cache[id] = { should_process , fn};
-        return fn;
-    }
-
-    cache[id] = {false, {} };
+  const clang::FileEntry *entry = getSourceMgr().getFileEntryForID(id);
+  if (!entry || !entry->getName()) {
+    cache[id] = {false, {}};
     return {};
+  }
+  llvm::SmallString<512> filename;
+  canonicalize(entry->getName(), filename);
+  // std::cout << "Processing ... " << filename.c_str() << std::endl;
+  ProjectInfo *project = projectManager.projectForFile(filename);
+  if (project) {
+    bool should_process = projectManager.shouldProcess(filename, project);
+    project_cache[id] = project;
+    std::string fn =
+        project->name % "/" % filename.substr(project->source_path.size());
+    cache[id] = {should_process, fn};
+    return fn;
+  }
+
+  cache[id] = {false, {}};
+  return {};
 }
 
 static char normalizeForfnIndex(char c) {
-    if (c >= 'A' && c <= 'Z')
-        c = c - 'A' + 'a';
-    if (c < 'a' || c > 'z')
-        return '_';
-    return c;
+  if (c >= 'A' && c <= 'Z')
+    c = c - 'A' + 'a';
+  if (c < 'a' || c > 'z')
+    return '_';
+  return c;
 }
 
-bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
-{
-    std::ofstream fileIndex;
+bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase) {
+  std::ofstream fileIndex;
+  fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
+  if (!fileIndex) {
+    create_directories(projectManager.outputPrefix);
     fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
     if (!fileIndex) {
-        create_directories(projectManager.outputPrefix);
-        fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
-        if (!fileIndex) {
-            std::cerr << "Can't generate index for " << std::endl;
-            return false;
-        }
+      std::cerr << "Can't generate index for " << std::endl;
+      return false;
+    }
+  }
+
+  // make sure the main file is in the cache.
+  htmlNameForFile(getSourceMgr().getMainFileID());
+
+  std::set<std::string> done;
+  for (auto it : cache) {
+    if (!it.second.first)
+      continue;
+    const std::string &fn = it.second.second;
+    if (done.count(fn))
+      continue;
+    done.insert(fn);
+
+    auto project_it = std::find_if(projectManager.projects.cbegin(),
+                                   projectManager.projects.cend(),
+                                   [&fn](const ProjectInfo &it) {
+      return llvm::StringRef(fn).startswith(it.name);
+    });
+    if (project_it == projectManager.projects.cend()) {
+      std::cerr << "GENERATION ERROR: " << fn << " not in a project"
+                << std::endl;
+      continue;
     }
 
-    // make sure the main file is in the cache.
-    htmlNameForFile(getSourceMgr().getMainFileID());
+    clang::FileID FID = it.first;
 
-    std::set<std::string> done;
-    for(auto it : cache) {
-        if (!it.second.first)
-            continue;
-        const std::string &fn = it.second.second;
-        if (done.count(fn))
-            continue;
-        done.insert(fn);
+    Generator &g = generator(FID);
 
-        auto project_it = std::find_if(projectManager.projects.cbegin(), projectManager.projects.cend(),
-                              [&fn](const ProjectInfo &it)
-                              { return llvm::StringRef(fn).startswith(it.name); } );
-        if (project_it == projectManager.projects.cend()) {
-            std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
-            continue;
-        }
+    syntaxHighlight(g, FID, Sema);
+    //        clang::html::HighlightMacros(R, FID, PP);
 
-        clang::FileID FID = it.first;
-
-        Generator &g = generator(FID);
-
-        syntaxHighlight(g, FID, Sema);
-//        clang::html::HighlightMacros(R, FID, PP);
-
-        std::string footer;
-        clang::FileID mainFID = getSourceMgr().getMainFileID();
-        if (FID != mainFID) {
-            footer  = "Generated while processing <a href='" %  pathTo(FID, mainFID) % "'>" % htmlNameForFile(mainFID) % "</a><br/>";
-        }
-
-        auto now = time(0);
-        auto tm = localtime(&now);
-        char buf[80];
-        strftime(buf, sizeof(buf), "%Y-%b-%d", tm);
-
-        const ProjectInfo &projectinfo = *project_it;
-        footer %= "Generated on <em>" % std::string(buf) % "</em>"
-            % " from project " % projectinfo.name % "</a>";
-        if (!projectinfo.revision.empty())
-            footer %= " revision <em>" % projectinfo.revision % "</em>";
-
-        /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) << "'>" << filename << "</a>"
-        title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
-
-        // Emit the HTML.
-        const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
-                   Buf->getBufferStart(), Buf->getBufferEnd(), footer,
-                   WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
-                                        "It may have many parsing errors.");
-
-        fileIndex << fn << '\n';
+    std::string footer;
+    clang::FileID mainFID = getSourceMgr().getMainFileID();
+    if (FID != mainFID) {
+      footer = "Generated while processing <a href='" % pathTo(FID, mainFID) %
+               "'>" % htmlNameForFile(mainFID) % "</a><br/>";
     }
 
-    // make sure all the docs are in the references
-    // (There might not be when the comment is in the .cpp file (for \class))
-    for (auto it : commentHandler.docs) references[it.first];
+    auto now = time(0);
+    auto tm = localtime(&now);
+    char buf[80];
+    strftime(buf, sizeof(buf), "%Y-%b-%d", tm);
 
-    create_directories(llvm::Twine(projectManager.outputPrefix, "/refs"));
-    for (auto it : references) {
-        if (llvm::StringRef(it.first).startswith("__builtin"))
-            continue;
-        if (it.first == "main")
-            continue;
-        std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
-        std::error_code error;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-        llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::raw_fd_ostream::F_Append);
+    const ProjectInfo &projectinfo = *project_it;
+    footer %= "Generated on <em>" % std::string(buf) % "</em>" %
+              " from project " % projectinfo.name % "</a>";
+    if (!projectinfo.revision.empty())
+      footer %= " revision <em>" % projectinfo.revision % "</em>";
+
+    /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) <<
+    "'>" << filename << "</a>"
+    title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
+
+    // Emit the HTML.
+    const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
+    g.generate(
+        projectManager.outputPrefix, projectManager.dataPath, fn,
+        Buf->getBufferStart(), Buf->getBufferEnd(), footer,
+        WasInDatabase
+            ? ""
+            : "Warning: That file was not part of the compilation database. "
+              "It may have many parsing errors.");
+
+    fileIndex << fn << '\n';
+  }
+
+  // make sure all the docs are in the references
+  // (There might not be when the comment is in the .cpp file (for \class))
+  for (auto it : commentHandler.docs)
+    references[it.first];
+
+  create_directories(llvm::Twine(projectManager.outputPrefix, "/refs"));
+  for (auto it : references) {
+    if (llvm::StringRef(it.first).startswith("__builtin"))
+      continue;
+    if (it.first == "main")
+      continue;
+    std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
+    std::error_code error;
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
+    llvm::raw_fd_ostream myfile(filename.c_str(), error,
+                                llvm::raw_fd_ostream::F_Append);
 #else
-        llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
+    llvm::raw_fd_ostream myfile(filename.c_str(), error,
+                                llvm::sys::fs::F_Append);
+#endif
+    if (error) {
+      std::cerr << error.message() << std::endl;
+      continue;
+    }
+    for (auto &it2 : it.second) {
+      clang::SourceLocation loc = std::get<1>(it2);
+      clang::SourceManager &sm = getSourceMgr();
+      clang::SourceLocation exp = sm.getExpansionLoc(loc);
+      std::string fn = htmlNameForFile(sm.getFileID(exp));
+      if (fn.empty())
+        continue;
+      clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
+      const char *tag = "";
+      switch (std::get<0>(it2)) {
+      case Use:
+        tag = "use";
+        break;
+      case Declaration:
+        tag = "dec";
+        break;
+      case Definition:
+        tag = "def";
+        break;
+      case Override:
+        tag = "ovr";
+        break;
+      case Inherit:
+        tag = "inh";
+      }
+      myfile << "<" << tag << " f='";
+      Generator::escapeAttr(myfile, fn);
+      myfile << "' l='" << fixed.getLine() << "'";
+      if (loc.isMacroID())
+        myfile << " macro='1'";
+      if (!WasInDatabase)
+        myfile << " brk='1'";
+      const auto &refType = std::get<2>(it2);
+      if (!refType.empty()) {
+        myfile << ((std::get<0>(it2) < Use) ? " type='" : " c='");
+        Generator::escapeAttr(myfile, refType);
+        myfile << "'";
+      }
+      myfile << "/>\n";
+    }
+    auto itS = structure_sizes.find(it.first);
+    if (itS != structure_sizes.end() && itS->second != -1) {
+      myfile << "<size>" << itS->second << "</size>\n";
+    }
+    auto range = commentHandler.docs.equal_range(it.first);
+    for (auto it2 = range.first; it2 != range.second; ++it2) {
+      clang::SourceManager &sm = getSourceMgr();
+      clang::SourceLocation exp = sm.getExpansionLoc(it2->second.loc);
+      clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
+      std::string fn = htmlNameForFile(sm.getFileID(exp));
+      myfile << "<doc f='";
+      Generator::escapeAttr(myfile, fn);
+      myfile << "' l='" << fixed.getLine() << "'>";
+      Generator::escapeAttr(myfile, it2->second.content);
+      myfile << "</doc>\n";
+    }
+  }
+
+  // now the function names
+  create_directories(llvm::Twine(projectManager.outputPrefix, "/fnSearch"));
+  for (auto &fnIt : functionIndex) {
+    auto fnName = fnIt.first;
+    if (fnName.size() < 4)
+      continue;
+    if (fnName.find("__") != std::string::npos)
+      continue; // remove internals
+    if (fnName.find('<') != std::string::npos ||
+        fnName.find('>') != std::string::npos)
+      continue; // remove template stuff
+    if (fnName == "main")
+      continue;
+
+    llvm::SmallString<8> saved;
+    size_t pos = 0;
+    while (true) {
+      if (fnName.size() - pos < 4)
+        break;
+      char idx[3] = {normalizeForfnIndex(fnName[pos]),
+                     normalizeForfnIndex(fnName[pos + 1]), '\0'};
+      llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
+      if (saved.find(idxRef) == std::string::npos) {
+        std::string funcIndexFN =
+            projectManager.outputPrefix % "/fnSearch/" % idx;
+        std::error_code error;
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
+        llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error,
+                                           llvm::raw_fd_ostream::F_Append);
+#else
+        llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error,
+                                           llvm::sys::fs::F_Append);
 #endif
         if (error) {
-            std::cerr << error.message()<< std::endl;
-            continue;
+          std::cerr << error.message() << std::endl;
+          return false;
         }
-        for (auto &it2 : it.second) {
-            clang::SourceLocation loc = std::get<1>(it2);
-            clang::SourceManager &sm = getSourceMgr();
-            clang::SourceLocation exp = sm.getExpansionLoc(loc);
-            std::string fn = htmlNameForFile(sm.getFileID(exp));
-            if (fn.empty())
-                continue;
-            clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
-            const char *tag = "";
-            switch(std::get<0>(it2)) {
-                case Use:
-                    tag = "use";
-                    break;
-                case Declaration:
-                    tag = "dec";
-                    break;
-                case Definition:
-                    tag = "def";
-                    break;
-                case Override:
-                    tag = "ovr";
-                    break;
-                case Inherit:
-                    tag = "inh";
-            }
-            myfile << "<" << tag << " f='";
-            Generator::escapeAttr(myfile, fn);
-            myfile << "' l='"<<  fixed.getLine()  <<"'";
-            if (loc.isMacroID()) myfile << " macro='1'";
-            if (!WasInDatabase) myfile << " brk='1'";
-            const auto &refType = std::get<2>(it2);
-            if (!refType.empty()) {
-                myfile << ((std::get<0>(it2) < Use) ? " type='" : " c='");
-                Generator::escapeAttr(myfile, refType);
-                myfile <<"'";
-            }
-            myfile <<"/>\n";
-        }
-        auto itS = structure_sizes.find(it.first);
-        if (itS != structure_sizes.end() && itS->second != -1) {
-            myfile << "<size>"<< itS->second <<"</size>\n";
-        }
-        auto range =  commentHandler.docs.equal_range(it.first);
-        for (auto it2 = range.first; it2 != range.second; ++it2) {
-            clang::SourceManager &sm = getSourceMgr();
-            clang::SourceLocation exp = sm.getExpansionLoc(it2->second.loc);
-            clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
-            std::string fn = htmlNameForFile(sm.getFileID(exp));
-            myfile << "<doc f='";
-            Generator::escapeAttr(myfile, fn);
-            myfile << "' l='" << fixed.getLine() << "'>";
-            Generator::escapeAttr(myfile, it2->second.content);
-            myfile << "</doc>\n";
-        }
+        funcIndexFile << fnIt.second << '|' << fnIt.first << '\n';
+        saved.append(idxRef); // include \0;
+      }
+      pos = fnName.find("::", pos);
+
+      if (pos == std::string::npos)
+        break;
+      pos += 2; // skip ::
     }
-
-    // now the function names
-    create_directories(llvm::Twine(projectManager.outputPrefix, "/fnSearch"));
-    for(auto &fnIt : functionIndex) {
-        auto fnName = fnIt.first;
-        if (fnName.size() < 4)
-            continue;
-        if (fnName.find("__") != std::string::npos)
-            continue; // remove internals
-        if (fnName.find('<') != std::string::npos || fnName.find('>') != std::string::npos)
-            continue; // remove template stuff
-        if (fnName == "main")
-            continue;
-
-        llvm::SmallString<8> saved;
-        size_t pos = 0;
-        while (true) {
-            if (fnName.size() - pos < 4)
-                break;
-            char idx[3] = { normalizeForfnIndex(fnName[pos]), normalizeForfnIndex(fnName[pos+1]) , '\0' };
-            llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
-            if (saved.find(idxRef) == std::string::npos) {
-                std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
-                std::error_code error;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::raw_fd_ostream::F_Append);
-#else
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
-#endif
-                if (error) {
-                    std::cerr << error.message() << std::endl;
-                    return false;
-                }
-                funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
-                saved.append(idxRef); //include \0;
-            }
-            pos = fnName.find("::", pos);
-
-            if (pos == std::string::npos)
-                break;
-            pos += 2; // skip ::
-        }
-    }
-    return true;
+  }
+  return true;
 }
 
+std::string Annotator::pathTo(clang::FileID From, clang::FileID To) {
+  std::string &result = pathTo_cache[{From.getHashValue(), To.getHashValue()}];
+  if (!result.empty())
+    return result;
+  std::string fromFN = htmlNameForFile(From);
+  std::string toFN = htmlNameForFile(To);
 
-std::string Annotator::pathTo(clang::FileID From, clang::FileID To)
-{
-    std::string &result = pathTo_cache[{From.getHashValue(), To.getHashValue()}];
-    if (!result.empty())
-        return result;
-    std::string fromFN = htmlNameForFile(From);
-    std::string toFN = htmlNameForFile(To);
+  auto pr_it = project_cache.find(To);
+  if (pr_it == project_cache.end())
+    return result = {};
+  if (pr_it->second->type == ProjectInfo::External)
+    return result = pr_it->second->external_root_url % "/" % toFN % ".html";
 
-    auto pr_it =  project_cache.find(To);
-    if (pr_it == project_cache.end())
-        return result = {};
-    if (pr_it->second->type == ProjectInfo::External)
-        return result = pr_it->second->external_root_url % "/" % toFN % ".html";
-
-    return result = naive_uncomplete(llvm::sys::path::parent_path(fromFN), toFN) + ".html";
+  return result = naive_uncomplete(llvm::sys::path::parent_path(fromFN), toFN) +
+                  ".html";
 }
 
-std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
-{
-  //this is a bit duplicated with the other pathTo and htmlNameForFile
+std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To) {
+  // this is a bit duplicated with the other pathTo and htmlNameForFile
 
-    if (!To || !To->getName())
-        return {};
+  if (!To || !To->getName())
+    return {};
 
-    std::string fromFN = htmlNameForFile(From);
+  std::string fromFN = htmlNameForFile(From);
 
-    llvm::SmallString<256> filename;
-    canonicalize(To->getName(), filename);
+  llvm::SmallString<256> filename;
+  canonicalize(To->getName(), filename);
 
+  ProjectInfo *project = projectManager.projectForFile(filename);
+  if (!project)
+    return {};
 
-    ProjectInfo *project = projectManager.projectForFile(filename);
-    if (!project)
-        return {};
+  if (project->type == ProjectInfo::External) {
+    return project->external_root_url % "/" % project->name % "/" %
+           (filename.c_str() + project->source_path.size()) % ".html";
+  }
 
-    if (project->type == ProjectInfo::External) {
-        return project->external_root_url % "/" % project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html";
-    }
-
-    return naive_uncomplete(llvm::sys::path::parent_path(fromFN),
-                            std::string(project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html"));
+  return naive_uncomplete(
+      llvm::sys::path::parent_path(fromFN),
+      std::string(project->name % "/" %
+                  (filename.c_str() + project->source_path.size()) % ".html"));
 }
 
 static const clang::Decl *getDefinitionDecl(clang::Decl *decl) {
-    if (const clang::RecordDecl* rec = llvm::dyn_cast<clang::RecordDecl>(decl)) {
-        rec = rec->getDefinition();
-        if (rec) return rec;
-    } else if (const clang::FunctionDecl* fnc = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
-        if (fnc->hasBody(fnc) && fnc) {
-            return fnc;
-        }
+  if (const clang::RecordDecl *rec = llvm::dyn_cast<clang::RecordDecl>(decl)) {
+    rec = rec->getDefinition();
+    if (rec)
+      return rec;
+  } else if (const clang::FunctionDecl *fnc =
+                 llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+    if (fnc->hasBody(fnc) && fnc) {
+      return fnc;
     }
-    return decl->getCanonicalDecl();
+  }
+  return decl->getCanonicalDecl();
 }
 
-void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange range, Annotator::TokenType type,
-                                  Annotator::DeclType declType, std::string typeText,
-                                  clang::NamedDecl *usedContext)
-{
-    //annonymouse namespace, anonymous struct, or unnamed argument.
-    if (decl->getDeclName().isIdentifier() && decl->getName().empty())
-        return;
+void Annotator::registerReference(clang::NamedDecl *decl,
+                                  clang::SourceRange range,
+                                  Annotator::TokenType type,
+                                  Annotator::DeclType declType,
+                                  std::string typeText,
+                                  clang::NamedDecl *usedContext) {
+  // annonymouse namespace, anonymous struct, or unnamed argument.
+  if (decl->getDeclName().isIdentifier() && decl->getName().empty())
+    return;
 
-    clang::SourceManager &sm = getSourceMgr();
+  clang::SourceManager &sm = getSourceMgr();
 
-    Visibility visibility = getVisibility(decl);
+  Visibility visibility = getVisibility(decl);
 
-    if (!range.getBegin().isFileID()) { //macro expension.
-        clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());
-        clang::FileID FID = sm.getFileID(expensionloc);
-        if (!shouldProcess(FID) || sm.getMacroArgExpandedLocation(range.getBegin()) !=
-                                   sm.getMacroArgExpandedLocation(range.getEnd())) {
-            return;
-        }
-
-        clang::SourceLocation spel1 = sm.getSpellingLoc(range.getBegin());
-        clang::SourceLocation spel2 = sm.getSpellingLoc(range.getEnd());
-        if (sm.getFileID(spel1) != FID
-            || sm.getFileID(spel2) != FID) {
-
-            if (visibility == Visibility::Global) {
-                if (usedContext && typeText.empty() && declType == Use) {
-                    typeText = getContextStr(usedContext);
-                }
-                addReference(getReferenceAndTitle(decl).first, range.getBegin(), type, declType, typeText, decl);
-            }
-            return;
-        }
-
-        range = {spel1, spel2 };
-    }
-    clang::FileID FID = sm.getFileID(range.getBegin());
-
-    if (FID != sm.getFileID(range.getEnd())) {
-        return;
-    }
-
-    if (!shouldProcess(FID))
-        return;
-
-    std::string tags;
-    std::string clas = computeClas(decl);
-    std::string ref;
-
-    const clang::Decl* canonDecl = decl->getCanonicalDecl();
-    if (type != Namespace) {
-        if (visibility == Visibility::Local) {
-            if (!decl->getDeclName().isIdentifier())
-                return; //skip local operators (FIXME)
-
-            clang::SourceLocation loc = canonDecl->getLocation();
-            int &id = localeNumbers[loc.getRawEncoding()];
-            if (id == 0) id = localeNumbers.size();
-            llvm::StringRef name = decl->getName();
-            ref = (llvm::Twine(id) + name).str();
-            llvm::SmallString<40> buffer;
-            tags %= " title='" % Generator::escapeAttr(name, buffer) % "'";
-            clas %= " local col" % llvm::Twine(id % 10).str();
-        } else {
-            auto cached =  getReferenceAndTitle(decl);
-            ref = cached.first;
-            tags %= " title='" % cached.second % "'";
-        }
-
-        if (visibility == Visibility::Global && type != Typedef) {
-            if (usedContext && typeText.empty() && declType == Use) {
-                typeText = getContextStr(usedContext);
-            }
-
-            addReference(ref, range.getBegin(), type, declType, typeText, decl);
-
-             if (declType == Definition && ref.find('{') >= ref.size()) {
-                 if (clang::FunctionDecl* fun = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
-                     functionIndex.insert({fun->getQualifiedNameAsString(), ref});
-                 }
-             }
-        } else {
-            if (!typeText.empty()) {
-                llvm::SmallString<40> buffer;
-                tags %= " data-type='" % Generator::escapeAttr(typeText, buffer) % "'";
-            }
-        }
-
-        if (visibility == Visibility::Static) {
-            if (declType != Use)
-                commentHandler.decl_offsets.insert({ decl->getLocStart(), {ref, false} });
-            clas += " tu";
-        }
-    }
-
-    switch(type) {
-        case Ref: clas += " ref"; break;
-        case Member: clas += " member"; break;
-        case Type: clas += " type"; break;
-        case Typedef: clas += " typedef"; break;
-        case Decl: clas += " decl"; break;
-        case Call: clas += " call"; break;
-        case Namespace: clas += " namespace"; break;
-        case Enum:  // fall through
-        case EnumDecl: clas += " enum"; break;
-    }
-
-    if (declType == Definition && visibility != Visibility::Local) {
-        clas += " def";
-    }
-
-//    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
-    clang::SourceLocation B = range.getBegin();
-    clang::SourceLocation E = range.getEnd();
-
-    int pos = sm.getFileOffset(B);
-    int len =  sm.getFileOffset(E) - pos;
-
-    // Include the whole end token in the range.
-    len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
-
-    canonDecl = getDefinitionDecl(decl);
-
-    if (clas[0] == ' ') clas = clas.substr(1);
-
-    if (ref.empty()) {
-        generator(FID).addTag("span", "class=\"" % clas % "\"", pos, len);
-        return;
-    }
-
-    llvm::SmallString<40> escapedRefBuffer;
-    auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
-    tags %= " data-ref=\"" % escapedRef % "\" ";
-
-    if (declType == Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
-        std::string link;
-        clang::SourceLocation loc = canonDecl->getLocation();
-        clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
-        if (declFID != FID) {
-            auto pr_it = project_cache.find(declFID);
-            if (pr_it != project_cache.end()) {
-                if (pr_it->second->type == ProjectInfo::External) {
-                    tags %= "data-proj=\"" % pr_it->second->name % "\" ";
-                    generator(FID).addProject(pr_it->second->name, pr_it->second->external_root_url);
-                }
-                link = pathTo(FID, declFID);
-            }
-
-            if (declType != Annotator::Use) {
-                tags %= "id=\"" % escapedRef % "\" ";
-            }
-
-            if (link.empty()) {
-                generator(FID).addTag(declType == Annotator::Use ? "span" : "dfn",
-                                      "class=\'" % clas % "\'" % tags, pos, len);
-                return;
-            }
-        }
-        llvm::SmallString<6> locBuffer;
-        link %= "#" % (loc.isFileID() ? escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).toStringRef(locBuffer));
-        std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
-        generator(FID).addTag("a", tag, pos, len);
-    } else {
-        std::string tag = "class=\"" % clas % "\" id=\"" % escapedRef % "\"" % tags;
-        generator(FID).addTag("dfn", tag, pos, len);
-    }
-}
-
-void Annotator::addReference(const std::string &ref, clang::SourceLocation refLoc, TokenType type,
-                             DeclType dt, const std::string &typeRef, clang::Decl *decl)
-{
-    if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
-        || ((type == Type || type == Enum) && dt == Definition)) {
-        ssize_t size = getDeclSize(decl);
-        if (size >= 0) {
-            structure_sizes[ref] = size;
-        }
-        references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
-        if (dt != Use) {
-            clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
-            commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
-        }
-    }
-}
-
-void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overrided, clang::SourceLocation loc)
-{
-    clang::SourceManager &sm = getSourceMgr();
-    clang::SourceLocation expensionloc = sm.getExpansionLoc(loc);
+  if (!range.getBegin().isFileID()) { // macro expension.
+    clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());
     clang::FileID FID = sm.getFileID(expensionloc);
-    if (!shouldProcess(FID))
-        return;
-    if (getVisibility(overrided) != Visibility::Global)
-        return;
-
-    auto ovrRef = getReferenceAndTitle(overrided).first;
-    auto declRef = getReferenceAndTitle(decl).first;
-    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef) );
-
-    // Register the reversed relation.
-    clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
-    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
-}
-
-
-void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string &clas)
-{
-    clang::SourceManager &sm = getSourceMgr();
-    if (!range.getBegin().isFileID()) {
-        range = sm.getSpellingLoc(range.getBegin());
-        if(!range.getBegin().isFileID())
-            return;
+    if (!shouldProcess(FID) ||
+        sm.getMacroArgExpandedLocation(range.getBegin()) !=
+            sm.getMacroArgExpandedLocation(range.getEnd())) {
+      return;
     }
 
-    clang::FileID FID = sm.getFileID(range.getBegin());
-    if (FID != sm.getFileID(range.getEnd())) {
-        return;
-    }
-    if (!shouldProcess(FID))
-        return;
+    clang::SourceLocation spel1 = sm.getSpellingLoc(range.getBegin());
+    clang::SourceLocation spel2 = sm.getSpellingLoc(range.getEnd());
+    if (sm.getFileID(spel1) != FID || sm.getFileID(spel2) != FID) {
 
-
-    clang::SourceLocation B = range.getBegin();
-    clang::SourceLocation E = range.getEnd();
-
-    uint pos = sm.getFileOffset(B);
-    int len = sm.getFileOffset(E) - pos;
-
-    // Include the whole end token in the range.
-    len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
-
-    bool Invalid = false;
-    if (Invalid)
-        return;
-    llvm::SmallString<40> buffer;
-    generator(FID).addTag("span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"", pos, len);
-}
-
-
-//basically loosely inspired from clang_getSpecializedCursorTemplate
-static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D) {
-    using namespace clang;
-    using namespace llvm;
-    NamedDecl *Template = 0;
-    if (CXXRecordDecl *CXXRecord = dyn_cast<CXXRecordDecl>(D)) {
-        ClassTemplateDecl* CXXRecordT = 0;
-        if (ClassTemplatePartialSpecializationDecl *PartialSpec = dyn_cast<ClassTemplatePartialSpecializationDecl>(CXXRecord))
-            CXXRecordT = PartialSpec->getSpecializedTemplate();
-        else if (ClassTemplateSpecializationDecl *ClassSpec = dyn_cast<ClassTemplateSpecializationDecl>(CXXRecord)) {
-            llvm::PointerUnion<ClassTemplateDecl *,
-            ClassTemplatePartialSpecializationDecl *> Result
-            = ClassSpec->getSpecializedTemplateOrPartial();
-                if (Result.is<ClassTemplateDecl *>())
-                    CXXRecordT = Result.get<ClassTemplateDecl *>();
-                else
-                    D = CXXRecord = Result.get<ClassTemplatePartialSpecializationDecl *>();
+      if (visibility == Visibility::Global) {
+        if (usedContext && typeText.empty() && declType == Use) {
+          typeText = getContextStr(usedContext);
         }
-        if (CXXRecordT)
-            D = CXXRecord = CXXRecordT->getTemplatedDecl();
-        Template = CXXRecord->getInstantiatedFromMemberClass();
-    } else if (FunctionDecl *Function = dyn_cast<FunctionDecl>(D)) {
-        FunctionTemplateDecl* FunctionT = Function->getPrimaryTemplate();
-        if (FunctionT) {
-            D = Function = FunctionT->getTemplatedDecl();
-        }
-        Template = Function->getInstantiatedFromMemberFunction();
-    } else if (VarDecl *Var = dyn_cast<VarDecl>(D)) {
-        if (Var->isStaticDataMember())
-            Template = Var->getInstantiatedFromStaticDataMember();
-    } else if (RedeclarableTemplateDecl *Tmpl = dyn_cast<RedeclarableTemplateDecl>(D)) {
-        Template = Tmpl->getInstantiatedFromMemberTemplate();
+        addReference(getReferenceAndTitle(decl).first, range.getBegin(), type,
+                     declType, typeText, decl);
+      }
+      return;
     }
 
-    if (Template) return Template;
-    else return D;
-}
+    range = {spel1, spel2};
+  }
+  clang::FileID FID = sm.getFileID(range.getBegin());
 
+  if (FID != sm.getFileID(range.getEnd())) {
+    return;
+  }
 
-std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::NamedDecl* decl)
-{
-    clang::Decl* canonDecl = decl->getCanonicalDecl();
-    auto &cached = mangle_cache[canonDecl];
-    if (cached.first.empty()) {
-        decl = getSpecializedCursorTemplate(decl);
+  if (!shouldProcess(FID))
+    return;
 
-        std::string qualName = decl->getQualifiedNameAsString();
-        if ((llvm::isa<clang::FunctionDecl>(decl) || llvm::isa<clang::VarDecl>(decl))
-            && mangle->shouldMangleDeclName(decl)
-            //workaround crash in clang while trying to mangle some buitins types
-            && !llvm::StringRef(qualName).startswith("__")) {
-                llvm::raw_string_ostream s(cached.first);
-                if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
-                    mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete, s);
-                } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
-                    mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete, s);
-                } else {
-                    mangle->mangleName(decl, s);
-                }
-        } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
-            cached.first = getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
-        } else {
-            cached.first = qualName;
-            std::remove(cached.first.begin(), cached.first.end(), ' ');
-            // replace < and > because alse jquery can't match them.
-            std::replace(cached.first.begin(), cached.first.end(), '<' , '{');
-            std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
+  std::string tags;
+  std::string clas = computeClas(decl);
+  std::string ref;
+
+  const clang::Decl *canonDecl = decl->getCanonicalDecl();
+  if (type != Namespace) {
+    if (visibility == Visibility::Local) {
+      if (!decl->getDeclName().isIdentifier())
+        return; // skip local operators (FIXME)
+
+      clang::SourceLocation loc = canonDecl->getLocation();
+      int &id = localeNumbers[loc.getRawEncoding()];
+      if (id == 0)
+        id = localeNumbers.size();
+      llvm::StringRef name = decl->getName();
+      ref = (llvm::Twine(id) + name).str();
+      llvm::SmallString<40> buffer;
+      tags %= " title='" % Generator::escapeAttr(name, buffer) % "'";
+      clas %= " local col" % llvm::Twine(id % 10).str();
+    } else {
+      auto cached = getReferenceAndTitle(decl);
+      ref = cached.first;
+      tags %= " title='" % cached.second % "'";
+    }
+
+    if (visibility == Visibility::Global && type != Typedef) {
+      if (usedContext && typeText.empty() && declType == Use) {
+        typeText = getContextStr(usedContext);
+      }
+
+      addReference(ref, range.getBegin(), type, declType, typeText, decl);
+
+      if (declType == Definition && ref.find('{') >= ref.size()) {
+        if (clang::FunctionDecl *fun =
+                llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+          functionIndex.insert({fun->getQualifiedNameAsString(), ref});
         }
+      }
+    } else {
+      if (!typeText.empty()) {
         llvm::SmallString<40> buffer;
-        cached.second = Generator::escapeAttr(qualName, buffer);
+        tags %= " data-type='" % Generator::escapeAttr(typeText, buffer) % "'";
+      }
     }
-    return cached;
+
+    if (visibility == Visibility::Static) {
+      if (declType != Use)
+        commentHandler.decl_offsets.insert({decl->getLocStart(), {ref, false}});
+      clas += " tu";
+    }
+  }
+
+  switch (type) {
+  case Ref:
+    clas += " ref";
+    break;
+  case Member:
+    clas += " member";
+    break;
+  case Type:
+    clas += " type";
+    break;
+  case Typedef:
+    clas += " typedef";
+    break;
+  case Decl:
+    clas += " decl";
+    break;
+  case Call:
+    clas += " call";
+    break;
+  case Namespace:
+    clas += " namespace";
+    break;
+  case Enum: // fall through
+  case EnumDecl:
+    clas += " enum";
+    break;
+  }
+
+  if (declType == Definition && visibility != Visibility::Local) {
+    clas += " def";
+  }
+
+  //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
+  clang::SourceLocation B = range.getBegin();
+  clang::SourceLocation E = range.getEnd();
+
+  int pos = sm.getFileOffset(B);
+  int len = sm.getFileOffset(E) - pos;
+
+  // Include the whole end token in the range.
+  len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
+
+  canonDecl = getDefinitionDecl(decl);
+
+  if (clas[0] == ' ')
+    clas = clas.substr(1);
+
+  if (ref.empty()) {
+    generator(FID).addTag("span", "class=\"" % clas % "\"", pos, len);
+    return;
+  }
+
+  llvm::SmallString<40> escapedRefBuffer;
+  auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
+  tags %= " data-ref=\"" % escapedRef % "\" ";
+
+  if (declType == Annotator::Use ||
+      (decl != canonDecl && declType != Annotator::Definition)) {
+    std::string link;
+    clang::SourceLocation loc = canonDecl->getLocation();
+    clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
+    if (declFID != FID) {
+      auto pr_it = project_cache.find(declFID);
+      if (pr_it != project_cache.end()) {
+        if (pr_it->second->type == ProjectInfo::External) {
+          tags %= "data-proj=\"" % pr_it->second->name % "\" ";
+          generator(FID).addProject(pr_it->second->name,
+                                    pr_it->second->external_root_url);
+        }
+        link = pathTo(FID, declFID);
+      }
+
+      if (declType != Annotator::Use) {
+        tags %= "id=\"" % escapedRef % "\" ";
+      }
+
+      if (link.empty()) {
+        generator(FID).addTag(declType == Annotator::Use ? "span" : "dfn",
+                              "class=\'" % clas % "\'" % tags, pos, len);
+        return;
+      }
+    }
+    llvm::SmallString<6> locBuffer;
+    link %= "#" % (loc.isFileID() ? escapedRef
+                                  : llvm::Twine(sm.getExpansionLineNumber(loc))
+                                        .toStringRef(locBuffer));
+    std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
+    generator(FID).addTag("a", tag, pos, len);
+  } else {
+    std::string tag = "class=\"" % clas % "\" id=\"" % escapedRef % "\"" % tags;
+    generator(FID).addTag("dfn", tag, pos, len);
+  }
 }
 
-
-std::string Annotator::getTypeRef(clang::QualType type)
-{
-    return type.getAsString(getLangOpts());
+void Annotator::addReference(const std::string &ref,
+                             clang::SourceLocation refLoc, TokenType type,
+                             DeclType dt, const std::string &typeRef,
+                             clang::Decl *decl) {
+  if (type == Ref || type == Member || type == Decl || type == Call ||
+      type == EnumDecl ||
+      ((type == Type || type == Enum) && dt == Definition)) {
+    ssize_t size = getDeclSize(decl);
+    if (size >= 0) {
+      structure_sizes[ref] = size;
+    }
+    references[ref].push_back(std::make_tuple(dt, refLoc, typeRef));
+    if (dt != Use) {
+      clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
+      commentHandler.decl_offsets.insert(
+          {fulloc.getSpellingLoc(), {ref, true}});
+    }
+  }
 }
 
-std::string Annotator::getContextStr(clang::NamedDecl* usedContext)
-{
-    clang::FunctionDecl *fun = llvm::dyn_cast<clang::FunctionDecl>(usedContext);
-    clang::DeclContext* context = usedContext->getDeclContext();
-    while(!fun && context)  {
-        fun = llvm::dyn_cast<clang::FunctionDecl>(context);
-        if (fun && !fun->isDefinedOutsideFunctionOrMethod())
-            fun = nullptr;
-        context = context->getParent();
+void Annotator::registerOverride(clang::NamedDecl *decl,
+                                 clang::NamedDecl *overrided,
+                                 clang::SourceLocation loc) {
+  clang::SourceManager &sm = getSourceMgr();
+  clang::SourceLocation expensionloc = sm.getExpansionLoc(loc);
+  clang::FileID FID = sm.getFileID(expensionloc);
+  if (!shouldProcess(FID))
+    return;
+  if (getVisibility(overrided) != Visibility::Global)
+    return;
+
+  auto ovrRef = getReferenceAndTitle(overrided).first;
+  auto declRef = getReferenceAndTitle(decl).first;
+  references[ovrRef].push_back(
+      std::make_tuple(Override, expensionloc, declRef));
+
+  // Register the reversed relation.
+  clang::SourceLocation ovrLoc =
+      sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
+  references[declRef].push_back(std::make_tuple(Inherit, ovrLoc, ovrRef));
+}
+
+void Annotator::reportDiagnostic(clang::SourceRange range,
+                                 const std::string &msg,
+                                 const std::string &clas) {
+  clang::SourceManager &sm = getSourceMgr();
+  if (!range.getBegin().isFileID()) {
+    range = sm.getSpellingLoc(range.getBegin());
+    if (!range.getBegin().isFileID())
+      return;
+  }
+
+  clang::FileID FID = sm.getFileID(range.getBegin());
+  if (FID != sm.getFileID(range.getEnd())) {
+    return;
+  }
+  if (!shouldProcess(FID))
+    return;
+
+  clang::SourceLocation B = range.getBegin();
+  clang::SourceLocation E = range.getEnd();
+
+  uint pos = sm.getFileOffset(B);
+  int len = sm.getFileOffset(E) - pos;
+
+  // Include the whole end token in the range.
+  len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
+
+  bool Invalid = false;
+  if (Invalid)
+    return;
+  llvm::SmallString<40> buffer;
+  generator(FID).addTag("span", "class='" % clas % "' title=\"" %
+                                    Generator::escapeAttr(msg, buffer) % "\"",
+                        pos, len);
+}
+
+// basically loosely inspired from clang_getSpecializedCursorTemplate
+static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D) {
+  using namespace clang;
+  using namespace llvm;
+  NamedDecl *Template = 0;
+  if (CXXRecordDecl *CXXRecord = dyn_cast<CXXRecordDecl>(D)) {
+    ClassTemplateDecl *CXXRecordT = 0;
+    if (ClassTemplatePartialSpecializationDecl *PartialSpec =
+            dyn_cast<ClassTemplatePartialSpecializationDecl>(CXXRecord))
+      CXXRecordT = PartialSpec->getSpecializedTemplate();
+    else if (ClassTemplateSpecializationDecl *ClassSpec =
+                 dyn_cast<ClassTemplateSpecializationDecl>(CXXRecord)) {
+      llvm::PointerUnion<ClassTemplateDecl *,
+                         ClassTemplatePartialSpecializationDecl *> Result =
+          ClassSpec->getSpecializedTemplateOrPartial();
+      if (Result.is<ClassTemplateDecl *>())
+        CXXRecordT = Result.get<ClassTemplateDecl *>();
+      else
+        D = CXXRecord = Result.get<ClassTemplatePartialSpecializationDecl *>();
     }
-    if (fun)
-        return getReferenceAndTitle(fun).first;
+    if (CXXRecordT)
+      D = CXXRecord = CXXRecordT->getTemplatedDecl();
+    Template = CXXRecord->getInstantiatedFromMemberClass();
+  } else if (FunctionDecl *Function = dyn_cast<FunctionDecl>(D)) {
+    FunctionTemplateDecl *FunctionT = Function->getPrimaryTemplate();
+    if (FunctionT) {
+      D = Function = FunctionT->getTemplatedDecl();
+    }
+    Template = Function->getInstantiatedFromMemberFunction();
+  } else if (VarDecl *Var = dyn_cast<VarDecl>(D)) {
+    if (Var->isStaticDataMember())
+      Template = Var->getInstantiatedFromStaticDataMember();
+  } else if (RedeclarableTemplateDecl *Tmpl =
+                 dyn_cast<RedeclarableTemplateDecl>(D)) {
+    Template = Tmpl->getInstantiatedFromMemberTemplate();
+  }
+
+  if (Template)
+    return Template;
+  else
+    return D;
+}
+
+std::pair<std::string, std::string>
+Annotator::getReferenceAndTitle(clang::NamedDecl *decl) {
+  clang::Decl *canonDecl = decl->getCanonicalDecl();
+  auto &cached = mangle_cache[canonDecl];
+  if (cached.first.empty()) {
+    decl = getSpecializedCursorTemplate(decl);
+
+    std::string qualName = decl->getQualifiedNameAsString();
+    if ((llvm::isa<clang::FunctionDecl>(decl) ||
+         llvm::isa<clang::VarDecl>(decl)) &&
+        mangle->shouldMangleDeclName(decl)
+            // workaround crash in clang while trying to mangle some buitins
+            // types
+        &&
+        !llvm::StringRef(qualName).startswith("__")) {
+      llvm::raw_string_ostream s(cached.first);
+      if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
+        mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl),
+                              clang::Dtor_Complete, s);
+      } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
+        mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl),
+                              clang::Ctor_Complete, s);
+      } else {
+        mangle->mangleName(decl, s);
+      }
+    } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
+      cached.first = getReferenceAndTitle(d->getParent()).first + "::" +
+                     decl->getName().str();
+    } else {
+      cached.first = qualName;
+      std::remove(cached.first.begin(), cached.first.end(), ' ');
+      // replace < and > because alse jquery can't match them.
+      std::replace(cached.first.begin(), cached.first.end(), '<', '{');
+      std::replace(cached.first.begin(), cached.first.end(), '>', '}');
+    }
+    llvm::SmallString<40> buffer;
+    cached.second = Generator::escapeAttr(qualName, buffer);
+  }
+  return cached;
+}
+
+std::string Annotator::getTypeRef(clang::QualType type) {
+  return type.getAsString(getLangOpts());
+}
+
+std::string Annotator::getContextStr(clang::NamedDecl *usedContext) {
+  clang::FunctionDecl *fun = llvm::dyn_cast<clang::FunctionDecl>(usedContext);
+  clang::DeclContext *context = usedContext->getDeclContext();
+  while (!fun && context) {
+    fun = llvm::dyn_cast<clang::FunctionDecl>(context);
+    if (fun && !fun->isDefinedOutsideFunctionOrMethod())
+      fun = nullptr;
+    context = context->getParent();
+  }
+  if (fun)
+    return getReferenceAndTitle(fun).first;
+  return {};
+}
+
+std::string Annotator::getVisibleRef(clang::NamedDecl *Decl) {
+  if (getVisibility(Decl) != Visibility::Global)
     return {};
+  return getReferenceAndTitle(Decl).first;
 }
 
-std::string Annotator::getVisibleRef(clang::NamedDecl* Decl)
-{
-    if (getVisibility(Decl) != Visibility::Global)
-        return {};
-    return getReferenceAndTitle(Decl).first;
+// return the classes to add in the span
+std::string Annotator::computeClas(clang::NamedDecl *decl) {
+  std::string s;
+  if (clang::CXXMethodDecl *f = llvm::dyn_cast<clang::CXXMethodDecl>(decl)) {
+    if (f->isVirtual())
+      s = "virtual";
+  }
+  return s;
 }
 
-//return the classes to add in the span
-std::string Annotator::computeClas(clang::NamedDecl* decl)
-{
-    std::string s;
-    if (clang::CXXMethodDecl* f = llvm::dyn_cast<clang::CXXMethodDecl>(decl)) {
-        if (f->isVirtual())
-            s = "virtual";
-    }
-    return s;
-}
-
-
-/* This function is inspired From clang::html::SyntaxHighlight() from HTMLRewrite.cpp
+/* This function is inspired From clang::html::SyntaxHighlight() from
+ * HTMLRewrite.cpp
  * from the clang 3.1 from The LLVM Compiler Infrastructure
  * distributed under the University of Illinois Open Source
  * Adapted to the codebrowser generator. Also used to parse the comments.
- * The tags names have been changed, and we make a difference between different kinds of
+ * The tags names have been changed, and we make a difference between different
+ * kinds of
  * keywords
  */
-void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::Sema &Sema) {
-    using namespace clang;
+void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID,
+                                clang::Sema &Sema) {
+  using namespace clang;
 
-    const clang::Preprocessor &PP = Sema.getPreprocessor();
-    const clang::SourceManager &SM = getSourceMgr();
-    const llvm::MemoryBuffer *FromFile = SM.getBuffer(FID);
-    Lexer L(FID, FromFile, SM, getLangOpts());
-    const char *BufferStart = FromFile->getBufferStart();
-    const char *BufferEnd = FromFile->getBufferEnd();
+  const clang::Preprocessor &PP = Sema.getPreprocessor();
+  const clang::SourceManager &SM = getSourceMgr();
+  const llvm::MemoryBuffer *FromFile = SM.getBuffer(FID);
+  Lexer L(FID, FromFile, SM, getLangOpts());
+  const char *BufferStart = FromFile->getBufferStart();
+  const char *BufferEnd = FromFile->getBufferEnd();
 
-    // Inform the preprocessor that we want to retain comments as tokens, so we
-    // can highlight them.
-    L.SetCommentRetentionState(true);
+  // Inform the preprocessor that we want to retain comments as tokens, so we
+  // can highlight them.
+  L.SetCommentRetentionState(true);
 
-    // Lex all the tokens in raw mode, to avoid entering #includes or expanding
-    // macros.
-    Token Tok;
-    L.LexFromRawLexer(Tok);
+  // Lex all the tokens in raw mode, to avoid entering #includes or expanding
+  // macros.
+  Token Tok;
+  L.LexFromRawLexer(Tok);
 
-    while (Tok.isNot(tok::eof)) {
-        // Since we are lexing unexpanded tokens, all tokens are from the main
-        // FileID.
-        unsigned TokOffs = SM.getFileOffset(Tok.getLocation());
-        unsigned TokLen = Tok.getLength();
-        switch (Tok.getKind()) {
-            default: break;
-            case tok::identifier:
-                llvm_unreachable("tok::identifier in raw lexing mode!");
-            case tok::raw_identifier: {
-                // Fill in Result.IdentifierInfo and update the token kind,
-                // looking up the identifier in the identifier table.
-                PP.LookUpIdentifierInfo(Tok);
-                // If this is a pp-identifier, for a keyword, highlight it as such.
-                switch (Tok.getKind()) {
-                    case tok::identifier:
-                        break;
+  while (Tok.isNot(tok::eof)) {
+    // Since we are lexing unexpanded tokens, all tokens are from the main
+    // FileID.
+    unsigned TokOffs = SM.getFileOffset(Tok.getLocation());
+    unsigned TokLen = Tok.getLength();
+    switch (Tok.getKind()) {
+    default:
+      break;
+    case tok::identifier:
+      llvm_unreachable("tok::identifier in raw lexing mode!");
+    case tok::raw_identifier: {
+      // Fill in Result.IdentifierInfo and update the token kind,
+      // looking up the identifier in the identifier table.
+      PP.LookUpIdentifierInfo(Tok);
+      // If this is a pp-identifier, for a keyword, highlight it as such.
+      switch (Tok.getKind()) {
+      case tok::identifier:
+        break;
 
-                    case tok::kw_auto:
-                    case tok::kw_char:
-                    case tok::kw_const:
-                    case tok::kw_double:
-                    case tok::kw_float:
-                    case tok::kw_int:
-                    case tok::kw_long:
-                    case tok::kw_register:
-//                    case tok::kw_restrict:  // ???  (type or not)
-                    case tok::kw_short:
-                    case tok::kw_signed:
-                    case tok::kw_static:
-                    case tok::kw_unsigned:
-                    case tok::kw_void:
-                    case tok::kw_volatile:
-                    case tok::kw_bool:
-                    case tok::kw_mutable:
-                    case tok::kw_wchar_t:
-                    case tok::kw_char16_t:
-                    case tok::kw_char32_t:
-                        generator.addTag("em", {}, TokOffs, TokLen);
-                        break;
-                    default: //other keywords
-                        generator.addTag("b", {}, TokOffs, TokLen);
-                }
-                break;
-            }
-            case tok::comment: {
-                unsigned int CommentBegin = TokOffs;
-                unsigned int CommentLen = TokLen;
-                bool startOfLine = Tok.isAtStartOfLine();
-                SourceLocation CommentBeginLocation = Tok.getLocation();
-                L.LexFromRawLexer(Tok);
-                // Merge consecutive comments
-                if (startOfLine /*&&  BufferStart[CommentBegin+1] == '/'*/) {
-                    while (Tok.is(tok::comment)) {
-                        unsigned int Off = SM.getFileOffset(Tok.getLocation());
-                        if (BufferStart[Off+1] != '/')
-                            break;
-                        CommentLen = Off + Tok.getLength() - CommentBegin;
-                        L.LexFromRawLexer(Tok);
-                    }
-                }
-
-                std::string attributes;
-
-                if (startOfLine) {
-                    unsigned int NonCommentBegin = SM.getFileOffset(Tok.getLocation());
-                    // Find the location of the next \n
-                    const char *nl_it = BufferStart + NonCommentBegin;
-                    while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
-                        ++nl_it;
-                    commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
-                                                 Tok.getLocation(),
-                                                 Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)),
-                                                 CommentBeginLocation);
-                } else {
-                    //look up the location before
-                    const char *nl_it = BufferStart + CommentBegin;
-                    while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
-                        --nl_it;
-                    commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
-                                                 CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
-                                                 CommentBeginLocation, CommentBeginLocation);
-                }
-                continue; //Don't skip next token
-            }
-            case tok::utf8_string_literal:
-                // Chop off the u part of u8 prefix
-                ++TokOffs;
-                --TokLen;
-                // FALL THROUGH to chop the 8
-            case tok::wide_string_literal:
-            case tok::utf16_string_literal:
-            case tok::utf32_string_literal:
-                // Chop off the L, u, U or 8 prefix
-                ++TokOffs;
-                --TokLen;
-                // FALL THROUGH.
-            case tok::string_literal:
-                // FIXME: Exclude the optional ud-suffix from the highlighted range.
-                generator.addTag("q", {}, TokOffs, TokLen);
-                break;
-
-            case tok::wide_char_constant:
-            case tok::utf16_char_constant:
-            case tok::utf32_char_constant:
-                ++TokOffs;
-                --TokLen;
-            case tok::char_constant:
-                generator.addTag("kdb", {}, TokOffs, TokLen);
-                break;
-            case tok::numeric_constant:
-                generator.addTag("var", {}, TokOffs, TokLen);
-                break;
-            case tok::hash: {
-                // If this is a preprocessor directive, all tokens to end of line are too.
-                if (!Tok.isAtStartOfLine())
-                    break;
-
-                // Eat all of the tokens until we get to the next one at the start of
-                // line.
-                unsigned TokEnd = TokOffs+TokLen;
-                L.LexFromRawLexer(Tok);
-                while (!Tok.isAtStartOfLine() && Tok.isNot(tok::eof)) {
-                    TokEnd = SM.getFileOffset(Tok.getLocation())+Tok.getLength();
-                    L.LexFromRawLexer(Tok);
-                }
-
-                generator.addTag("u", {}, TokOffs, TokEnd - TokOffs);
-
-                // Don't skip the next token.
-                continue;
-            }
-        }
-
-        L.LexFromRawLexer(Tok);
+      case tok::kw_auto:
+      case tok::kw_char:
+      case tok::kw_const:
+      case tok::kw_double:
+      case tok::kw_float:
+      case tok::kw_int:
+      case tok::kw_long:
+      case tok::kw_register:
+      //                    case tok::kw_restrict:  // ???  (type or not)
+      case tok::kw_short:
+      case tok::kw_signed:
+      case tok::kw_static:
+      case tok::kw_unsigned:
+      case tok::kw_void:
+      case tok::kw_volatile:
+      case tok::kw_bool:
+      case tok::kw_mutable:
+      case tok::kw_wchar_t:
+      case tok::kw_char16_t:
+      case tok::kw_char32_t:
+        generator.addTag("em", {}, TokOffs, TokLen);
+        break;
+      default: // other keywords
+        generator.addTag("b", {}, TokOffs, TokLen);
+      }
+      break;
     }
+    case tok::comment: {
+      unsigned int CommentBegin = TokOffs;
+      unsigned int CommentLen = TokLen;
+      bool startOfLine = Tok.isAtStartOfLine();
+      SourceLocation CommentBeginLocation = Tok.getLocation();
+      L.LexFromRawLexer(Tok);
+      // Merge consecutive comments
+      if (startOfLine /*&&  BufferStart[CommentBegin+1] == '/'*/) {
+        while (Tok.is(tok::comment)) {
+          unsigned int Off = SM.getFileOffset(Tok.getLocation());
+          if (BufferStart[Off + 1] != '/')
+            break;
+          CommentLen = Off + Tok.getLength() - CommentBegin;
+          L.LexFromRawLexer(Tok);
+        }
+      }
+
+      std::string attributes;
+
+      if (startOfLine) {
+        unsigned int NonCommentBegin = SM.getFileOffset(Tok.getLocation());
+        // Find the location of the next \n
+        const char *nl_it = BufferStart + NonCommentBegin;
+        while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
+          ++nl_it;
+        commentHandler.handleComment(
+            *this, generator, Sema, BufferStart, CommentBegin, CommentLen,
+            Tok.getLocation(), Tok.getLocation().getLocWithOffset(
+                                   nl_it - (BufferStart + NonCommentBegin)),
+            CommentBeginLocation);
+      } else {
+        // look up the location before
+        const char *nl_it = BufferStart + CommentBegin;
+        while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
+          --nl_it;
+        commentHandler.handleComment(
+            *this, generator, Sema, BufferStart, CommentBegin, CommentLen,
+            CommentBeginLocation.getLocWithOffset(nl_it -
+                                                  (BufferStart + CommentBegin)),
+            CommentBeginLocation, CommentBeginLocation);
+      }
+      continue; // Don't skip next token
+    }
+    case tok::utf8_string_literal:
+      // Chop off the u part of u8 prefix
+      ++TokOffs;
+      --TokLen;
+    // FALL THROUGH to chop the 8
+    case tok::wide_string_literal:
+    case tok::utf16_string_literal:
+    case tok::utf32_string_literal:
+      // Chop off the L, u, U or 8 prefix
+      ++TokOffs;
+      --TokLen;
+    // FALL THROUGH.
+    case tok::string_literal:
+      // FIXME: Exclude the optional ud-suffix from the highlighted range.
+      generator.addTag("q", {}, TokOffs, TokLen);
+      break;
+
+    case tok::wide_char_constant:
+    case tok::utf16_char_constant:
+    case tok::utf32_char_constant:
+      ++TokOffs;
+      --TokLen;
+    case tok::char_constant:
+      generator.addTag("kdb", {}, TokOffs, TokLen);
+      break;
+    case tok::numeric_constant:
+      generator.addTag("var", {}, TokOffs, TokLen);
+      break;
+    case tok::hash: {
+      // If this is a preprocessor directive, all tokens to end of line are too.
+      if (!Tok.isAtStartOfLine())
+        break;
+
+      // Eat all of the tokens until we get to the next one at the start of
+      // line.
+      unsigned TokEnd = TokOffs + TokLen;
+      L.LexFromRawLexer(Tok);
+      while (!Tok.isAtStartOfLine() && Tok.isNot(tok::eof)) {
+        TokEnd = SM.getFileOffset(Tok.getLocation()) + Tok.getLength();
+        L.LexFromRawLexer(Tok);
+      }
+
+      generator.addTag("u", {}, TokOffs, TokEnd - TokOffs);
+
+      // Don't skip the next token.
+      continue;
+    }
+    }
+
+    L.LexFromRawLexer(Tok);
+  }
 }

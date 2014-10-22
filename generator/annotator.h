@@ -45,103 +45,125 @@ class FileEntry;
 }
 
 /* Wrapper for the change in the name in clang 3.5 */
-template <typename T> auto getResultType(T *decl) -> decltype(decl->getResultType())
-{ return decl->getResultType(); }
-template <typename T> auto getResultType(T *decl) -> decltype(decl->getReturnType())
-{ return decl->getReturnType(); }
+template <typename T>
+auto getResultType(T *decl) -> decltype(decl -> getResultType()) {
+  return decl->getResultType();
+}
+template <typename T>
+auto getResultType(T *decl) -> decltype(decl -> getReturnType()) {
+  return decl->getReturnType();
+}
 
 typedef std::pair<unsigned, unsigned> pathTo_cache_key_t;
 namespace std {
-    template <>
-    struct hash<pathTo_cache_key_t>
-    {
-        size_t operator()(const pathTo_cache_key_t& k) const noexcept {
-            return k.first ^ k.second;
-        }
-    };
+template <> struct hash<pathTo_cache_key_t> {
+  size_t operator()(const pathTo_cache_key_t &k) const noexcept {
+    return k.first ^ k.second;
+  }
+};
 }
 
 class Annotator {
 public:
-    enum DeclType { Declaration, Definition, Use, Override, Inherit };
-    enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum, EnumDecl };
+  enum DeclType { Declaration, Definition, Use, Override, Inherit };
+  enum TokenType {
+    Ref,
+    Member,
+    Type,
+    Decl,
+    Call,
+    Namespace,
+    Typedef,
+    Enum,
+    EnumDecl
+  };
+
 private:
-    enum class Visibility {
-        Local, // Local to a Function
-        Static, // If it is only visible to this file
-        Global // Globaly visible.
-    };
+  enum class Visibility {
+    Local,  // Local to a Function
+    Static, // If it is only visible to this file
+    Global  // Globaly visible.
+  };
 
-    Visibility getVisibility(const clang::NamedDecl *);
+  Visibility getVisibility(const clang::NamedDecl *);
 
-    ProjectManager &projectManager;
+  ProjectManager &projectManager;
 
-    std::map<clang::FileID, std::pair<bool, std::string> > cache;
-    std::map<clang::FileID, ProjectInfo* > project_cache;
-    std::map<clang::FileID, Generator> generators;
+  std::map<clang::FileID, std::pair<bool, std::string>> cache;
+  std::map<clang::FileID, ProjectInfo *> project_cache;
+  std::map<clang::FileID, Generator> generators;
 
-    std::string htmlNameForFile(clang::FileID id); // keep a cache;
+  std::string htmlNameForFile(clang::FileID id); // keep a cache;
 
-    void addReference(const std::string& ref, clang::SourceLocation refLoc, Annotator::TokenType type,
-                      Annotator::DeclType dt, const std::string &typeRef, clang::Decl *decl);
-    // ref -> [ what, loc, typeRef ]
-    std::map<std::string, std::vector<std::tuple<DeclType, clang::SourceLocation, std::string>>> references;
-    std::map<std::string, ssize_t> structure_sizes;
-    std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;
-    CommentHandler commentHandler;
+  void addReference(const std::string &ref, clang::SourceLocation refLoc,
+                    Annotator::TokenType type, Annotator::DeclType dt,
+                    const std::string &typeRef, clang::Decl *decl);
+  // ref -> [ what, loc, typeRef ]
+  std::map<std::string, std::vector<std::tuple<DeclType, clang::SourceLocation,
+                                               std::string>>> references;
+  std::map<std::string, ssize_t> structure_sizes;
+  std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;
+  CommentHandler commentHandler;
 
-    std::unique_ptr<clang::MangleContext> mangle;
-    std::unordered_map<void *, std::pair<std::string, std::string> > mangle_cache;  // canonical Decl*  -> ref,  escapred_title
-    std::pair<std::string, std::string> getReferenceAndTitle(clang::NamedDecl* decl);
-    // project -> { pretty name, ref }
-    std::map<std::string, std::string> functionIndex;
+  std::unique_ptr<clang::MangleContext> mangle;
+  std::unordered_map<void *, std::pair<std::string, std::string>>
+      mangle_cache; // canonical Decl*  -> ref,  escapred_title
+  std::pair<std::string, std::string>
+  getReferenceAndTitle(clang::NamedDecl *decl);
+  // project -> { pretty name, ref }
+  std::map<std::string, std::string> functionIndex;
 
-    std::unordered_map<unsigned, int> localeNumbers;
+  std::unordered_map<unsigned, int> localeNumbers;
 
-    std::string args;
-    clang::SourceManager *sourceManager = nullptr;
-    const clang::LangOptions *langOption = nullptr;
+  std::string args;
+  clang::SourceManager *sourceManager = nullptr;
+  const clang::LangOptions *langOption = nullptr;
 
-    void syntaxHighlight(Generator& generator, clang::FileID FID, clang::Sema&);
+  void syntaxHighlight(Generator &generator, clang::FileID FID, clang::Sema &);
+
 public:
-    explicit Annotator(ProjectManager &pm) : projectManager(pm) {}
-    ~Annotator();
+  explicit Annotator(ProjectManager &pm) : projectManager(pm) {}
+  ~Annotator();
 
-    void setSourceMgr(clang::SourceManager &sm, const clang::LangOptions &lo)
-    { sourceManager = &sm; langOption = &lo;  }
-    void setMangleContext(clang::MangleContext *m) { mangle.reset(m); }
-    clang::SourceManager &getSourceMgr() { return *sourceManager; }
-    const clang::LangOptions &getLangOpts() const { return *langOption; }
-    void setArgs(std::string a) { args = std::move(a); }
+  void setSourceMgr(clang::SourceManager &sm, const clang::LangOptions &lo) {
+    sourceManager = &sm;
+    langOption = &lo;
+  }
+  void setMangleContext(clang::MangleContext *m) { mangle.reset(m); }
+  clang::SourceManager &getSourceMgr() { return *sourceManager; }
+  const clang::LangOptions &getLangOpts() const { return *langOption; }
+  void setArgs(std::string a) { args = std::move(a); }
 
-    bool generate(clang::Sema&, bool WasInDatabase);
+  bool generate(clang::Sema &, bool WasInDatabase);
 
-    std::string pathTo(clang::FileID From, clang::FileID To);
-    std::string pathTo(clang::FileID From, const clang::FileEntry* To);
+  std::string pathTo(clang::FileID From, clang::FileID To);
+  std::string pathTo(clang::FileID From, const clang::FileEntry *To);
 
-    // only use typeRef for declarations (or definition)
-    // only use usedContext for uses
-    void registerReference(clang::NamedDecl *decl, clang::SourceRange range,
-                           TokenType type, DeclType declType = Annotator::Use,
-                           std::string typeRef = std::string(),
-                           clang::NamedDecl *usedContext = nullptr);
-    void registerUse(clang::NamedDecl* decl, clang::SourceRange range, TokenType tt,
-                     clang::NamedDecl* currentContext) {
-        return registerReference(decl, range, tt, Use, {}, currentContext);
-    }
-    void registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overrided, clang::SourceLocation loc);
+  // only use typeRef for declarations (or definition)
+  // only use usedContext for uses
+  void registerReference(clang::NamedDecl *decl, clang::SourceRange range,
+                         TokenType type, DeclType declType = Annotator::Use,
+                         std::string typeRef = std::string(),
+                         clang::NamedDecl *usedContext = nullptr);
+  void registerUse(clang::NamedDecl *decl, clang::SourceRange range,
+                   TokenType tt, clang::NamedDecl *currentContext) {
+    return registerReference(decl, range, tt, Use, {}, currentContext);
+  }
+  void registerOverride(clang::NamedDecl *decl, clang::NamedDecl *overrided,
+                        clang::SourceLocation loc);
 
-    void reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string& clas);
+  void reportDiagnostic(clang::SourceRange range, const std::string &msg,
+                        const std::string &clas);
 
-    bool shouldProcess(clang::FileID);
-    Generator &generator(clang::FileID fid) { return generators[fid]; }
+  bool shouldProcess(clang::FileID);
+  Generator &generator(clang::FileID fid) { return generators[fid]; }
 
-    std::string getTypeRef(clang::QualType type);
-    std::string computeClas(clang::NamedDecl* decl);
-    std::string getContextStr(clang::NamedDecl* usedContext);
-    /**
-     * returns the reference of a class iff this class is visible
-     * (that is, if a tooltip file should be generated for it)
-     */
-    std::string getVisibleRef(clang::NamedDecl* Decl);
+  std::string getTypeRef(clang::QualType type);
+  std::string computeClas(clang::NamedDecl *decl);
+  std::string getContextStr(clang::NamedDecl *usedContext);
+  /**
+   * returns the reference of a class iff this class is visible
+   * (that is, if a tooltip file should be generated for it)
+   */
+  std::string getVisibleRef(clang::NamedDecl *Decl);
 };

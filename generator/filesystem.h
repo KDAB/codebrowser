@@ -30,9 +30,11 @@ class Twine;
 }
 
 /* Is declared in llvm::sys::fs,  but not implemented */
-std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result);
+std::error_code canonicalize(const llvm::Twine &path,
+                             llvm::SmallVectorImpl<char> &result);
 
-/* The one in llvm::sys::fs do not create the directory with the right peromissions */
+/* The one in llvm::sys::fs do not create the directory with the right
+ * peromissions */
 std::error_code create_directories(const llvm::Twine &path);
 
 std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path);

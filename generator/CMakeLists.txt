@@ -7,7 +7,6 @@ Find_Package(LLVM REQUIRED)
 #include_directories(${LLVM_INCLUDE_DIR})
 link_directories( ${LLVM_LIB_DIR} )
 
-
 Find_Package(Clang REQUIRED)
 include_directories(${CLANG_INCLUDE_DIRS})
 
