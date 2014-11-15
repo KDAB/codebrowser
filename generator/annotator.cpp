@@ -277,6 +277,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         if (it.first == "main")
             continue;
         std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
         std::string error;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::raw_fd_ostream::F_Append);
@@ -287,6 +288,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             std::cerr << error<< std::endl;
             continue;
         }
+#else
+        std::error_code error_code;
+        llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::F_Append);
+        if (error_code) {
+            std::cerr << error_code.message() << std::endl;
+            continue;
+        }
+#endif
         for (auto &it2 : it.second) {
             clang::SourceLocation loc = std::get<1>(it2);
             clang::SourceManager &sm = getSourceMgr();
@@ -365,6 +374,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
             if (saved.find(idxRef) == std::string::npos) {
                 std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
                 std::string error;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::raw_fd_ostream::F_Append);
@@ -375,6 +385,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                     std::cerr << error << std::endl;
                     return false;
                 }
+#else
+                std::error_code error_code;
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::F_Append);
+                if (error_code) {
+                    std::cerr << error_code.message() << std::endl;
+                    continue;
+                }
+#endif
                 funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
                 saved.append(idxRef); //include \0;
             }

@@ -39,6 +39,7 @@
 #include "preprocessorcallback.h"
 #include "projectmanager.h"
 #include "filesystem.h"
+#include "compat.h"
 #include <ctime>
 
 namespace cl = llvm::cl;
@@ -141,11 +142,11 @@ public:
     virtual void Initialize(clang::ASTContext& Ctx) override {
         annotator.setSourceMgr(Ctx.getSourceManager(), Ctx.getLangOpts());
         annotator.setMangleContext(Ctx.createMangleContext());
-        ci.getPreprocessor().addPPCallbacks(new PreprocessorCallback(annotator, ci.getPreprocessor()));
+        ci.getPreprocessor().addPPCallbacks(maybe_unique(new PreprocessorCallback(annotator, ci.getPreprocessor())));
         ci.getDiagnostics().setClient(new BrowserDiagnosticClient(annotator), true);
     }
 
-    virtual bool HandleTopLevelDecl(clang::DeclGroupRef D) {
+    virtual bool HandleTopLevelDecl(clang::DeclGroupRef D) override {
         if (ci.getDiagnostics().hasFatalErrorOccurred()) {
             // Reset errors: (Hack to ignore the fatal errors.)
             ci.getDiagnostics().Reset();
@@ -169,27 +170,23 @@ public:
         annotator.generate(ci.getSema(), WasInDatabase);
     }
 
-    virtual bool shouldSkipFunctionBody(clang::Decl *D) {
+    virtual bool shouldSkipFunctionBody(clang::Decl *D) override {
         return !annotator.shouldProcess(
             clang::FullSourceLoc(D->getLocation(),annotator.getSourceMgr())
                 .getExpansionLoc().getFileID());
     }
 };
 
-
-
-namespace HasShouldSkipBody_HELPER {
-    template<class T> static decltype(static_cast<T*>(nullptr)->shouldSkipFunctionBody(nullptr)) test(int);
-    template<class T> static double test(...);
-}
-
-
-
 class BrowserAction : public clang::ASTFrontendAction {
     static std::set<std::string> processed;
     bool WasInDatabase;
 protected:
-    virtual clang::ASTConsumer *CreateASTConsumer(clang::CompilerInstance &CI,
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
+    virtual clang::ASTConsumer *
+#else
+    virtual std::unique_ptr<clang::ASTConsumer>
+#endif
+    CreateASTConsumer(clang::CompilerInstance &CI,
                                            llvm::StringRef InFile) override {
         if (processed.count(InFile.str())) {
             std::cerr << "Skipping already processed " << InFile.str()<< std::endl;
@@ -197,15 +194,14 @@ protected:
         }
         processed.insert(InFile.str());
 
-        CI.getFrontendOpts().SkipFunctionBodies =
-            sizeof(HasShouldSkipBody_HELPER::test<clang::ASTConsumer>(0)) == sizeof(bool);
+        CI.getFrontendOpts().SkipFunctionBodies = true;
 
-        return new BrowserASTConsumer(CI, *projectManager, WasInDatabase);
+        return maybe_unique(new BrowserASTConsumer(CI, *projectManager, WasInDatabase));
     }
 
 public:
     BrowserAction(bool WasInDatabase = true) : WasInDatabase(WasInDatabase) {}
-    virtual bool hasCodeCompletionSupport() const { return true; }
+    virtual bool hasCodeCompletionSupport() const override { return true; }
     static ProjectManager *projectManager;
 };
 
@@ -287,8 +283,8 @@ int main(int argc, const char **argv) {
 
     if (!Compilations) {
         std::string ErrorMessage;
-        Compilations.reset(clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath,
-                                                            ErrorMessage));
+        Compilations = std::unique_ptr<clang::tooling::CompilationDatabase>(
+            clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath, ErrorMessage));
         if (!ErrorMessage.empty()) {
             std::cerr << ErrorMessage << std::endl;
         }
