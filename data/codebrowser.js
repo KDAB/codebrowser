@@ -428,7 +428,12 @@ $(function () {
                                 c = context.attr("title")
                         }
                         if (!c) c = "line " + l;
-                        usesLis += "<li><a href='#"+ l +"'>"+ escape_html(c) +"</a></li>"
+                        var useType = "";
+                        var ut = t.attr("data-use");
+                        if (ut) {
+                            useType += " (" + escape_html(ut) + ")";
+                        }
+                        usesLis += "<li><a href='#"+ l +"'>"+ escape_html(c) +"</a>"+useType+"</li>"
                         usesCount += 1;
                     }
                 });
@@ -534,6 +539,8 @@ $(function () {
                         var f = t.attr("f");
                         var l = t.attr("l");
                         var c = t.attr("c");
+                        var u = t.attr("u");
+                        if (!u) u = "?"
                         var url = proj_root_path + "/" + f + ".html#" + l;
                         if (!dict[f]) {
                             dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
@@ -544,11 +551,14 @@ $(function () {
                         c = demangleFunctionName(c)
                         if (!c) c = f + ":" + l;
                         dict[f].count++;
+
                         if (!dict[f].contexts[c]) {
                             dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
                             dict[f].contexts[c].count = 1;
+                            dict[f].contexts[c].usesType = u;
                         } else {
                             dict[f].contexts[c].count++;
+                            dict[f].contexts[c].usesType += u;
                         }
                     });
                     var list = [];
@@ -560,9 +570,9 @@ $(function () {
                     var ul = $("<ul class='uses'/>");
                     for (var i = 0; i < list.length; ++i) {
                         var subul = $("<ul/>");
-                        for (var xx in list[i].contexts) {
-                            if (list[i].contexts.hasOwnProperty(xx))
-                                subul.append(list[i].contexts[xx].append(" (" + list[i].contexts[xx].count+")"));
+                        for (var xx in list[i].contexts) if (list[i].contexts.hasOwnProperty(xx)) {
+                            var context = list[i].contexts[xx];
+                            subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")"));
                         }
                         ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
                     }

@@ -63,7 +63,7 @@ namespace std {
 
 class Annotator {
 public:
-    enum DeclType { Declaration, Definition, Use, Override, Inherit };
+    enum DeclType { Declaration, Definition, Use, Use_Read, Use_Write, Use_Address, Use_Call, Use_MemberAccess, Override, Inherit };
     enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum, EnumDecl };
 private:
     enum class Visibility {
@@ -126,8 +126,8 @@ public:
                            std::string typeRef = std::string(),
                            clang::NamedDecl *usedContext = nullptr);
     void registerUse(clang::NamedDecl* decl, clang::SourceRange range, TokenType tt,
-                     clang::NamedDecl* currentContext) {
-        return registerReference(decl, range, tt, Use, {}, currentContext);
+                     clang::NamedDecl* currentContext, DeclType useType = Use) {
+        return registerReference(decl, range, tt, useType, {}, currentContext);
     }
     void registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overrided, clang::SourceLocation loc);
 

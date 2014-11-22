@@ -39,6 +39,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     typedef clang::RecursiveASTVisitor<BrowserASTVisitor> Base;
     Annotator &annotator;
     clang::NamedDecl *currentContext = nullptr;
+    std::deque<clang::Expr *> expr_stack;
     BrowserASTVisitor(Annotator &R) : annotator(R) {}
 
     bool VisitTypedefNameDecl(clang::TypedefNameDecl *d) {
@@ -135,14 +136,16 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
     bool VisitMemberExpr(clang::MemberExpr *e) {
        annotator.registerUse(e->getMemberDecl(), e->getMemberNameInfo().getSourceRange() ,
-                             isMember(e->getMemberDecl()) ? Annotator::Member : Annotator::Ref, currentContext);
+                             isMember(e->getMemberDecl()) ? Annotator::Member : Annotator::Ref,
+                             currentContext, classify());
        return true;
     }
     bool VisitDeclRefExpr(clang::DeclRefExpr *e) {
         clang::ValueDecl* decl = e->getDecl();
         annotator.registerUse(decl, e->getNameInfo().getSourceRange(),
                             llvm::isa<clang::EnumConstantDecl>(decl) ? Annotator::EnumDecl :
-                            isMember(decl) ? Annotator::Member : Annotator::Ref, currentContext);
+                            isMember(decl) ? Annotator::Member : Annotator::Ref,
+                            currentContext, classify());
        return true;
    }
 
@@ -238,6 +241,24 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return true;
     }
 
+    // Since we cannot find up the parent of a node, we keep a stack of parents
+    bool TraverseStmt(clang::Stmt *s) {
+        auto e = llvm::dyn_cast_or_null<clang::Expr>(s);
+        decltype(expr_stack) old_stack;
+        if (e) {
+            expr_stack.push_front(e);
+        } else {
+            std::swap(old_stack, expr_stack);
+        }
+        auto r = Base::TraverseStmt(s);
+        if (e) {
+            expr_stack.pop_front();
+        } else {
+            std::swap(old_stack, expr_stack);
+        }
+        return r;
+    }
+
     bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo) {
         // Do not visit the TypeLoc of constructor or destructors
         return true;
@@ -252,6 +273,73 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     }
 
 private:
+
+    Annotator::DeclType classify() {
+        bool first = true;
+        clang::Expr *previous = nullptr;
+        for (auto expr : expr_stack) {
+            if (first) {
+                previous = expr;
+                first = false;
+                continue; //skip the first element (ourself)
+            }
+            if (llvm::isa<clang::MemberExpr>(expr)) {
+                return Annotator::Use_MemberAccess;
+            }
+            if (auto op = llvm::dyn_cast<clang::BinaryOperator>(expr)) {
+                if (op->isAssignmentOp() && op->getLHS() == previous)
+                    return Annotator::Use_Write;
+                return Annotator::Use_Read;
+            }
+            if (auto op = llvm::dyn_cast<clang::UnaryOperator>(expr)) {
+                if (op->isIncrementDecrementOp())
+                    return Annotator::Use_Write;
+                if (op->isArithmeticOp() || op->getOpcode() == clang::UO_Deref)
+                    return Annotator::Use_Read;
+                if (op->getOpcode() == clang::UO_AddrOf)
+                    return Annotator::Use_Address;
+                return Annotator::Use;
+            }
+            if (auto op = llvm::dyn_cast<clang::CXXOperatorCallExpr>(expr)) {
+                // Special case for some of the CXXOperatorCallExpr to check if it is Use_Write
+                // Anything else goes through normal CallExpr
+                auto o = op->getOperator();
+                if (o == clang::OO_Equal || (o >= clang::OO_PlusEqual && o <= clang::OO_PipeEqual)
+                        || (o >= clang::OO_LessLessEqual && o <= clang::OO_GreaterGreaterEqual)
+                        || (o >= clang::OO_PlusPlus && o <= clang::OO_MinusMinus) ) {
+                    if (op->getNumArgs() >= 1 && op->getArg(0) == previous && op->getDirectCallee()
+                            && op->getDirectCallee()->getNumParams() >= 1) {
+                        auto t = op->getDirectCallee()->getParamDecl(0)->getType();
+                        if (t->isReferenceType() && !t.getNonReferenceType().isConstQualified()) {
+                            return Annotator::Use_Write;
+                        }
+                    }
+                }
+            }
+            if (auto call = llvm::dyn_cast<clang::CallExpr>(expr)) {
+                if (previous == call->getCallee())
+                    return Annotator::Use_Call;
+                auto decl = call->getDirectCallee();
+                for (uint i = 0; i < call->getNumArgs(); ++i) {
+                    if (!decl || decl->getNumParams() <= i)
+                        break;
+                    if (call->getArg(i) != previous)
+                        continue;
+                    auto t = decl->getParamDecl(i)->getType();
+                    if (t->isReferenceType() && !t.getNonReferenceType().isConstQualified())
+                        return Annotator::Use_Address; // non const reference
+                    return Annotator::Use_Read; // anything else is considered as read;
+                }
+                return Annotator::Use;
+            }
+
+
+            previous = expr;
+        }
+        return Annotator::Use;
+    }
+
+
     bool isMember(clang::NamedDecl *d) {
         if (!currentContext)
             return false;

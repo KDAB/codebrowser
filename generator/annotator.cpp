@@ -305,9 +305,30 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                 continue;
             clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
             const char *tag = "";
+            char usetype = '\0';
             switch(std::get<0>(it2)) {
                 case Use:
                     tag = "use";
+                    break;
+                case Use_Address:
+                    tag = "use";
+                    usetype = 'a';
+                    break;
+                case Use_Call:
+                    tag = "use";
+                    usetype = 'c';
+                    break;
+                case Use_Read:
+                    tag = "use";
+                    usetype = 'r';
+                    break;
+                case Use_Write:
+                    tag = "use";
+                    usetype = 'w';
+                    break;
+                case Use_MemberAccess:
+                    tag = "use";
+                    usetype = 'm';
                     break;
                 case Declaration:
                     tag = "dec";
@@ -326,6 +347,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             myfile << "' l='"<<  fixed.getLine()  <<"'";
             if (loc.isMacroID()) myfile << " macro='1'";
             if (!WasInDatabase) myfile << " brk='1'";
+            if (usetype) myfile << " u='" << usetype << "'";
             const auto &refType = std::get<2>(it2);
             if (!refType.empty()) {
                 myfile << ((std::get<0>(it2) < Use) ? " type='" : " c='");
@@ -531,7 +553,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         }
 
         if (visibility == Visibility::Global && type != Typedef) {
-            if (usedContext && typeText.empty() && declType == Use) {
+            if (usedContext && typeText.empty() && declType >= Use) {
                 typeText = getContextStr(usedContext);
             }
 
@@ -550,8 +572,16 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         }
 
         if (visibility == Visibility::Static) {
-            if (declType != Use)
+            if (declType < Use) {
                 commentHandler.decl_offsets.insert({ decl->getLocStart(), {ref, false} });
+            } else switch (+declType) {
+                case Use_Address: tags %= " data-use='a'"; break;
+                case Use_Read: tags %= " data-use='r'"; break;
+                case Use_Write: tags %= " data-use='w'"; break;
+                case Use_Call: tags %= " data-use='c'"; break;
+                case Use_MemberAccess: tags %= " data-use='m'"; break;
+            }
+
             clas += " tu";
         }
     }
@@ -595,7 +625,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\" ";
 
-    if (declType == Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
+    if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;
         clang::SourceLocation loc = canonDecl->getLocation();
         clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
@@ -614,7 +644,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             }
 
             if (link.empty()) {
-                generator(FID).addTag(declType == Annotator::Use ? "span" : "dfn",
+                generator(FID).addTag(declType >= Annotator::Use ? "span" : "dfn",
                                       "class=\'" % clas % "\'" % tags, pos, len);
                 return;
             }
