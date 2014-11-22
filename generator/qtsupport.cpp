@@ -242,7 +242,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 
     }
 
-    annotator.registerUse(used, range, Annotator::Call, currentContext);
+    annotator.registerUse(used, range, Annotator::Call, currentContext, Annotator::Use_Address);
 }
 
 void QtSupport::visitCallExpr(clang::CallExpr* e)

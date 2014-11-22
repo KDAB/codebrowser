@@ -39,7 +39,12 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     typedef clang::RecursiveASTVisitor<BrowserASTVisitor> Base;
     Annotator &annotator;
     clang::NamedDecl *currentContext = nullptr;
-    std::deque<clang::Expr *> expr_stack;
+
+    struct : std::deque<clang::Expr *>  {
+        clang::Expr *topExpr = 0;
+        Annotator::DeclType topType = Annotator::Use;
+    } expr_stack;
+
     BrowserASTVisitor(Annotator &R) : annotator(R) {}
 
     bool VisitTypedefNameDecl(clang::TypedefNameDecl *d) {
@@ -207,7 +212,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         if (Init->isAnyMemberInitializer() && Init->isWritten()) {
             annotator.registerUse(Init->getAnyMember(), Init->getMemberLocation(),
                                   Init->isMemberInitializer() ? Annotator::Member : Annotator::Ref,
-                                  currentContext);
+                                  currentContext, Init->isMemberInitializer() ? Annotator::Use_Write : Annotator::Use);
         }
         return Base::TraverseConstructorInitializer(Init);
     }
@@ -236,6 +241,12 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             clang::NamespaceDecl::classof(d) || clang::TemplateDecl::classof(d)) {
             currentContext = llvm::dyn_cast<clang::NamedDecl>(d);
         }
+        if (auto v = llvm::dyn_cast_or_null<clang::VarDecl>(d)) {
+            if (v->getInit() && !expr_stack.topExpr) {
+                expr_stack.topExpr = v->getInit();
+                expr_stack.topType = Annotator::Use_Read;
+            }
+        }
         Base::TraverseDecl(d);
         currentContext = saved;
         return true;
@@ -249,6 +260,19 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             expr_stack.push_front(e);
         } else {
             std::swap(old_stack, expr_stack);
+            if (auto i = llvm::dyn_cast_or_null<clang::IfStmt>(s)) {
+                expr_stack.topExpr = i->getCond();
+                expr_stack.topType = Annotator::Use_Read;
+            } else if (auto r = llvm::dyn_cast_or_null<clang::ReturnStmt>(s)) {
+                expr_stack.topExpr = r->getRetValue();
+                if (auto f = llvm::dyn_cast_or_null<clang::FunctionDecl>(currentContext)) {
+                    auto t = getResultType(f);
+                    if (t->isReferenceType() /*&& !t.getNonReferenceType().isConstQualified()*/)
+                        expr_stack.topType = Annotator::Use_Address; // non const reference
+                    else
+                        expr_stack.topType = Annotator::Use_Read; // anything else is considered as read;
+                }
+            }
         }
         auto r = Base::TraverseStmt(s);
         if (e) {
@@ -332,10 +356,10 @@ private:
                 }
                 return Annotator::Use;
             }
-
-
             previous = expr;
         }
+        if (previous == expr_stack.topExpr)
+            return expr_stack.topType;
         return Annotator::Use;
     }
 
