@@ -289,3 +289,29 @@ int foo_b:
 
 
 namespace rel_ops = std::rel_ops;
+
+
+extern int value;
+struct Uses {
+    int hello;
+    Uses(int i) : hello(i) {}
+    int r() {
+        auto v = value;
+        v = value;
+        v = Uses{value}.hello;
+        return value;
+    }
+    int w() {
+        value = 2;
+        value += 2;
+        value++;
+        ++value;
+        return 12;
+    }
+    int &a() {
+        auto &v1 = value;
+        auto v2 = &value;
+        return value;
+    }
+};
+

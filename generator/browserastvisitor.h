@@ -227,7 +227,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 #endif
 
             // Highlight the opening parenthese
-            annotator.registerUse(decl, parenLoc, Annotator::Ref, currentContext);
+            annotator.registerUse(decl, parenLoc, Annotator::Ref, currentContext, Annotator::Use_Call);
         }
         QtSupport qt{annotator, currentContext};
         qt.visitCXXConstructExpr(ctr);
@@ -244,7 +244,9 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         if (auto v = llvm::dyn_cast_or_null<clang::VarDecl>(d)) {
             if (v->getInit() && !expr_stack.topExpr) {
                 expr_stack.topExpr = v->getInit();
-                expr_stack.topType = Annotator::Use_Read;
+                auto t = v->getType();
+                expr_stack.topType = (t->isReferenceType() && !t.getNonReferenceType().isConstQualified()) ?
+                        Annotator::Use_Address : Annotator::Use_Read;
             }
         }
         Base::TraverseDecl(d);
@@ -354,6 +356,23 @@ private:
                         return Annotator::Use_Address; // non const reference
                     return Annotator::Use_Read; // anything else is considered as read;
                 }
+                return Annotator::Use;
+            }
+            if (auto call = llvm::dyn_cast<clang::CXXConstructExpr>(expr)) {
+                auto decl = call->getConstructor();
+                for (uint i = 0; i < call->getNumArgs(); ++i) {
+                    if (!decl || decl->getNumParams() <= i)
+                        break;
+                    if (call->getArg(i) != previous)
+                        continue;
+                    auto t = decl->getParamDecl(i)->getType();
+                    if (t->isReferenceType() && !t.getNonReferenceType().isConstQualified())
+                        return Annotator::Use_Address; // non const reference
+                    return Annotator::Use_Read; // anything else is considered as read;
+                }
+                return Annotator::Use;
+            }
+            if (llvm::isa<clang::InitListExpr>(expr)) {
                 return Annotator::Use;
             }
             previous = expr;
