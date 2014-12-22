@@ -235,9 +235,14 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
             A = PossiblePath;
     } );
 
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 6
     auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
     Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
     Ajust(clang::tooling::ClangStripOutputAdjuster());
+#else
+    command = clang::tooling::getClangSyntaxOnlyAdjuster()(command);
+    command = clang::tooling::getClangStripOutputAdjuster()(command);
+#endif
     command[0] = MainExecutable;
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
     return Inv.run();
