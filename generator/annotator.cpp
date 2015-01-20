@@ -90,6 +90,16 @@ ssize_t getDeclSize(const clang::Decl* decl)
     return -1;
 }
 
+ssize_t getFieldOffset(const clang::NamedDecl* decl)
+{
+    const clang::FieldDecl* fd = llvm::dyn_cast<clang::FieldDecl>(decl);
+    if (fd) {
+        /** XXX: Return size in bytes */
+        return decl->getASTContext().getFieldOffset(fd) >> 3;
+    }
+    return -1;
+}
+
 };
 
 Annotator::~Annotator()
@@ -469,6 +479,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     if (decl->getDeclName().isIdentifier() && decl->getName().empty())
         return;
 
+    ssize_t offset = getFieldOffset(decl);
+
     clang::SourceManager &sm = getSourceMgr();
 
     Visibility visibility = getVisibility(decl);
@@ -594,6 +606,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     llvm::SmallString<40> escapedRefBuffer;
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\" ";
+
+    if (offset >= 0) {
+        tags %= " offset=\"" % llvm::Twine(offset).str() % "\" ";
+    }
 
     if (declType == Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;
