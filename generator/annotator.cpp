@@ -94,8 +94,7 @@ ssize_t getFieldOffset(const clang::NamedDecl* decl)
 {
     const clang::FieldDecl* fd = llvm::dyn_cast<clang::FieldDecl>(decl);
     if (fd) {
-        /** XXX: Return size in bytes */
-        return decl->getASTContext().getFieldOffset(fd) >> 3;
+        return decl->getASTContext().getFieldOffset(fd);
     }
     return -1;
 }
