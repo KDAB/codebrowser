@@ -583,6 +583,11 @@ $(function () {
             } else {
                 tt.append($("<b />").text(title));
             }
+
+            var offset = elem.attr("offset");
+            if (offset >= 0) {
+                content += "<br/>Offset: " + escape_html(offset) + " bytes";
+            }
             if (type != "") {
                 tt.append("<br/>");
                 tt.append($("<span class='type' />").text(type));
