@@ -586,7 +586,7 @@ $(function () {
 
             var offset = elem.attr("offset");
             if (offset >= 0) {
-                content += "<br/>Offset: " + escape_html(offset) + " bytes";
+                content += "<br/>Offset: " + escape_html(offset >> 3) + " bytes (" + offset + ")";
             }
             if (type != "") {
                 tt.append("<br/>");
