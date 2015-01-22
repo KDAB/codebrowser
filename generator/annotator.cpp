@@ -90,7 +90,7 @@ ssize_t getDeclSize(const clang::Decl* decl)
     return -1;
 }
 
-ssize_t getFieldOffset(const clang::NamedDecl* decl)
+ssize_t getFieldOffset(const clang::Decl* decl)
 {
     const clang::FieldDecl* fd = llvm::dyn_cast<clang::FieldDecl>(decl);
     if (fd) {
@@ -347,6 +347,10 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         if (itS != structure_sizes.end() && itS->second != -1) {
             myfile << "<size>"<< itS->second <<"</size>\n";
         }
+        auto itF = field_offsets.find(it.first);
+        if (itF != field_offsets.end() && itF->second != -1) {
+            myfile << "<f_offset>"<< itF->second <<"</f_offset>\n";
+        }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
             clang::SourceManager &sm = getSourceMgr();
@@ -478,8 +482,6 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     if (decl->getDeclName().isIdentifier() && decl->getName().empty())
         return;
 
-    ssize_t offset = getFieldOffset(decl);
-
     clang::SourceManager &sm = getSourceMgr();
 
     Visibility visibility = getVisibility(decl);
@@ -606,10 +608,6 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\" ";
 
-    if (offset >= 0) {
-        tags %= " offset=\"" % llvm::Twine(offset).str() % "\" ";
-    }
-
     if (declType == Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;
         clang::SourceLocation loc = canonDecl->getLocation();
@@ -652,6 +650,10 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
         ssize_t size = getDeclSize(decl);
         if (size >= 0) {
             structure_sizes[ref] = size;
+        }
+        ssize_t offset = getFieldOffset(decl);
+        if (offset >= 0) {
+            field_offsets[ref] = offset;
         }
         references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
         if (dt != Use) {
