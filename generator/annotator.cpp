@@ -651,12 +651,12 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
         if (size >= 0) {
             structure_sizes[ref] = size;
         }
-        ssize_t offset = getFieldOffset(decl);
-        if (offset >= 0) {
-            field_offsets[ref] = offset;
-        }
         references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
         if (dt != Use) {
+            ssize_t offset = getFieldOffset(decl);
+            if (offset >= 0) {
+                field_offsets[ref] = offset;
+            }
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
         }
