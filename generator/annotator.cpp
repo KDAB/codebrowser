@@ -349,7 +349,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         }
         auto itF = field_offsets.find(it.first);
         if (itF != field_offsets.end() && itF->second != -1) {
-            myfile << "<f_offset>"<< itF->second <<"</f_offset>\n";
+            myfile << "<offset>"<< itF->second <<"</offset>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
