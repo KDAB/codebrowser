@@ -90,15 +90,6 @@ ssize_t getDeclSize(const clang::Decl* decl)
     return -1;
 }
 
-ssize_t getFieldOffset(const clang::Decl* decl)
-{
-    const clang::FieldDecl* fd = llvm::dyn_cast<clang::FieldDecl>(decl);
-    if (fd) {
-        return decl->getASTContext().getFieldOffset(fd);
-    }
-    return -1;
-}
-
 };
 
 Annotator::~Annotator()
@@ -346,10 +337,6 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         auto itS = structure_sizes.find(it.first);
         if (itS != structure_sizes.end() && itS->second != -1) {
             myfile << "<size>"<< itS->second <<"</size>\n";
-        }
-        auto itF = field_offsets.find(it.first);
-        if (itF != field_offsets.end() && itF->second != -1) {
-            myfile << "<offset>"<< itF->second <<"</offset>\n";
         }
         auto range =  commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
@@ -653,10 +640,6 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
         }
         references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
         if (dt != Use) {
-            ssize_t offset = getFieldOffset(decl);
-            if (offset >= 0) {
-                field_offsets[ref] = offset;
-            }
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
         }

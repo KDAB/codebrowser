@@ -574,10 +574,6 @@ $(function () {
                 if (size.length === 1) {
                     content += "<br/>Size: " + escape_html(size.text()) + " bytes";
                 }
-                var offset = res.find("offset");
-                if (offset.length === 1) {
-                    content += "<br/>Offset: " + escape_html(offset.text() >> 3) + " bytes (" + offset.text() + ")";
-                }
             }
 
             var tt = tooltip.tooltip;
@@ -587,7 +583,6 @@ $(function () {
             } else {
                 tt.append($("<b />").text(title));
             }
-
             if (type != "") {
                 tt.append("<br/>");
                 tt.append($("<span class='type' />").text(type));
