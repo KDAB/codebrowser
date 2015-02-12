@@ -44,6 +44,8 @@ Type MyBase::static_member = 8;
 //  } end
 struct MyClass /* ??? */ :  MyBase {
 
+    XXXXX undefined_type;
+
     std::string string;  /// documentation for string
     std::string string2; /**  and for string 2 */ /* more on string 2 */
 
