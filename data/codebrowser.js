@@ -353,6 +353,8 @@ $(function () {
 /*-------------------------------------------------------------------------------------*/
     var onMouseLeave = function(e) { tooltip.hideAfterDelay(e); }
     var onMouseClick = function(e) {
+        if (e.ctrlKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
+
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
 
@@ -751,38 +753,32 @@ $(function () {
     }
 
 
-    //function is_touch_device() { return !!('ontouchstart' in window); }
-    function is_touch_device() {
-        return !!('ontouchstart' in document.documentElement) &&
-            // Arf, Konqueror support touch, even on desktop
-            (!navigator || (navigator.userAgent.indexOf("konqueror")===-1 && navigator.userAgent.indexOf("rekonq")===-1));
-    }
-    if (is_touch_device()) {
-        var elemWithTooltip;
-        function applyTo(func) { return function() {
-            if (this === elemWithTooltip) {
-                return onMouseClick.apply(this, arguments);
-            } else {
-                elemWithTooltip = this;
-                var oldDelay = tooltip.showDelay;
-                tooltip.showDelay = 1;
-                func.apply(this, arguments);
-                tooltip.showDelay = oldDelay;
-                return false;
-            }
-        }; };
-        $(".code").on({"click": applyTo(onMouseEnterRef) }, "[data-ref]");
-        $(".code").on({"click": applyTo(onMouseEnterMacro) }, ".macro");
-        $(".code").on({"click": applyTo(onMouseEnterPPCond) }, "[data-ppcond]");
-    } else {
-        $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "mouseup": onMouseClick},
-                    "[data-ref]");
-        $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "mouseup": onMouseClick},
-                        ".macro");
-        $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave/*, "mouseup": onMouseClick*/},
-                      "[data-ppcond]");
-    }
-    tooltip.tooltip.on({"mouseup": onMouseClick}, "a")
+    var elemWithTooltip;
+    var isTouchEvent = false;
+    function applyTo(func) { return function(e) {
+        if (!isTouchEvent || this === elemWithTooltip) {
+            return onMouseClick.apply(this, arguments);
+        } else {
+            isTouchEvent = false;
+            elemWithTooltip = this;
+            var oldDelay = tooltip.showDelay;
+            tooltip.showDelay = 1;
+            func.apply(this, arguments);
+            tooltip.showDelay = oldDelay;
+            e.preventDefault()
+            return false;
+        }
+    }; };
+    $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterRef) },
+                  "[data-ref]");
+    $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterMacro) },
+                  ".macro");
+    $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
+                  "[data-ppcond]");
+
+    tooltip.tooltip.on({"click": onMouseClick}, "a")
+
+    $(document).bind( "touchstart", function() { isTouchEvent = true; } )
 
 /*-------------------------------------------------------------------------------------*/
 
