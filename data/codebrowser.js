@@ -776,7 +776,7 @@ $(function () {
     $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
                   "[data-ppcond]");
 
-    tooltip.tooltip.on({"click": onMouseClick}, "a")
+    tooltip.tooltip.on({"mouseup": onMouseClick}, "a")
 
     $(document).bind( "touchstart", function() { isTouchEvent = true; } )
 
