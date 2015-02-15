@@ -586,7 +586,11 @@ $(function () {
                         if (!dict[f].contexts[c]) {
                             dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
                             dict[f].contexts[c].count = 1;
-                            dict[f].contexts[c].usesType = "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                            if (u) {
+                                dict[f].contexts[c].usesType = "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                            } else {
+                                dict[f].contexts[c].usesType = "";
+                            }
                         } else {
                             dict[f].contexts[c].count++;
                             if (u && dict[f].contexts[c].usesType.indexOf(">"+u+"<") === -1)
