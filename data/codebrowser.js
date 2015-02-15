@@ -383,12 +383,18 @@ $(function () {
 
         var url = proj_root_path + "/refs/" + ref;
 
+
         if (!$(this).hasClass("highlight")) {
             highlight_items(ref);
         }
 
         var computeTooltipContent = function(data, title, id) {
             var type ="", content ="";
+            var tt = tooltip.tooltip;
+            var showUseFunc = function(e) {
+                tt.find(".uses").toggle(); return false;
+            };
+
             if (elem.hasClass("local")) {
                 type = $("#" + escape_selector(ref)).attr("data-type");
                 content = "<br/>(local)";
@@ -504,7 +510,7 @@ $(function () {
                         }
                     });
                     if (shouldCompress) {
-                        if (dict.number > 20) {
+                        if (dict.number > 40) {
                             content += "<br/>(Too many)";
                             return;
                         }
@@ -530,9 +536,23 @@ $(function () {
                 p(isType ? "Inherit" : "Overrides", "inh");
                 p(isType ? "Inherited by" : "Overriden by", "ovr");
 
+                // Size:
+                var size = res.find("size");
+                if (size.length === 1) {
+                    content += "<br/>Size: " + escape_html(size.text()) + " bytes";
+                }
+
                 // Uses:
                 var uses = res.find("use");
                 if (uses.length) {
+                    content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/><span class='uses_placeholder'></span>"
+                }
+                var useShown = false;
+                showUseFunc = function() {
+                    if (useShown) {
+                        tt.find(".uses").toggle();
+                        return false;
+                    }
                     var dict = { };
                     uses.each(function() {
                         var t = $(this);
@@ -576,17 +596,13 @@ $(function () {
                         }
                         ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
                     }
-                    content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/>" + $("<span>").append(ul).html();
-                }
-
-                // Size:
-                var size = res.find("size");
-                if (size.length === 1) {
-                    content += "<br/>Size: " + escape_html(size.text()) + " bytes";
+                    tt.find(".uses_placeholder").append(ul).html();
+                    useShown = true;
+                    uses = undefined; // free memory
+                    return false;
                 }
             }
 
-            var tt = tooltip.tooltip;
             tt.empty();
             if (id && id != "") {
                 tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
@@ -600,8 +616,7 @@ $(function () {
             tt.append($("<span />").html(content));
             tooltip.ref = ref;
             tt.find(".uses").hide();
-            tt.find(".showuse").mouseup(function(e) {
-                tt.find(".uses").toggle(); return false;});
+            tt.find(".showuse").mouseup(showUseFunc);
             tt.find(".expandcomment").mouseup(function(e) {
                 $(this).toggle(); $(this).next().toggle();return false;});
         }
