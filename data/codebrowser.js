@@ -84,6 +84,15 @@ $(function () {
         return $("<p/>").text(str).html();
     }
 
+    var useExplain = {
+        r: "r: The variable is read",
+        w: "w: The variable is modified",
+        a: "a: The address is taken",
+        c: "c: The function is called",
+        m: "m: a member is accessed",
+        "?": "?: The type of use of the variable is unknown"
+    };
+
     // demangle the function name, don't care about the template or the argument
     function demangleFunctionName(mangle) {
         if (! mangle) return mangle;
@@ -437,7 +446,7 @@ $(function () {
                         var useType = "";
                         var ut = t.attr("data-use");
                         if (ut) {
-                            useType += " (" + escape_html(ut) + ")";
+                            useType += " (<abbr title='"+ useExplain[ut] +"'>"+escape_html(ut)+"</abbr>)";
                         }
                         usesLis += "<li><a href='#"+ l +"'>"+ escape_html(c) +"</a>"+useType+"</li>"
                         usesCount += 1;
@@ -560,7 +569,7 @@ $(function () {
                         var l = t.attr("l");
                         var c = t.attr("c");
                         var u = t.attr("u");
-                        if (!u) u = "?"
+                        //if (!u) u = "?"
                         var url = proj_root_path + "/" + f + ".html#" + l;
                         if (!dict[f]) {
                             dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
@@ -575,10 +584,11 @@ $(function () {
                         if (!dict[f].contexts[c]) {
                             dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
                             dict[f].contexts[c].count = 1;
-                            dict[f].contexts[c].usesType = u;
+                            dict[f].contexts[c].usesType = "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
                         } else {
                             dict[f].contexts[c].count++;
-                            dict[f].contexts[c].usesType += u;
+                            if (u && dict[f].contexts[c].usesType.indexOf(">"+u+"<") === -1)
+                                dict[f].contexts[c].usesType += "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
                         }
                     });
                     var list = [];

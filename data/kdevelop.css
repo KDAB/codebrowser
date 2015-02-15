@@ -41,6 +41,7 @@ a.logo { float:right }
 #tooltip ul { margin:0; padding-left: 1em }
 #tooltip a.showuse {color:inherit; text-decoration:underline}
 #tooltip b a { color:inherit }
+#tooltip abbr  { cursor: help; border-bottom: 1px dashed #000; }
 /*#tooltip li { border: 1px solid blue; margin:0 }*/
 
 p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0 }
