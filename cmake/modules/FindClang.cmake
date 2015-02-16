@@ -35,6 +35,10 @@ FIND_AND_ADD_CLANG_LIB(clangStaticAnalyzerCore)
 FIND_AND_ADD_CLANG_LIB(clangStaticAnalyzerFrontend)
 FIND_AND_ADD_CLANG_LIB(clangSema)
 FIND_AND_ADD_CLANG_LIB(clangRewriteCore)
+# clang 3.7
+FIND_AND_ADD_CLANG_LIB(clangRewriteFrontend)
+FIND_AND_ADD_CLANG_LIB(clangASTMatchers)
+FIND_AND_ADD_CLANG_LIB(clangToolingCore)
 
 
 
