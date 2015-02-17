@@ -152,6 +152,18 @@ int function() {
       foo.m;
 }
 
+std::string toString() {
+    function();
+    MyClass c;
+    c.function(noDocumentationPlease(), !c.outofline(std::string("T")), MyEnum::Val1, toString());
+}
+
+int hasOwnProperty() {
+    function()
+        + function();
+    std::string foo("GHG");
+    return hasOwnProperty();
+}
 
 
 struct MyClassDerived : MyClass {

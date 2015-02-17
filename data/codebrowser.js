@@ -505,7 +505,7 @@ $(function () {
                             }
                         }
                         if (shouldCompress) {
-                            if (!dict[f]) {
+                            if (!Object.prototype.hasOwnProperty.call(dict, f)) {
                                 dict[f] = [];
                                 dict.number++;
                             }
@@ -526,7 +526,7 @@ $(function () {
                             return;
                         }
                         for(var f in dict) {
-                            if (!dict.hasOwnProperty(f) || f==="number") continue;
+                            if (!Object.prototype.hasOwnProperty.call(dict,f) || f==="number") continue;
                             var url_begin = proj_root_path + "/" + f + ".html";
                             content += "<br/><a href='" + url_begin + "#" + dict[f][0] +"' >" + f +  "</a>";
                             var len = dict[f].length;
@@ -573,7 +573,7 @@ $(function () {
                         var u = t.attr("u");
                         //if (!u) u = "?"
                         var url = proj_root_path + "/" + f + ".html#" + l;
-                        if (!dict[f]) {
+                        if (!Object.prototype.hasOwnProperty.call(dict, f)) {
                             dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
                                         contexts: {},  prefixL: prefixLen(file, f), count: 0,
                                         f: f, brk: t.attr("brk")
@@ -583,7 +583,7 @@ $(function () {
                         if (!c) c = f + ":" + l;
                         dict[f].count++;
 
-                        if (!dict[f].contexts[c]) {
+                        if (!Object.prototype.hasOwnProperty.call(dict[f].contexts, c)) {
                             dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
                             dict[f].contexts[c].count = 1;
                             if (u) {
@@ -599,14 +599,14 @@ $(function () {
                     });
                     var list = [];
                     for (var xx in dict) {
-                        if (dict.hasOwnProperty(xx))
+                        if (Object.prototype.hasOwnProperty.call(dict, xx))
                             list.push(dict[xx]);
                     }
                     list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : a.brk ? 1 : b.f - a.f });
                     var ul = $("<ul class='uses'/>");
                     for (var i = 0; i < list.length; ++i) {
                         var subul = $("<ul/>");
-                        for (var xx in list[i].contexts) if (list[i].contexts.hasOwnProperty(xx)) {
+                        for (var xx in list[i].contexts) if (Object.prototype.hasOwnProperty.call(list[i].contexts, xx)) {
                             var context = list[i].contexts[xx];
                             subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")"));
                         }
@@ -880,7 +880,7 @@ $(function () {
             var rx2 = new RegExp("(^|::)"+term.replace(/^:*/, ''), 'i');
             var functionList = [];
             var k = getFnNameKey(request.term)
-            if (k && functionDict.hasOwnProperty(k)) {
+            if (k && Object.prototype.hasOwnProperty.call(functionDict,k)) {
                 functionList = functionDict[k].filter(
                     function(word) { return word.match(rx2) });
             }
@@ -903,7 +903,7 @@ $(function () {
         searchline.on('input', function() {
             var value = $(this).val();
             var k = getFnNameKey(value);
-            if (k && !functionDict.hasOwnProperty(k)) {
+            if (k && !Object.prototype.hasOwnProperty.call(functionDict, k)) {
                 functionDict[k] = []
                 $.get(root_path + '/fnSearch/' + k, function(data) {
                     var list = data.split("\n");
