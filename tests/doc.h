@@ -62,7 +62,7 @@ public:
  */
 
     virtual ~DocMyClass();
-    DocMyClass();
+    DocMyClass() : Buffer (0) {} ;
 
     /**
      * \fn DocMyClass::~DocMyClass
@@ -100,7 +100,7 @@ public:
  */
 
     DocMyClass *returnPointer() {
-
+        Capacity = 8;
         return nullptr;
        /**
         * \fn DocMyClass *DocMyClass::returnPointer();
@@ -108,6 +108,17 @@ public:
         */
     }
 
+private:
+
+    /// Doc for buffer;
+    /// continued
+    char *Buffer;
+
+    /* doc for capacity */
+    int Capacity;
+
+    // doc for index
+    int Index;
 };
 
 

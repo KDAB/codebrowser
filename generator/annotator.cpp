@@ -669,7 +669,7 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
             structure_sizes[ref] = size;
         }
         references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
-        if (dt != Use) {
+        if (dt < Use) {
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
         }
