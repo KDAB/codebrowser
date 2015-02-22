@@ -39,18 +39,12 @@ class PreprocessorCallback  : public clang::PPCallbacks {
 public:
     PreprocessorCallback(Annotator &fm, clang::Preprocessor &PP) : annotator(fm), PP(PP) {}
 
-    void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroInfo* MI, clang::SourceRange Range);
-#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 2
     void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroDirective* MD,
-                      clang::SourceRange Range, const clang::MacroArgs *Args) override
-    { MacroExpands(MacroNameTok, MD->getMacroInfo(), Range); }
-#endif
+                      clang::SourceRange Range, const clang::MacroArgs *Args) override;
 
-#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 1
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
                             bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;
-#endif
 
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 5
     typedef bool ConditionValueKind;  // It's an enum in clang 3.5

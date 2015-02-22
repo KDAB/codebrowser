@@ -91,9 +91,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             if (clang::CXXMethodDecl *cxx = llvm::dyn_cast<clang::CXXMethodDecl>(d)) {
                 if (cxx->isStatic())
                     typeTextStream << "static ";
-#if CLANG_VERSION_MAJOR!=3 || CLANG_VERSION_MINOR>1
                 isConst =  cxx->isConst();
-#endif
                 if (cxx->isThisDeclarationADefinition()) {
                     for (auto it = cxx->begin_overridden_methods(); it != cxx->end_overridden_methods(); ++it) {
                         const clang::CXXMethodDecl *ovr = (*it)->getCanonicalDecl();

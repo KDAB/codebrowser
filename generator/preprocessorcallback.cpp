@@ -29,13 +29,14 @@
 #include "stringbuilder.h"
 
 
-
 void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
-                                        const clang::MacroInfo* MI,
-                                        clang::SourceRange Range)
+                                        const clang::MacroDirective *MD,
+                                        clang::SourceRange Range, const clang::MacroArgs *)
 {
     if (disabled)
         return;
+
+    auto *MI = MD->getMacroInfo();
 
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())
@@ -87,9 +88,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     // Temporarily change the diagnostics object so that we ignore any generated
     // diagnostics from this pass.
     clang::DiagnosticsEngine TmpDiags(PP.getDiagnostics().getDiagnosticIDs(),
-#if CLANG_VERSION_MAJOR!=3 || CLANG_VERSION_MINOR>=2
                                       &PP.getDiagnostics().getDiagnosticOptions(),
-#endif
                                       new clang::IgnoringDiagConsumer);
 
     disabled = true;
@@ -132,8 +131,6 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
-
-#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 1
 void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok,
                                               llvm::StringRef FileName, bool IsAngled,
                                               clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
@@ -156,7 +153,6 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
 
     annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E-B);
 }
-#endif
 
 #if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
 void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::SourceLocation IfLoc)

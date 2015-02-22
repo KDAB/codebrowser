@@ -93,12 +93,6 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
     Annotator &annotator;
     BrowserDiagnosticClient(Annotator &fm) : annotator(fm) {}
 
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 2
-    virtual DiagnosticConsumer* clone(clang::DiagnosticsEngine& Diags) const override {
-        return new BrowserDiagnosticClient(annotator);
-    }
-#endif
-
     virtual void HandleDiagnostic(clang::DiagnosticsEngine::Level DiagLevel, const clang::Diagnostic& Info) override {
         std::string clas;
         llvm::SmallString<1000> diag;

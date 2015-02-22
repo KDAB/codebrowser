@@ -44,7 +44,6 @@ Compiling the generator on Linux
 
 You need:
  - The clang libraries version 3.3 or later
- - A recent C++ compiler (tested with clang 3.1 and gcc 4.7 on Linux)
 
 Example:
 ```bash
