@@ -27,6 +27,7 @@
 #include "clang/AST/ASTContext.h"
 
 #include <clang/Frontend/CompilerInstance.h>
+#include <llvm/Support/Path.h>
 
 
 #include <iostream>
@@ -51,14 +52,13 @@ cl::opt<std::string> BuildPath(
 
 cl::list<std::string> SourcePaths(
   cl::Positional,
-  cl::desc("<source0> [... <sourceN>]"),
+  cl::desc("(<source0> [... <sourceN>])|<path>"),
   cl::ZeroOrMore);
 
 cl::opt<std::string> OutputPath(
     "o",
     cl::desc("<output path>"),
     cl::Required);
-
 
 cl::list<std::string> ProjectPaths(
     "p",
@@ -239,7 +239,16 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
 #endif
     command[0] = MainExecutable;
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
-    return Inv.run();
+
+    // the BrowserASTConsumer will re-create a new diagnostic consumer,
+    // but we want to ignore all the driver warnings
+    clang::IgnoringDiagConsumer consumer;
+    Inv.setDiagnosticConsumer(&consumer);
+    bool result = Inv.run();
+    if (!result) {
+        std::cerr << "Error: The file was not recognized as source code" << std::endl;
+    }
+    return result;
 }
 #endif
 
@@ -296,6 +305,8 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
+    bool IsProcessingAllDirectory = false;
+    std::vector<std::string> DirContents;
     std::vector<std::string> AllFiles = Compilations->getAllFiles();
     std::sort(AllFiles.begin(), AllFiles.end());
     llvm::ArrayRef<std::string> Sources = SourcePaths;
@@ -305,6 +316,35 @@ int main(int argc, const char **argv) {
     } else if (ProcessAllSources) {
         std::cerr << "Cannot use both sources and  '-a'" << std::endl;
         return EXIT_FAILURE;
+    } else if (Sources.size() == 1 && llvm::sys::fs::is_directory(Sources.front())) {
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 5
+         // A directory was passed, process all the files in that directory
+        llvm::SmallString<128> DirName;
+        llvm::sys::path::native(Sources.front(), DirName);
+        std::error_code EC;
+        for (llvm::sys::fs::recursive_directory_iterator it(DirName.str(), EC), DirEnd;
+                it != DirEnd && !EC; it.increment(EC)) {
+            if (llvm::sys::path::filename(it->path()).startswith(".")) {
+                it.no_push();
+                continue;
+            }
+            DirContents.push_back(it->path());
+        }
+        Sources = DirContents;
+        IsProcessingAllDirectory = true;
+        if (EC) {
+            std::cerr << "Error reading the directory: " << EC.message() << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        if (ProjectPaths.empty()) {
+            ProjectInfo info { llvm::sys::path::filename(DirName), DirName.str() };
+            projectManager.addProject(std::move(info));
+        }
+#else
+        std::cerr << "Passing directory is only implemented with llvm >= 3.5" << std::endl;
+        return EXIT_FAILURE;
+#endif
     }
 
     if (Sources.empty()) {
@@ -339,8 +379,12 @@ int main(int argc, const char **argv) {
             continue;
         }
 
+        bool isHeader = llvm::StringSwitch<bool>(llvm::sys::path::extension(filename))
+            .Cases(".h", ".H", ".hh", ".hpp", true)
+            .Default(false);
+
         auto compileCommandsForFile = Compilations->getCompileCommands(file);
-        if (!compileCommandsForFile.empty()) {
+        if (!compileCommandsForFile.empty() && !isHeader) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
             proceedCommand(compileCommandsForFile.front().CommandLine,
                            compileCommandsForFile.front().Directory,
@@ -388,7 +432,7 @@ int main(int argc, const char **argv) {
             std::cerr << "Could not find commands for " << file << "\n";
         }
 
-        if (!success) {
+        if (!success && !IsProcessingAllDirectory) {
             ProjectInfo *projectinfo = projectManager.projectForFile(file);
             if (!projectinfo)
                 continue;
