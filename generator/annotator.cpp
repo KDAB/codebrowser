@@ -68,18 +68,29 @@ ssize_t getTypeSize(const T &t)
     return ctx.getTypeSize(ty) >> 3;
 }
 
+/**
+ * XXX: avoid endless recursion inside
+ * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
+ */
+template <class T>
+bool cxxDeclIndependent(const T* decl)
+{
+    const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
+    if (cxx && cxx->isDependentContext()) {
+        return false;
+    }
+
+    /** Non CXX always independent */
+    return true;
+}
+
 ssize_t getDeclSize(const clang::Decl* decl)
 {
     const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
     if (cxx && (cxx = cxx->getDefinition())) {
-        /**
-         * XXX: avoid endless recursion inside
-         * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
-         */
-        if (cxx->isDependentContext()) {
+        if (!cxxDeclIndependent(decl)) {
             return -1;
         }
-
         return getTypeSize(cxx);
     }
 
@@ -99,7 +110,7 @@ ssize_t getFieldOffset(const clang::Decl* decl)
     }
 
     const clang::RecordDecl* parent = fd->getParent();
-    if (!parent || parent->isInvalidDecl()) {
+    if (!cxxDeclIndependent(parent)) {
         return -1;
     }
 
