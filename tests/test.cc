@@ -86,6 +86,15 @@ struct MyClass /* ??? */ :  MyBase {
     operator std::string() const { return m(); }
 };
 
+/**
+ * Regression for getFieldOffset(), founded during processing `struct _IO_FILE`
+ */
+struct ForwardDeclareWillBeDeclaredAfter;
+struct ForwardDeclareWillBeDeclaredAfter
+{
+    int mustBailHere;
+};
+
 
 /*!
  * yo
