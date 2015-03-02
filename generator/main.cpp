@@ -361,6 +361,10 @@ int main(int argc, const char **argv) {
         std::cerr << "No source files.  Please pass source files as argument, or use '-a'" << std::endl;
         return EXIT_FAILURE;
     }
+    if (ProjectPaths.empty() && !IsProcessingAllDirectory) {
+        std::cerr << "You must specify a project name and directory with '-p name:directory'" << std::endl;
+        return EXIT_FAILURE;
+    }
 
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
     clang::tooling::ClangTool Tool(*Compilations, Sources);
@@ -416,17 +420,22 @@ int main(int argc, const char **argv) {
 
         llvm::StringRef similar;
 
-        // Find the element with the bigger prefix
-        auto lower = std::lower_bound(AllFiles.cbegin(), AllFiles.cend(), file);
-        if (lower == AllFiles.cend())
-            lower = AllFiles.cbegin();
+        auto compileCommandsForFile = Compilations->getCompileCommands(file);
+        std::string fileForCommands = file;
+        if (compileCommandsForFile.empty()) {
+            // Find the element with the bigger prefix
+            auto lower = std::lower_bound(AllFiles.cbegin(), AllFiles.cend(), file);
+            if (lower == AllFiles.cend())
+                lower = AllFiles.cbegin();
+            auto compileCommandsForFile = Compilations->getCompileCommands(*lower);
+            fileForCommands = *lower;
+        }
 
         bool success = false;
-        auto compileCommandsForFile = Compilations->getCompileCommands(*lower);
         if (!compileCommandsForFile.empty()) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
             auto command = compileCommandsForFile.front().CommandLine;
-            std::replace(command.begin(), command.end(), *lower, it);
+            std::replace(command.begin(), command.end(), fileForCommands, it);
             if (llvm::StringRef(file).endswith(".qdoc")) {
                 command.insert(command.begin() + 1, "-xc++");
                 // include the header for this .qdoc file
