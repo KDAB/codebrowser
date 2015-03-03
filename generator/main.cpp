@@ -427,7 +427,7 @@ int main(int argc, const char **argv) {
             auto lower = std::lower_bound(AllFiles.cbegin(), AllFiles.cend(), file);
             if (lower == AllFiles.cend())
                 lower = AllFiles.cbegin();
-            auto compileCommandsForFile = Compilations->getCompileCommands(*lower);
+            compileCommandsForFile = Compilations->getCompileCommands(*lower);
             fileForCommands = *lower;
         }
 
