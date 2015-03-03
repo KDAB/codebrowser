@@ -28,7 +28,7 @@
 
 #include <clang/Frontend/CompilerInstance.h>
 #include <llvm/Support/Path.h>
-
+#include <llvm/ADT/StringSwitch.h>
 
 #include <iostream>
 #include <fstream>
