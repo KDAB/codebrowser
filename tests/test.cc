@@ -304,16 +304,34 @@ namespace rel_ops = std::rel_ops;
 
 
 extern int value;
+struct Val { int v;
+    void operator+=(const Val &);
+} valval;
+const Val operator+(const Val&, const Val&);
 struct Uses {
     int hello;
+    Val hello2;
     Uses(int i) : hello(i) {}
     int r() {
         auto v = value;
         v = value;
         v = Uses{value}.hello;
+        Val vvv = valval;
+        vvv = valval;
+        vvv = hello2;
         return value;
     }
     int w() {
+        Val q;
+        valval = q + q;
+        q.v = 4;
+        (&q)->v = 45 + 45;
+        hello = 4;
+        hello2 = Val() + Val();
+        Uses *u = this;
+        u->hello2 = Val() + Val();
+        (*u).hello2 = Val() + Val();
+        hello2 += Val() + Val();
         value = 2;
         value += 2;
         value++;
@@ -321,8 +339,11 @@ struct Uses {
         return 12;
     }
     int &a() {
+        auto *val = &valval;
         auto &v1 = value;
         auto v2 = &value;
+        auto &xx = (&valval)->v;
+        auto *hi = &hello;
         return value;
     }
 };

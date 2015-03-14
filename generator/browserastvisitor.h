@@ -331,12 +331,8 @@ private:
                 if (o == clang::OO_Equal || (o >= clang::OO_PlusEqual && o <= clang::OO_PipeEqual)
                         || (o >= clang::OO_LessLessEqual && o <= clang::OO_GreaterGreaterEqual)
                         || (o >= clang::OO_PlusPlus && o <= clang::OO_MinusMinus) ) {
-                    if (op->getNumArgs() >= 1 && op->getArg(0) == previous && op->getDirectCallee()
-                            && op->getDirectCallee()->getNumParams() >= 1) {
-                        auto t = op->getDirectCallee()->getParamDecl(0)->getType();
-                        if (t->isReferenceType() && !t.getNonReferenceType().isConstQualified()) {
-                            return Annotator::Use_Write;
-                        }
+                    if (op->getNumArgs() >= 1 && op->getArg(0) == previous) {
+                        return Annotator::Use_Write;
                     }
                 }
             }
