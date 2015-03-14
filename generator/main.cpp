@@ -331,6 +331,8 @@ int main(int argc, const char **argv) {
          // A directory was passed, process all the files in that directory
         llvm::SmallString<128> DirName;
         llvm::sys::path::native(Sources.front(), DirName);
+        while (DirName.endswith("/"))
+            DirName.pop_back();
         std::error_code EC;
         for (llvm::sys::fs::recursive_directory_iterator it(DirName.str(), EC), DirEnd;
                 it != DirEnd && !EC; it.increment(EC)) {
