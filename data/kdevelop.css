@@ -5,9 +5,9 @@ body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-fami
 a { color: #037; border: none; text-decoration: none }
 a:hover{  text-decoration: underline }
 
-div#content {position:fixed; overflow:auto; top:5.1em; bottom:0; left:0; right:0;  -webkit-overflow-scrolling: touch;}
-div#header { position:fixed; left:0; right:0; }
-div#header+hr {position:fixed; top:5em; left:0; right:0}
+div#header { position:fixed; top:0; left:0; right:0; background-color: #ffffff; z-index:2; height: 5.2em; overflow: clip; }
+div#header+hr {position:fixed; top:5.2em; left:0; right:0; background-color: #ffffff; z-index:2}
+div#content { margin-top: 5.3em;}
 
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: monospace; }
@@ -23,6 +23,7 @@ p#breadcrumb { padding:0; margin: 0 1ex 2ex 1ex;   }
 hr { margin: 0; }
 p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0 1ex 0 0  }
 a.logo { float:right }
+
 
 #tooltip {
     position:absolute;

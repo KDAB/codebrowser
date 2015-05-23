@@ -347,6 +347,7 @@ $(function () {
     } else if (anchor_id != "") {
         highlight_items(anchor_id);
     }
+    scrollToAnchor(anchor_id, false);
     var skipHighlightTimerId = null;
     skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600)
 
@@ -365,17 +366,9 @@ $(function () {
                 var anchor = href.substr(hashPos+1);
                 var url = href.substr(0, hashPos);
                 if (url == "" || url === location.origin + location.pathname) {
-                    var target = $("#" + escape_selector(anchor));
-                    if (target.length == 1) {
-                        //Smooth scrolling and let back go to the last location
-                        var contentTop = $("#content").scrollTop();
-                        history.replaceState({contentTop: contentTop, bodyTop: $("body").scrollTop() }, undefined)
-                        history.pushState({contentTop: target.position().top + contentTop, bodyTop: target.offset().top}, undefined, href);
-                        $("#content").animate({scrollTop:target.position().top + contentTop }, 300);
-                        $("html,body").animate({scrollTop:target.offset().top  }, 300);
-                        e.preventDefault();
-                        return false;
-                    }
+                    scrollToAnchor(anchor, true)
+                    e.preventDefault();
+                    return false;
                 }
             }
         }
@@ -403,7 +396,9 @@ $(function () {
             var type ="", content ="";
             var tt = tooltip.tooltip;
             var showUseFunc = function(e) {
-                tt.find(".uses").toggle(); return false;
+                e.stopPropagation();
+                tt.find(".uses").toggle();
+                return false;
             };
 
             if (elem.hasClass("local")) {
@@ -559,7 +554,7 @@ $(function () {
                     content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/><span class='uses_placeholder'></span>"
                 }
                 var useShown = false;
-                showUseFunc = function() {
+                showUseFunc = function(e) {
                     if (useShown) {
                         tt.find(".uses").toggle();
                         return false;
@@ -632,9 +627,12 @@ $(function () {
             tt.append($("<span />").html(content));
             tooltip.ref = ref;
             tt.find(".uses").hide();
-            tt.find(".showuse").mouseup(showUseFunc);
+            tt.find(".showuse").mouseup(showUseFunc).click(function() { return false; });
             tt.find(".expandcomment").mouseup(function(e) {
-                $(this).toggle(); $(this).next().toggle();return false;});
+                $(this).toggle();
+                $(this).next().toggle();
+                return false;
+            }).click(function() { return false; });
         }
 
         if (!this.title_) {
@@ -933,8 +931,10 @@ $(function () {
 /*-------------------------------------------------------------------------------------*/
 
     // Find the current context while scrolling
-    $("#content").scroll(function() {
-        var toppos = $("#content").offset().top;
+    window.onscroll = function() {
+        var contentTop = $("#content").offset().top;
+        var toppos = window.scrollY + contentTop;
+        console.log("yo",$("#content").offset().top, toppos )
         var context = undefined;
         $('.def').each(function() {
             var t = $(this);
@@ -953,7 +953,7 @@ $(function () {
         }
 
         $("span#breadcrumb_symbol").text(c);
-    });
+    };
 
 /*-------------------------------------------------------------------------------------*/
 
@@ -1010,14 +1010,30 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
+    // fix scrolling to an anchor because of the header
+    // isLink tells us if we are here because a link was cliked
+    function scrollToAnchor(anchor, isLink) {
+        var target = $("#" + escape_selector(anchor));
+        if (target.length) {
+            //Smooth scrolling and let back go to the last location
+            var contentTop = $("#content").offset().top;
+
+            if (isLink) {
+            //   history.replaceState({contentTop: contentTop, bodyTop: $("body").scrollTop() }, undefined)
+            history.pushState({bodyTop: target.offset().top - contentTop},
+                              document.title + "**" + anchor,
+                              window.location.pathname + "#" + anchor);
+            }
+            //     $("#content").animate({scrollTop:target.position().top + contentTop }, 300);
+            $("html,body").animate({scrollTop:target.offset().top - contentTop  }, isLink ? 300 : 1);
+        }
+    }
+
     window.onpopstate = function (e) {
         if (!e.state)
             return;
         if (e.state.bodyTop > 0) {
-            $("html,body").animate({scrollTop: e.state.bodyTop  }, 300);
-        }
-        if (e.state.contentTop > 0) {
-            $("#content").animate({scrollTop: e.state.contentTop }, 300);
+            $("html,body").animate({scrollTop: e.state.bodyTop});
         }
     }
 
