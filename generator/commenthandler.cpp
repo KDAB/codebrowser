@@ -32,6 +32,7 @@
 #include <clang/Basic/Version.h>
 #include <clang/Sema/Sema.h>
 #include <clang/Sema/Lookup.h>
+#include <clang/Basic/SourceManager.h>
 
 #include <iostream>
 
@@ -233,7 +234,8 @@ private:
             } else {
                 attr = "class=\"" % className % "\" data-ref=\"" % ref % "\"";
             }
-            generator.addTag("span", attr, range.getBegin().getRawEncoding(), len);
+            auto offset = annotator.getSourceMgr().getFileOffset(range.getBegin());
+            generator.addTag("span", attr, offset, len);
         }
     }
 };
@@ -263,7 +265,7 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
         traits.registerBlockCommand("deprecated"); // avoid typo correction leading to crash.
 #endif
         clang::comments::Lexer lexer(PP.getPreprocessorAllocator(), PP.getDiagnostics(), traits,
-                                     clang::SourceLocation::getFromRawEncoding(commentStart), bufferStart + commentStart, bufferStart + commentStart + len);
+                                     commentLoc, bufferStart + commentStart, bufferStart + commentStart + len);
         clang::comments::Sema sema(PP.getPreprocessorAllocator(), PP.getSourceManager(), PP.getDiagnostics(), traits, &PP);
         clang::comments::Parser parser(lexer, sema, PP.getPreprocessorAllocator(), PP.getSourceManager(),
                                        PP.getDiagnostics(), traits);
