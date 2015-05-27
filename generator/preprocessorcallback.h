@@ -39,7 +39,13 @@ class PreprocessorCallback  : public clang::PPCallbacks {
 public:
     PreprocessorCallback(Annotator &fm, clang::Preprocessor &PP) : annotator(fm), PP(PP) {}
 
-    void MacroExpands(const clang::Token& MacroNameTok, const clang::MacroDirective* MD,
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
+    using MyMacroDefinition = const clang::MacroDefinition &;
+#else
+    using MyMacroDefinition = const clang::MacroDirective*;
+#endif
+
+    void MacroExpands(const clang::Token& MacroNameTok, MyMacroDefinition MD,
                       clang::SourceRange Range, const clang::MacroArgs *Args) override;
 
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
@@ -53,9 +59,9 @@ public:
 #if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
     virtual void If(clang::SourceLocation Loc, clang::SourceRange ConditionRange, ConditionValueKind ConditionValue) override
     { HandlePPCond(Loc, Loc); }
-    virtual void Ifndef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
+    virtual void Ifndef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, MyMacroDefinition MD) override
     { HandlePPCond(Loc, Loc); }
-    virtual void Ifdef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, const clang::MacroDirective* MD) override
+    virtual void Ifdef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, MyMacroDefinition MD) override
     { HandlePPCond(Loc, Loc); }
     virtual void Elif(clang::SourceLocation Loc, clang::SourceRange ConditionRange, ConditionValueKind ConditionValue, clang::SourceLocation IfLoc) override {
         ElifMapping[Loc] = IfLoc;

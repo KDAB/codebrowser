@@ -30,14 +30,17 @@
 
 
 void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
-                                        const clang::MacroDirective *MD,
+                                        MyMacroDefinition MD,
                                         clang::SourceRange Range, const clang::MacroArgs *)
 {
     if (disabled)
         return;
 
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 7
+    auto *MI = MD.getMacroInfo();
+#else
     auto *MI = MD->getMacroInfo();
-
+#endif
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())
         return;
