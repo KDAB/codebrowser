@@ -771,12 +771,14 @@ $(function () {
             return false;
         }
     }; };
-    $(".code").on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterRef) },
+    var code = $(".code");
+    code.on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterRef) },
                   "[data-ref]");
-    $(".code").on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterMacro) },
+    code.on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterMacro) },
                   ".macro");
-    $(".code").on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
+    code.on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
                   "[data-ppcond]");
+    code.on({"click":onMouseClick }, "th a")
 
     tooltip.tooltip.on({"mouseup": onMouseClick}, "a")
 
