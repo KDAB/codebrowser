@@ -12,7 +12,8 @@ div#content { margin-top: 5.3em;}
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: DejaVu sans Mono , monospace; }
 .code th { /*width:2.5em;*/ padding-right:1ex; background-color:#eeeeee ;
-            text-align:right; color:black; font-weight:normal   }
+            text-align:right; color:black; font-weight:normal;
+            -moz-user-select: none; }
 .code td { padding-left: 1ex; white-space: pre }
 
 #footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
