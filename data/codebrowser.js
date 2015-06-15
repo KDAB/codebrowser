@@ -354,7 +354,7 @@ $(function () {
 /*-------------------------------------------------------------------------------------*/
     var onMouseLeave = function(e) { tooltip.hideAfterDelay(e); }
     var onMouseClick = function(e) {
-        if (e.ctrlKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
+        if (e.ctrlKey || e.altKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
 
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
@@ -936,7 +936,6 @@ $(function () {
     window.onscroll = function() {
         var contentTop = $("#content").offset().top;
         var toppos = window.scrollY + contentTop;
-        console.log("yo",$("#content").offset().top, toppos )
         var context = undefined;
         $('.def').each(function() {
             var t = $(this);
