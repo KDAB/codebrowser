@@ -348,3 +348,23 @@ struct Uses {
     }
 };
 
+namespace SUPERlongNAMeSpace12345679814563efrqslkdjfq__hsdqsfsdqsdfqdsfqsdfqsdfqsdfgsgfhfjhsgs {
+
+template<typename T> struct Long123456789123456789123456789FIFI {
+    enum ValSUPERLdfqsdfqsdfqsdfqsdfqdfqsdfqsdfqsdfqsdfqsdfqsdf { Plop = sizeof(T) };
+
+    template <typename T2> std::vector<T2> FuncLong12345678912345678912345678 (const T2&) {
+        return {};
+    }
+
+    ValSUPERLdfqsdfqsdfqsdfqsdfqdfqsdfqsdfqsdfqsdfqsdfqsdf dsqsdqsdfqsdfkjlqsdflkqhsdflkqhsdflkqjhsdflkqjhsdflqkjhsflkqsjdlk;
+};
+
+int testLong() {
+    Long123456789123456789123456789FIFI<Long123456789123456789123456789FIFI<std::vector<Long123456789123456789123456789FIFI<std::string>>>> ff;
+    ff.FuncLong12345678912345678912345678( &Long123456789123456789123456789FIFI<std::string>::FuncLong12345678912345678912345678<decltype(ff)> );
+
+    ff.FuncLong12345678912345678912345678(ff.dsqsdqsdfqsdfkjlqsdflkqhsdflkqhsdflkqjhsdflkqjhsdflqkjhsflkqsjdlk);
+}
+
+}

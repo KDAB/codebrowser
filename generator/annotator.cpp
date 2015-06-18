@@ -778,28 +778,37 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
 
         std::string qualName = decl->getQualifiedNameAsString();
         if ((llvm::isa<clang::FunctionDecl>(decl) || llvm::isa<clang::VarDecl>(decl))
-            && mangle->shouldMangleDeclName(decl)
-            //workaround crash in clang while trying to mangle some buitins types
-            && !llvm::StringRef(qualName).startswith("__")) {
-                llvm::raw_string_ostream s(cached.first);
-                if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
-                    mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete, s);
-                } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
-                    mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete, s);
-                } else {
-                    mangle->mangleName(decl, s);
-                }
+                && mangle->shouldMangleDeclName(decl)
+                //workaround crash in clang while trying to mangle some buitins types
+                && !llvm::StringRef(qualName).startswith("__")) {
+            llvm::raw_string_ostream s(cached.first);
+            if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
+                mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete, s);
+            } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
+                mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete, s);
+            } else {
+                mangle->mangleName(decl, s);
+            }
         } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
             cached.first = getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
         } else {
             cached.first = qualName;
-            std::remove(cached.first.begin(), cached.first.end(), ' ');
+            cached.first.erase(std::remove(cached.first.begin(), cached.first.end(), ' '),
+                               cached.first.end());
             // replace < and > because alse jquery can't match them.
             std::replace(cached.first.begin(), cached.first.end(), '<' , '{');
             std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
         }
         llvm::SmallString<40> buffer;
         cached.second = Generator::escapeAttr(qualName, buffer);
+
+        if (cached.first.size() > 170) {
+            // If the name is too big, turncate it and add the hash at the end.
+            auto hash = std::hash<std::string>()(cached.first) & 0x00ffffff;
+            cached.first.resize(150);
+            buffer.clear();
+            cached.first += llvm::Twine(hash).toStringRef(buffer);
+        }
     }
     return cached;
 }
