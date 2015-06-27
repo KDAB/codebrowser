@@ -612,6 +612,10 @@ $(function () {
                     uses = undefined; // free memory
                     return false;
                 }
+                var offset = res.find("offset");
+                if (offset.length === 1) {
+                    content += "<br/>Offset: " + escape_html(offset.text() >> 3) + " bytes (" + offset.text() + ")";
+                }
             }
 
             tt.empty();
