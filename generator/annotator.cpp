@@ -277,7 +277,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
         const ProjectInfo &projectinfo = *project_it;
         footer %= "Generated on <em>" % std::string(buf) % "</em>"
-            % " from project " % projectinfo.name % "</a>";
+            % " from project " % projectinfo.name;
         if (!projectinfo.revision.empty())
             footer %= " revision <em>" % projectinfo.revision % "</em>";
 

@@ -26,10 +26,13 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <ctime>
 
 #include "../global.h"
 
 const char *data_url = nullptr;
+
+std::map<std::string, std::string, std::greater<std::string> > project_map;
 
 struct FolderInfo {
 //    std::string name;
@@ -101,9 +104,24 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
                    << "</a></td></tr>\n";
         }
     }
+
+    char timebuf[80];
+    auto now = std::time(0);
+    auto tm = std::localtime(&now);
+    std::strftime(timebuf, sizeof(timebuf), "%Y-%b-%d", tm);
+
     myfile << "</table>"
             "<hr/><p id='footer'>\n"
-            "Powered by <a href='http://woboq.com'><img alt='Woboq' src='http://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='http://code.woboq.org'>Code Browser</a> "
+            "Generated on <em>" << timebuf << "</em>";
+
+    auto it = project_map.lower_bound(path);
+    if (it != project_map.end() && std::equal(it->first.begin(), it->first.end(), path.c_str())) {
+        myfile << " from project " << it->first;
+        if (!it->second.empty()) {
+            myfile <<" revision <em>" << it->second << "</em>";
+        }
+    }
+    myfile << "<br />Powered by <a href='http://woboq.com'><img alt='Woboq' src='http://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='http://code.woboq.org'>Code Browser</a> "
             CODEBROWSER_VERSION "\n</p>\n</body></html>\n";
 }
 
@@ -121,6 +139,20 @@ int main(int argc, char **argv) {
                 i++;
                 if (i < argc)
                   data_url = argv[i];
+            } else if (arg=="-p") {
+                i++;
+                if (i < argc) {
+                    std::string s = argv[i];
+                    auto colonPos = s.find(':');
+                    if (colonPos >= s.size()) {
+                        std::cerr << "fail to parse project option : " << s << std::endl;
+                        continue;
+                    }
+                    auto secondColonPos = s.find(':', colonPos+1);
+                    if (secondColonPos < s.size()) {
+                        project_map[s.substr(0, colonPos)] = s.substr(secondColonPos + 1);
+                    }
+                }
             }
         } else {
             if (root.empty()) {
@@ -133,7 +165,7 @@ int main(int argc, char **argv) {
     }
 
     if (root.empty()) {
-        std::cerr << "Usage: " << argv[0] << " <path> -d data_url" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <path> [-d data_url] [-p project_definition]" << std::endl;
         return -1;
     }
     std::ifstream fileIndex(root + "/" + "fileIndex");
