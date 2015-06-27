@@ -786,6 +786,8 @@ $(function () {
 
     tooltip.tooltip.on({"mouseup": onMouseClick}, "a")
 
+    $("#header").on({"click":onMouseClick }, "a");
+
     $(document).bind( "touchstart", function() { isTouchEvent = true; } )
 
 /*-------------------------------------------------------------------------------------*/
@@ -804,7 +806,7 @@ $(function () {
         bread+= "'>" + paths[i] + "</a>/";
     }
     bread += paths[paths.length -1];
-    bread += "<br/><span id='breadcrumb_symbol' </p>";
+    bread += "<br/><span id='breadcrumb_symbol'/></p>";
     $("#header").append(bread);
 
 
@@ -949,15 +951,20 @@ $(function () {
             context = t;
         });
         var c = "";
+        var ref = "";
         if (context !== undefined) {
           if (context.hasClass("decl")) {
               c = context[0].title_;
               if (c === undefined)
                   c = context.attr("title");
+              ref = context.attr("id");
           }
         }
-
-        $("span#breadcrumb_symbol").text(c);
+        if (ref == "") {
+            $("span#breadcrumb_symbol").text(c);
+        } else {
+            $("span#breadcrumb_symbol").html($("<a class='link' href='#"+ ref +"' />").text(c));
+        }
     };
 
 /*-------------------------------------------------------------------------------------*/
