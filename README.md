@@ -1,11 +1,16 @@
 This is the generator for the woboq code browser.
 
-See http://code.woboq.org for an example
-See http://woboq.com/codebrowser.html for license information
-See also the announcement http://woboq.com/blog/codebrowser-introduction.html
+See http://code.woboq.org for an example.
 
-Browse the source code of the generator using the code browser itself:
+To browse the source code of the generator using the code browser itself:
 http://code.woboq.org/userspace/codebrowser/
+
+Main page: http://woboq.com/codebrowser.html
+
+The announcement blog: http://woboq.com/blog/codebrowser-introduction.html
+
+The feature tour http://woboq.com/codebrowser-features.html
+
 
 Introduction and Design
 =======================
@@ -43,7 +48,7 @@ Compiling the generator on Linux
 ================================
 
 You need:
- - The clang libraries version 3.3 or later
+ - The clang libraries version 3.4 or later
 
 Example:
 ```bash
