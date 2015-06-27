@@ -792,23 +792,24 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
-    //bread crumbs.
-    var bread = "<p id='breadcrumb'>";
-    var paths = file.split('/');
-    for (var i = 0; i < paths.length - 1; ++i) {
-        bread+="<a href='";
-        if (i === paths.length - 2) bread += "./";
-        else {
-            for (var ff = 2; ff < paths.length - i; ++ff) {
-                bread += "../";
+    //bread crumbs. (compatibility with codebrowser 1.7 and before
+    if ($("h1#breadcrumb").length == 0) {
+        var bread = "<p id='breadcrumb'>";
+        var paths = file.split('/');
+        for (var i = 0; i < paths.length - 1; ++i) {
+            bread+="<a href='";
+            if (i === paths.length - 2) bread += "./";
+            else {
+                for (var ff = 2; ff < paths.length - i; ++ff) {
+                    bread += "../";
+                }
             }
+            bread+= "'>" + paths[i] + "</a>/";
         }
-        bread+= "'>" + paths[i] + "</a>/";
+        bread += paths[paths.length -1];
+        bread += "<br/><span id='breadcrumb_symbol'/></p>";
+        $("#header").append(bread);
     }
-    bread += paths[paths.length -1];
-    bread += "<br/><span id='breadcrumb_symbol'/></p>";
-    $("#header").append(bread);
-
 
 /*-------------------------------------------------------------------------------------*/
 

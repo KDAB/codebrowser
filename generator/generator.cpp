@@ -90,8 +90,9 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
     int count = std::count(filename.begin(), filename.end(), '/');
     std::string root_path = "..";
-    for (int i = 0; i < count - 1; i++)
+    for (int i = 0; i < count - 1; i++) {
         root_path += "/..";
+    }
 
     if (dataPath.size() && dataPath[0] == '.')
         dataPath = root_path % "/" % dataPath;
@@ -117,7 +118,25 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "</script>\n"
               "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
-    myfile << "</head>\n<body><div id='header'> </div><hr/><div id='content'>";
+    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Source code of </span>";
+    {
+        int i = 0;
+        llvm::StringRef tail = filename;
+        while (i < count - 1) {
+            myfile << "<a href='..";
+            for (int f = 0; f < count - i - 2; ++f) {
+                myfile << "/..";
+            }
+            auto split = tail.split('/');
+            myfile << "'>" << split.first.str() << "</a>/";
+
+            tail = split.second;
+            ++i;
+        }
+        auto split = tail.split('/');
+        myfile << "<a href='./'>" << split.first.str() << "</a>/" << split.second.str();
+    }
+    myfile << "</h1></div>\n<hr/><div id='content'>";
 
     if (!warningMessage.empty()) {
         myfile << "<p class=\"warnmsg\">";
