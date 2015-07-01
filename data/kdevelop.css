@@ -21,7 +21,6 @@ div#content { margin-top: 5.3em;}
 img { border: none; }
 input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
 #breadcrumb { padding:0; margin: 0 1ex 2ex 1ex; font-size:inherit; font-weight: normal }
-h1#breadcrumb span { display:none }
 hr { margin: 0; }
 p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0 1ex 0 0  }
 a.logo { float:right }
