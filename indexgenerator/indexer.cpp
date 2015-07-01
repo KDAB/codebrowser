@@ -153,6 +153,9 @@ int main(int argc, char **argv) {
                         project_map[s.substr(0, colonPos)] = s.substr(secondColonPos + 1);
                     }
                 }
+            } else if (arg=="-e") {
+                i++;
+                // ignore -e XXX  for compatibility with the generator project definitions
             }
         } else {
             if (root.empty()) {
