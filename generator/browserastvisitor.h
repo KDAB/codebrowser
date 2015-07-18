@@ -272,6 +272,15 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
                     else
                         expr_stack.topType = Annotator::Use_Read; // anything else is considered as read;
                 }
+            } else if (auto sw = llvm::dyn_cast_or_null<clang::SwitchStmt>(s)) {
+                expr_stack.topExpr = sw->getCond();
+                expr_stack.topType = Annotator::Use_Read;
+            } else if (auto d = llvm::dyn_cast_or_null<clang::DoStmt>(s)) {
+                expr_stack.topExpr = d->getCond();
+                expr_stack.topType = Annotator::Use_Read;
+            } else if (auto w = llvm::dyn_cast_or_null<clang::WhileStmt>(s)) {
+                expr_stack.topExpr = w->getCond();
+                expr_stack.topType = Annotator::Use_Read;
             }
         }
         auto r = Base::TraverseStmt(s);
@@ -281,6 +290,12 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             std::swap(old_stack, expr_stack);
         }
         return r;
+    }
+
+    bool shouldUseDataRecursionFor(clang::Stmt *S) {
+        // We need to disable this data recursion feature otherwise this break the detection
+        // of parents (expr_stack).  Especially for the CaseStmt
+        return false;
     }
 
     bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo) {

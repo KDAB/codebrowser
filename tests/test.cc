@@ -328,6 +328,7 @@ struct Uses {
         Val vvv = valval;
         vvv = valval;
         vvv = hello2;
+        while(value) { }
         return value;
     }
     int w() {
@@ -345,6 +346,7 @@ struct Uses {
         value += 2;
         value++;
         ++value;
+        switch(0) { case 0: value = 1; }
         return 12;
     }
     int &a() {
