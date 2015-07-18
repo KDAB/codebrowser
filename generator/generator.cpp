@@ -104,7 +104,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "<link rel=\"alternate stylesheet\" href=\"" << dataPath << "/qtcreator.css\" title=\"QtCreator\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery.min.js\"></script>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery-ui.min.js\"></script>\n";
-    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"';";
+    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"'; var data_path = '"<< dataPath <<"';";
     if (!projects.empty()) {
         myfile << "var projects = {";
         bool first = true;

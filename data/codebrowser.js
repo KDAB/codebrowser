@@ -19,9 +19,14 @@
  * purchasing a commercial licence.
  ****************************************************************************/
 
+if (!data_path) {
+    // Previous version of the generator (1.7 and before) did not have data_path defined
+    var data_path = root_path + "/../data";
+}
+
 //Styles:
 var setStyle = "";
-document.write("<link rel='alternate stylesheet' title='Solarized' href='" +root_path + "/../data/solarized.css' />"); //FIXME: data url
+document.write("<link rel='alternate stylesheet' title='Solarized' href='" + data_path + "/solarized.css' />");
 function switchStylestyle(styleName) {
     setStyle = styleName;
     $('link[rel*=style][title]').each(function(i) {
