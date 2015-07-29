@@ -144,3 +144,10 @@ int ndbug(TestNS::C *c) {
 }
 
 
+class QQQQQ {
+public:
+    void operator+(int) {}
+};
+void dontcrash() {
+    QQQQQ q; q + 4;
+}

@@ -248,15 +248,18 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 void QtSupport::visitCallExpr(clang::CallExpr* e)
 {
     clang::CXXMethodDecl *methodDecl = clang::dyn_cast_or_null<clang::CXXMethodDecl>(e->getCalleeDecl());
-    if (!methodDecl || !methodDecl->getParent())
+    if (!methodDecl || !methodDecl->getDeclName().isIdentifier() || !methodDecl->getParent())
+        return;
+    if (!methodDecl->getParent()->getDeclName().isIdentifier())
         return;
 
-    if (!methodDecl->getParent()->getName().startswith("Q"))
+    auto parentName = methodDecl->getParent()->getName();
+
+    if (!parentName.startswith("Q"))
         return; // only Qt classes
 
-    if (methodDecl->getParent()->getName() == "QObject"
+    if (parentName == "QObject"
             && (methodDecl->getName() == "connect" || methodDecl->getName() == "disconnect")) {
-
         // We have a call to QObject::connect or disconnect
         if (methodDecl->isStatic()) {
             if (e->getNumArgs() >= 4) {
@@ -270,22 +273,22 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
             }
         }
     }
-    if (methodDecl->getParent()->getName() == "QTimer" && methodDecl->getName() == "singleShot") {
+    if (parentName == "QTimer" && methodDecl->getName() == "singleShot") {
         if (e->getNumArgs() >= 3) {
             handleSignalOrSlot(e->getArg(1), e->getArg(2));
         }
     }
-    if (methodDecl->getParent()->getName() == "QHostInfo" && methodDecl->getName() == "lookupHost") {
+    if (parentName == "QHostInfo" && methodDecl->getName() == "lookupHost") {
         if (e->getNumArgs() >= 3) {
             handleSignalOrSlot(e->getArg(1), e->getArg(2));
         }
     }
-    if (methodDecl->getParent()->getName() == "QNetworkAccessCache" && methodDecl->getName() == "requestEntry") {
+    if (parentName == "QNetworkAccessCache" && methodDecl->getName() == "requestEntry") {
         if (e->getNumArgs() >= 3) {
             handleSignalOrSlot(e->getArg(1), e->getArg(2));
         }
     }
-    if (methodDecl->getParent()->getName() == "QDBusAbstractInterface" && methodDecl->getName() == "callWithCallback") {
+    if (parentName == "QDBusAbstractInterface" && methodDecl->getName() == "callWithCallback") {
         if (e->getNumArgs() == 4) {
             handleSignalOrSlot(e->getArg(2), e->getArg(3));
         } else if (e->getNumArgs() == 5) {
@@ -294,27 +297,27 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
         }
     }
     if (methodDecl->getName() == "open" && (
-            methodDecl->getParent()->getName() == "QFileDialog" ||
-            methodDecl->getParent()->getName() == "QColorDialog" ||
-            methodDecl->getParent()->getName() == "QFontDialog" ||
-            methodDecl->getParent()->getName() == "QMessageBox" ||
-            methodDecl->getParent()->getName() == "QInputDialog" ||
-            methodDecl->getParent()->getName() == "QPrintDialog" ||
-            methodDecl->getParent()->getName() == "QPageSetupDialog" ||
-            methodDecl->getParent()->getName() == "QPrintPreviewDialog" ||
-            methodDecl->getParent()->getName() == "QProgressDialog")) {
+            parentName == "QFileDialog" ||
+            parentName == "QColorDialog" ||
+            parentName == "QFontDialog" ||
+            parentName == "QMessageBox" ||
+            parentName == "QInputDialog" ||
+            parentName == "QPrintDialog" ||
+            parentName == "QPageSetupDialog" ||
+            parentName == "QPrintPreviewDialog" ||
+            parentName == "QProgressDialog")) {
         if (e->getNumArgs() == 2) {
             handleSignalOrSlot(e->getArg(0), e->getArg(1));
         }
     }
-    if (methodDecl->getParent()->getName() == "QMenu" && methodDecl->getName() == "addAction") {
+    if (parentName == "QMenu" && methodDecl->getName() == "addAction") {
         if (methodDecl->getNumParams() == 4 && e->getNumArgs() >= 3) {
             handleSignalOrSlot(e->getArg(1), e->getArg(2));
         } else if (methodDecl->getNumParams() == 5 && e->getNumArgs() >= 4) {
             handleSignalOrSlot(e->getArg(2), e->getArg(3));
         }
     }
-    if (methodDecl->getParent()->getName() == "QToolbar" && methodDecl->getName() == "addAction") {
+    if (parentName == "QToolbar" && methodDecl->getName() == "addAction") {
         if (e->getNumArgs() == 3) {
             handleSignalOrSlot(e->getArg(1), e->getArg(2));
         } else if (e->getNumArgs() == 4) {
