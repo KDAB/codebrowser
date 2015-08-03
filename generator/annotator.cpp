@@ -298,7 +298,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
     // (There might not be when the comment is in the .cpp file (for \class))
     for (auto it : commentHandler.docs) references[it.first];
 
-    create_directories(llvm::Twine(projectManager.outputPrefix, "/refs"));
+    create_directories(llvm::Twine(projectManager.outputPrefix, "/refs/_M"));
     for (auto it : references) {
         if (llvm::StringRef(it.first).startswith("__builtin"))
             continue;
@@ -461,19 +461,35 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 }
 
 
-std::string Annotator::pathTo(clang::FileID From, clang::FileID To)
+std::string Annotator::pathTo(clang::FileID From, clang::FileID To, std::string *dataProj)
 {
     std::string &result = pathTo_cache[{From.getHashValue(), To.getHashValue()}];
-    if (!result.empty())
+    if (!result.empty()) {
+        if (dataProj) {
+            auto pr_it = project_cache.find(To);
+            if (pr_it != project_cache.end()) {
+                if (pr_it->second->type == ProjectInfo::External) {
+                    *dataProj = pr_it->second->name;
+                }
+            }
+        }
         return result;
+    }
+
     std::string fromFN = htmlNameForFile(From);
     std::string toFN = htmlNameForFile(To);
 
     auto pr_it =  project_cache.find(To);
     if (pr_it == project_cache.end())
-        return result = {};
-    if (pr_it->second->type == ProjectInfo::External)
+         return result = {};
+
+    if (pr_it->second->type == ProjectInfo::External) {
+        generator(From).addProject(pr_it->second->name, pr_it->second->external_root_url);
+        if (dataProj) {
+            *dataProj = pr_it->second->name % "\" ";
+        }
         return result = pr_it->second->external_root_url % "/" % toFN % ".html";
+    }
 
     return result = naive_uncomplete(llvm::sys::path::parent_path(fromFN), toFN) + ".html";
 }
@@ -662,13 +678,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         clang::SourceLocation loc = canonDecl->getLocation();
         clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
         if (declFID != FID) {
-            auto pr_it = project_cache.find(declFID);
-            if (pr_it != project_cache.end()) {
-                if (pr_it->second->type == ProjectInfo::External) {
-                    tags %= "data-proj=\"" % pr_it->second->name % "\" ";
-                    generator(FID).addProject(pr_it->second->name, pr_it->second->external_root_url);
-                }
-                link = pathTo(FID, declFID);
+            std::string dataProj;
+            link = pathTo(FID, declFID, &dataProj);
+
+            if (!dataProj.empty()) {
+                tags %= "data-proj=\"" % dataProj % "\" ";
             }
 
             if (declType != Annotator::Use) {
@@ -729,6 +743,15 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
     // Register the reversed relation.
     clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
     references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
+}
+
+void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refLoc, DeclType declType)
+{
+    references[ref].push_back( std::make_tuple(declType, refLoc, std::string()) );
+    if (declType == Annotator::Declaration) {
+        commentHandler.decl_offsets.insert({ refLoc, {ref, true} });
+
+    }
 }
 
 

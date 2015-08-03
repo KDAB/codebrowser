@@ -80,6 +80,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0 }
 .code .decl { color: #205; font-weight:bold; }
 .code .macro { background-color:#efe; color: inherit; }
 .code .macro:hover { background-color:#BEFF9B; }
+.code .macro.highlight { background-color:#BEFF9B !important; }
 
 .code .col0 {color:#2400FF} .code .col1 {color:#9C00FF} .code .col2 {color:#D1008A} .code .col3 {color:#FF0000} .code .col4 {color:#FF4F00}
 .code .col5 {color:#F69D00} .code .col6 {color:#72D200} .code .col7 {color:#00F718} .code .col8 {color:#00BBCD} .code .col9 {color:#0053FF}

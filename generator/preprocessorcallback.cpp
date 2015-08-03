@@ -115,23 +115,54 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     PP.setDiagnostics(*OldDiags);
     disabled = false;
 
+    std::string ref = llvm::Twine("_M/", MacroNameTok.getIdentifierInfo()->getName()).str();
 
     clang::SourceLocation defLoc = MI->getDefinitionLoc();
     clang::FileID defFID = sm.getFileID(defLoc);
     llvm::SmallString<128> expansionBuffer;
     std::string link;
+    std::string dataProj;
     if (defFID != FID) {
-        link = annotator.pathTo(FID, defFID);
+        link = annotator.pathTo(FID, defFID, &dataProj);
         if (link.empty()) {
-            std::string tag = "class=\"macro\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer) % "\"";
+            std::string tag = "class=\"macro\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer)
+                % "\" data-ref=\"" % ref % "\"";
             annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
             return;
         }
+
+        if (!dataProj.empty()) {
+            dataProj = " data-proj=\"" % dataProj % "\"";
+        }
+    }
+
+    if (sm.getMainFileID() != defFID) {
+        annotator.registerMacro(ref, MacroNameTok.getLocation(), Annotator::Use);
     }
 
     std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
-        % "\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer) % "\"";
+        % "\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer)
+        % "\" data-ref=\"" % ref % "\"" % dataProj;
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
+}
+
+void PreprocessorCallback::MacroDefined(const clang::Token& MacroNameTok, const clang::MacroDirective *MD)
+{
+    clang::SourceLocation loc = MacroNameTok.getLocation();
+    if (!loc.isValid() || !loc.isFileID())
+        return;
+
+    clang::SourceManager &sm = annotator.getSourceMgr();
+    clang::FileID FID = sm.getFileID(loc);
+    if (!annotator.shouldProcess(FID))
+        return;
+    if (sm.getMainFileID() == FID)
+        return;
+
+    std::string ref = llvm::Twine("_M/", MacroNameTok.getIdentifierInfo()->getName()).str();
+    annotator.registerMacro(ref, MacroNameTok.getLocation(), Annotator::Declaration);
+
+    annotator.generator(FID).addTag("dfn", "class=\"macro\" id=\""% ref %"\" data-ref=\"" % ref % "\"", sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
 void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok,

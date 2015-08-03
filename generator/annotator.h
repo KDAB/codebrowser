@@ -117,7 +117,12 @@ public:
 
     bool generate(clang::Sema&, bool WasInDatabase);
 
-    std::string pathTo(clang::FileID From, clang::FileID To);
+    /**
+     * Returns a string with the URL to go from one file to an other.
+     * In case the file is in an external project that needs a data-proj tag, the proj
+     * string is set to the project name.
+     **/
+    std::string pathTo(clang::FileID From, clang::FileID To, std::string *proj = nullptr);
     std::string pathTo(clang::FileID From, const clang::FileEntry* To);
 
     // only use typeRef for declarations (or definition)
@@ -131,6 +136,8 @@ public:
         return registerReference(decl, range, tt, useType, {}, currentContext);
     }
     void registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overrided, clang::SourceLocation loc);
+    // same, but for macro
+    void registerMacro(const std::string &ref, clang::SourceLocation refLoc, DeclType declType);
 
     void reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string& clas);
 
@@ -145,4 +152,6 @@ public:
      * (that is, if a tooltip file should be generated for it)
      */
     std::string getVisibleRef(clang::NamedDecl* Decl);
+
+    std::string externalProjectForFile(clang::FileID fid);
 };

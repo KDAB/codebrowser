@@ -48,6 +48,8 @@ public:
     void MacroExpands(const clang::Token& MacroNameTok, MyMacroDefinition MD,
                       clang::SourceRange Range, const clang::MacroArgs *Args) override;
 
+    void MacroDefined(const clang::Token &MacroNameTok, const clang::MacroDirective *MD) override;
+
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
                             bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;

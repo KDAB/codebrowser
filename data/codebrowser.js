@@ -384,6 +384,7 @@ $(function () {
     var onMouseEnterRef = function(e) {
         if (skipHighlightTimerId) return false;
         var elem = $(this);
+        var isMacro = elem.hasClass("macro");
         var ref = elem.attr("data-ref");
         var proj = elem.attr("data-proj");
 
@@ -391,7 +392,6 @@ $(function () {
         if (proj) { proj_root_path = projects[proj]; }
 
         var url = proj_root_path + "/refs/" + ref;
-
 
         if (!$(this).hasClass("highlight")) {
             highlight_items(ref);
@@ -624,10 +624,17 @@ $(function () {
             }
 
             tt.empty();
-            if (id && id != "") {
-                tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
+            if (!isMacro) {
+                if (id && id != "") {
+                    tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
+                } else {
+                    tt.append($("<b />").text(title));
+                }
             } else {
-                tt.append($("<b />").text(title));
+                if (title) {
+                    tt.append($("<code class='code' style='white-space: pre-wrap' />").html(title));
+                    tt.append("<br/>");
+                }
             }
             if (type != "") {
                 tt.append("<br/>");
@@ -647,10 +654,12 @@ $(function () {
         if (!this.title_) {
             this.title_ = elem.attr("title");
             elem.removeAttr("title");
+            if (isMacro && this.title_)
+                this.title_ = identAndHighlightMacro(this.title_);
         }
 
         var tt = this;
-        if (!this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu") && !elem.hasClass("typedef")) {
+        if (ref && !this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu") && !elem.hasClass("typedef")) {
             this.tooltip_loaded = true;
             $.get(url, function(data) {
                 tt.tooltip_data = data;
@@ -658,6 +667,11 @@ $(function () {
                     computeTooltipContent(data, tt.title_, tt.id);
 
                 // attempt to change the href to the definition
+
+                if (isMacro) {
+                    //macro always have the right link already.
+                    return;
+                }
                 var res = $("<data>"+data+"</data>");
                 var def =  res.find("def");
                 if (def.length > 0) {
@@ -699,31 +713,6 @@ $(function () {
 
         return false;
     };
-
-    // Macro tooltip
-    var onMouseEnterMacro = function(e) {
-        if (skipHighlightTimerId) return false;
-        if (highlighted_items) {
-            highlighted_items.removeClass("highlight");
-            highlighted_items = null;
-        }
-        var elem = $(this);
-        if (this.title_ === undefined) {
-            this.title_ = elem.attr("title");
-            elem.removeAttr("title");
-            if (this.title_ === undefined)
-                return;
-            this.title_ = identAndHighlightMacro(this.title_);
-        }
-        var expansion = this.title_;
-
-        function computeMacroTooltipContent() {
-            var tt = tooltip.tooltip;
-            tt.empty();
-            tt.append($("<code class='code' style='white-space: pre-wrap' />").html(expansion));
-        }
-        tooltip.showAfterDelay(elem, computeMacroTooltipContent);
-    }
 
     // #if/#else/... tooltip
     var onMouseEnterPPCond = function(e) {
@@ -782,9 +771,7 @@ $(function () {
     }; };
     var code = $(".code");
     code.on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterRef) },
-                  "[data-ref]");
-    code.on({"mouseenter": onMouseEnterMacro, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterMacro) },
-                  ".macro");
+                  "[data-ref], macro");
     code.on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
                   "[data-ppcond]");
     code.on({"click":onMouseClick }, "th a")
