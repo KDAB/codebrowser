@@ -16,6 +16,10 @@ add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp g
 
 target_link_libraries(codebrowser_generator  ${CLANG_LIBS} ${LLVM_LIBS_CORE} ${LLVM_LDFLAGS})
 
+INSTALL(
+  TARGETS codebrowser_generator
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+  )
 
 ADD_DEFINITIONS("-std=c++11") 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_COMPILE_FLAGS} -std=c++11 -g")
