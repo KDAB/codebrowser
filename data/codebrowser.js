@@ -436,11 +436,13 @@ $(function () {
                         content += "<br/><a href='#"+ l +"'>Declaration</a>";
                     } else {
                         var c;
-                        var context = t.closest("tr").prevAll().find(".def").last();
-                        if (context.length == 1 && context.hasClass("decl")) {
-                            c = context[0].title_;
-                            if (c === undefined)
-                                c = context.attr("title")
+                        if (elem.hasClass("tu")) {
+                            var context = t.closest("tr").prevAll().find(".def").last();
+                            if (context.length == 1 && context.hasClass("decl")) {
+                                c = context[0].title_;
+                                if (c === undefined)
+                                    c = context.attr("title")
+                            }
                         }
                         if (!c) c = "line " + l;
                         var useType = "";
