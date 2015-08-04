@@ -406,7 +406,8 @@ $(function () {
                 return false;
             };
 
-            if (elem.hasClass("local") || elem.hasClass("tu") || elem.hasClass("lbl")) {
+            if (elem.hasClass("local") || elem.hasClass("tu") || elem.hasClass("lbl")
+                    || (isMacro && !data)) {
                 type = $("#" + escape_selector(ref)).attr("data-type");
 
                 var docs = $("i[data-doc='"+escape_selector(ref)+"']");
@@ -427,7 +428,7 @@ $(function () {
                 var usesCount = 0;
                 uses.each(function() {
                     var t = $(this);
-                    var l = t.parent().prev("th").text();
+                    var l = t.parents("td").prev("th").text();
 
                     if (t.hasClass("def")) {
                         content += "<br/><a href='#"+ l +"'>Definition</a>";
