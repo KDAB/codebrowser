@@ -341,8 +341,10 @@ $(function () {
     var highlight_items = function(ref) {
         if (highlighted_items)
             highlighted_items.removeClass("highlight");
-        highlighted_items = $("[data-ref='"+escape_selector(ref)+"']");
-        highlighted_items.addClass("highlight")
+        if (ref) {
+            highlighted_items = $("[data-ref='"+escape_selector(ref)+"']");
+            highlighted_items.addClass("highlight")
+        }
     }
 
     var anchor_id  = location.hash.substr(1); //Get the word after the hash from the url
@@ -407,7 +409,7 @@ $(function () {
             };
 
             if (elem.hasClass("local") || elem.hasClass("tu") || elem.hasClass("lbl")
-                    || (isMacro && !data)) {
+                    || (isMacro && !data && ref)) {
                 type = $("#" + escape_selector(ref)).attr("data-type");
 
                 var docs = $("i[data-doc='"+escape_selector(ref)+"']");
@@ -777,7 +779,7 @@ $(function () {
     }; };
     var code = $(".code");
     code.on({"mouseenter": onMouseEnterRef, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterRef) },
-                  "[data-ref], macro");
+                  "[data-ref], .macro");
     code.on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
                   "[data-ppcond]");
     code.on({"click":onMouseClick }, "th a")
