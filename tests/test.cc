@@ -250,28 +250,36 @@ int nonstatic_val;
 
 int *oh() {
     extern int extern_val;
+    goto label;
     nonstatic_val += extern_val;
     static_val += some_static_func();
+label:
     int q = [&]() {
        extern_val++;
        static_val++;
        nonstatic_val++;
+label:
        static std::string local_static;
        local_static = "hello";
        int loc = 4;
        struct MyStruct : MyBase {
            void operator+=(int q) {
+label:
                static_member += q;
+               goto label;
            }
            /* that's magic */
            int foo() { return 4; }
        };
 
+       goto label;
        MyStruct s;
+       goto label;
        s+=loc;
        return loc + s.foo();
     }();
     if (q) {
+        goto label;
         return &extern_val;
     }
     return &nonstatic_val;

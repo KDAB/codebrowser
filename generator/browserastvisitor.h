@@ -26,6 +26,7 @@
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/DeclGroup.h>
 #include <clang/AST/Decl.h>
+#include <clang/AST/Stmt.h>
 #include <clang/AST/RecursiveASTVisitor.h>
 #include <clang/AST/Mangle.h>
 #include <clang/Lex/Lexer.h>
@@ -229,6 +230,19 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         }
         QtSupport qt{annotator, currentContext};
         qt.visitCXXConstructExpr(ctr);
+        return true;
+    }
+
+    bool VisitGotoStmt(clang::GotoStmt *stm) {
+        if (auto label = stm->getLabel()) {
+            annotator.registerReference(label, stm->getLabelLoc(), Annotator::Label, Annotator::Use, {}, currentContext);
+        }
+        return true;
+    }
+    bool VisitLabelStmt(clang::LabelStmt *stm) {
+        if (auto label = stm->getDecl()) {
+            annotator.registerReference(label, stm->getIdentLoc(), Annotator::Label, Annotator::Declaration, {}, currentContext);
+        }
         return true;
     }
 

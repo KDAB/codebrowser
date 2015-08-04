@@ -62,7 +62,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
 .code var, .code u, .code .macro { color: #000080;  text-decoration: none; font-style:normal }
 
 .code .type, .code .typedef, .code .namespace, .code .enum  { color: #800080}
-.code .member { color: #860d0d }
+.code .member, .code .lbl { color: #860d0d }
 .code .virtual { font-style: italic }
 
 .error { border-bottom: 1px dashed red }

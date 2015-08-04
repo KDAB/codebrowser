@@ -406,10 +406,7 @@ $(function () {
                 return false;
             };
 
-            if (elem.hasClass("local")) {
-                type = $("#" + escape_selector(ref)).attr("data-type");
-                content = "<br/>(local)";
-            } else if (elem.hasClass("tu")) {
+            if (elem.hasClass("local") || elem.hasClass("tu") || elem.hasClass("lbl")) {
                 type = $("#" + escape_selector(ref)).attr("data-type");
 
                 var docs = $("i[data-doc='"+escape_selector(ref)+"']");
@@ -434,7 +431,7 @@ $(function () {
 
                     if (t.hasClass("def")) {
                         content += "<br/><a href='#"+ l +"'>Definition</a>";
-                    } else if (t.hasClass("decl")) {
+                    } else if (t.hasClass("decl") || this.nodeName === "DFN") {
                         content += "<br/><a href='#"+ l +"'>Declaration</a>";
                     } else {
                         var c;
@@ -654,12 +651,18 @@ $(function () {
         if (!this.title_) {
             this.title_ = elem.attr("title");
             elem.removeAttr("title");
-            if (isMacro && this.title_)
+            if (isMacro && this.title_) {
                 this.title_ = identAndHighlightMacro(this.title_);
+            }
+            if (!this.title_ && elem.hasClass("lbl")) {
+                this.title_ = elem.text();
+            }
+
         }
 
         var tt = this;
-        if (ref && !this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu") && !elem.hasClass("typedef")) {
+        if (ref && !this.tooltip_loaded && !elem.hasClass("local") && !elem.hasClass("tu")
+                && !elem.hasClass("typedef") && !elem.hasClass("lbl")) {
             this.tooltip_loaded = true;
             $.get(url, function(data) {
                 tt.tooltip_data = data;

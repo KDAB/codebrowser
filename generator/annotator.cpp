@@ -142,6 +142,9 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     if (llvm::isa<clang::NonTypeTemplateParmDecl>(decl))
         return Visibility::Static;
 
+    if (llvm::isa<clang::LabelDecl>(decl))
+        return Visibility::Local;
+
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
 
@@ -591,9 +594,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             if (id == 0) id = localeNumbers.size();
             llvm::StringRef name = decl->getName();
             ref = (llvm::Twine(id) + name).str();
-            llvm::SmallString<40> buffer;
-            tags %= " title='" % Generator::escapeAttr(name, buffer) % "'";
-            clas %= " local col" % llvm::Twine(id % 10).str();
+            if (type != Label) {
+                llvm::SmallString<40> buffer;
+                tags %= " title='" % Generator::escapeAttr(name, buffer) % "'";
+                clas %= " local col" % llvm::Twine(id % 10).str();
+            }
         } else {
             auto cached =  getReferenceAndTitle(decl);
             ref = cached.first;
@@ -644,6 +649,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         case Namespace: clas += " namespace"; break;
         case Enum:  // fall through
         case EnumDecl: clas += " enum"; break;
+        case Label: clas += " lbl"; break;
     }
 
     if (declType == Definition && visibility != Visibility::Local) {
