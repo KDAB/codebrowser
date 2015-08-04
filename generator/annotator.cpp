@@ -750,7 +750,6 @@ void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refL
     references[ref].push_back( std::make_tuple(declType, refLoc, std::string()) );
     if (declType == Annotator::Declaration) {
         commentHandler.decl_offsets.insert({ refLoc, {ref, true} });
-
     }
 }
 
