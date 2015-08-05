@@ -98,6 +98,11 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     clang::DiagnosticsEngine *OldDiags = &PP.getDiagnostics();
     PP.setDiagnostics(TmpDiags);
 
+    // We don't want pragmas either. Although we filtered out #pragma, removing
+    // _Pragma and __pragma is much harder.
+    bool pragmasPreviouslyEnabled = PP.getPragmasEnabled();
+    PP.setPragmasEnabled(false);
+
     PP.EnterTokenStream(tokens.data(), tokens.size(), false, false);
 
     PP.Lex(tok);
@@ -113,6 +118,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     }
 
     PP.setDiagnostics(*OldDiags);
+    PP.setPragmasEnabled(pragmasPreviouslyEnabled);
     disabled = false;
 
     std::string ref = llvm::Twine("_M/", MacroNameTok.getIdentifierInfo()->getName()).str();
