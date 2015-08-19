@@ -854,8 +854,7 @@ $(function () {
                     def.each( function() {
                         var cur = { len : -1,
                                     f : $(this).attr("f"),
-                                    l : $(this).attr("l"),
-                                    s : $(this).attr("s") }
+                                    l : $(this).attr("l") }
 
                         cur.len = prefixLen(cur.f, file)
                         if (cur.len >= result.len) {

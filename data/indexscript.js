@@ -104,7 +104,7 @@ $(function() {
             var rx2 = new RegExp("(^|::)"+term.replace(/^:*/, ''), 'i');
             var functionList = [];
             var k = getFnNameKey(request.term)
-            if (k && functionDict.hasOwnProperty(k)) {
+            if (k && Object.prototype.hasOwnProperty.call(functionDict,k)) {
                 functionList = functionDict[k].filter(
                     function(word) { return word.match(rx2) });
             }
@@ -127,7 +127,7 @@ $(function() {
         searchline.on('input', function() {
             var value = $(this).val();
             var k = getFnNameKey(value);
-            if (k && !functionDict.hasOwnProperty(k)) {
+            if (k && !Object.prototype.hasOwnProperty.call(functionDict, k)) {
                 functionDict[k] = []
                 $.get(root_path + '/fnSearch/' + k, function(data) {
                     var list = data.split("\n");
