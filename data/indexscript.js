@@ -138,8 +138,17 @@ $(function() {
                         searchTerms[name] = { type:"ref", ref: ref };
                         functionDict[k].push(name);
                     }
+                    if (searchline.is(":focus")) {
+                        searchline.autocomplete("search", searchline.val());
+                    }
                 });
             }
+        });
+
+        // Pasting should show the autocompletion
+        searchline.on("paste", function() { setTimeout(function() {
+                searchline.autocomplete("search", searchline.val());
+            }, 0);
         });
 
     //END  copied from codebrowser.js

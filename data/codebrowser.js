@@ -924,8 +924,17 @@ $(function () {
                         searchTerms[name] = { type:"ref", ref: ref };
                         functionDict[k].push(name);
                     }
+                    if (searchline.is(":focus")) {
+                        searchline.autocomplete("search", searchline.val());
+                    }
                 });
             }
+        });
+
+        // Pasting should show the autocompletion
+        searchline.on("paste", function() { setTimeout(function() {
+                searchline.autocomplete("search", searchline.val());
+            }, 0);
         });
 
         // Fetch the list of all files
@@ -934,6 +943,9 @@ $(function () {
             fileIndex = list;
             for (var i = 0; i < list.length; ++i) {
                 searchTerms[list[i]] = { type:"file", file: list[i] };
+            }
+            if (searchline.is(":focus")) {
+                searchline.autocomplete("search", searchline.val());
             }
         });
 
