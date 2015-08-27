@@ -166,6 +166,10 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
                     return Visibility::Global; //because we need to check overrides
                 return Visibility::Static;
             }
+            if (decl->isInvalidDecl() && llvm::isa<clang::VarDecl>(decl)) {
+                // Avoid polution because of invalid declarations
+                return Visibility::Static;
+            }
             return Visibility::Global;
         case clang::InternalLinkage:
             if (mainFID != sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
