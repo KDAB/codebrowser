@@ -48,7 +48,7 @@ class Generator {
         void close(std::ostream& myfile) const;
     };
 
-    std::set<Tag> tags;
+    std::multiset<Tag> tags;
 
     std::map<std::string, std::string> projects;
 
