@@ -332,6 +332,7 @@ struct Uses {
     int r() {
         auto v = value;
         v = value;
+        v = { value };
         v = Uses{value}.hello;
         Val vvv = valval;
         vvv = valval;

@@ -153,6 +153,16 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
        return true;
    }
 
+   bool VisitDesignatedInitExpr(clang::DesignatedInitExpr *e) {
+       for (auto i = e->designators_begin(); i != e->designators_end(); ++i) {
+           if (i->isFieldDesignator()) {
+               auto decl = i->getField();
+               annotator.registerUse(decl, i->getFieldLoc(), Annotator::Ref, currentContext, Annotator::Use_Write);
+           }
+       }
+       return true;
+   }
+
    bool VisitTypedefTypeLoc(clang::TypedefTypeLoc TL) {
        clang::SourceRange range = TL.getSourceRange();
        annotator.registerReference(TL.getTypedefNameDecl(), range,  Annotator::Typedef, Annotator::Use,
