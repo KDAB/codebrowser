@@ -37,7 +37,7 @@ string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
 file(GLOB BUILTINS_HEADERS "${LLVM_BIN_DIR}/../lib/clang/${LLVM_VERSION}/include/*.h")
 foreach(BUILTIN_HEADER ${BUILTINS_HEADERS})
     #filter files that are way to big
-    if(NOT BUILTIN_HEADER MATCHES ".*/(arm_neon.h|altivec.h)")
+    if(NOT BUILTIN_HEADER MATCHES ".*/(arm_neon.h|altivec.h|vecintrin.h|avx512.*intrin.h)")
         file(READ ${BUILTIN_HEADER} BINARY_DATA)
         string(REPLACE "\\" "\\\\" BINARY_DATA "${BINARY_DATA}")
         string(REPLACE "\"" "\\\"" BINARY_DATA "${BINARY_DATA}")
