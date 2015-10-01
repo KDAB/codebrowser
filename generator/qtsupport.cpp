@@ -324,6 +324,11 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
             handleSignalOrSlot(e->getArg(2), e->getArg(3));
         }
     }
+    if (parentName == "QState" && methodDecl->getName() == "addTransition") {
+        if (e->getNumArgs() >= 2) {
+            handleSignalOrSlot(e->getArg(0), e->getArg(1));
+        }
+    }
 }
 
 void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
@@ -342,7 +347,7 @@ void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
         if (e->getNumArgs() >= 4)
             handleSignalOrSlot(e->getArg(1), e->getArg(3));
     }
-    if (parent->getName() == "QSignalSpy") {
+    if (parent->getName() == "QSignalSpy" || parent->getName() == "QSignalTransition") {
         if (e->getNumArgs() >= 2) {
             handleSignalOrSlot(e->getArg(0), e->getArg(1));
         }
