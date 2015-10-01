@@ -118,7 +118,7 @@ ssize_t getFieldOffset(const clang::Decl* decl)
     return layout.getFieldOffset(fd->getFieldIndex());
 }
 
-};
+}
 
 Annotator::~Annotator()
 { }
@@ -178,7 +178,7 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
         case clang::UniqueExternalLinkage:
             return Visibility::Static;
     }
-};
+}
 
 bool Annotator::shouldProcess(clang::FileID FID)
 {
