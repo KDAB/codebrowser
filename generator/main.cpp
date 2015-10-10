@@ -140,6 +140,7 @@ public:
         annotator.setMangleContext(Ctx.createMangleContext());
         ci.getPreprocessor().addPPCallbacks(maybe_unique(new PreprocessorCallback(annotator, ci.getPreprocessor())));
         ci.getDiagnostics().setClient(new BrowserDiagnosticClient(annotator), true);
+        ci.getDiagnostics().setErrorLimit(0);
     }
 
     virtual bool HandleTopLevelDecl(clang::DeclGroupRef D) override {
