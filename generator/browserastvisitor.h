@@ -156,8 +156,10 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
    bool VisitDesignatedInitExpr(clang::DesignatedInitExpr *e) {
        for (auto i = e->designators_begin(); i != e->designators_end(); ++i) {
            if (i->isFieldDesignator()) {
-               auto decl = i->getField();
-               annotator.registerUse(decl, i->getFieldLoc(), Annotator::Ref, currentContext, Annotator::Use_Write);
+                if (auto decl = i->getField()) {
+                    annotator.registerUse(decl, i->getFieldLoc(), Annotator::Ref, currentContext,
+                                          Annotator::Use_Write);
+                }
            }
        }
        return true;
