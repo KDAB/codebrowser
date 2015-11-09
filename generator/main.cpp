@@ -208,7 +208,7 @@ ProjectManager *BrowserAction::projectManager = nullptr;
 
 #if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
 static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
-                           clang::FileManager *FM, bool WasInDatabase) {
+                           llvm::StringRef file, clang::FileManager *FM, bool WasInDatabase) {
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
@@ -236,9 +236,12 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
     Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
     Ajust(clang::tooling::ClangStripOutputAdjuster());
-#else
+#elif CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 8
     command = clang::tooling::getClangSyntaxOnlyAdjuster()(command);
     command = clang::tooling::getClangStripOutputAdjuster()(command);
+#else
+    command = clang::tooling::getClangSyntaxOnlyAdjuster()(command, file);
+    command = clang::tooling::getClangStripOutputAdjuster()(command, file);
 #endif
     command.push_back("-isystem");
     command.push_back("/builtins");
@@ -257,7 +260,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     Inv.setDiagnosticConsumer(&consumer);
     bool result = Inv.run();
     if (!result) {
-        std::cerr << "Error: The file was not recognized as source code" << std::endl;
+        std::cerr << "Error: The file was not recognized as source code: " << file.str() <<  std::endl;
     }
     return result;
 }
@@ -402,7 +405,7 @@ int main(int argc, const char **argv) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
             proceedCommand(compileCommandsForFile.front().CommandLine,
                            compileCommandsForFile.front().Directory,
-                           &FM, true);
+                           file, &FM, true);
         } else {
             // TODO: Try to find a command line for a file in the same path
             std::cerr << "Delayed " << file << "\n";
@@ -445,7 +448,7 @@ int main(int argc, const char **argv) {
                 command.push_back("-include");
                 command.push_back(llvm::StringRef(file).substr(0, file.size() - 5) % ".h");
             }
-            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, &FM, false);
+            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, file, &FM, false);
         } else {
             std::cerr << "Could not find commands for " << file << "\n";
         }
