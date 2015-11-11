@@ -35,6 +35,7 @@
 
 
 #include <iostream>
+#include <deque>
 
 struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     typedef clang::RecursiveASTVisitor<BrowserASTVisitor> Base;

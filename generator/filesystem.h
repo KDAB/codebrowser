@@ -23,6 +23,8 @@
 
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/SmallString.h>
+#include <llvm/Support/FileSystem.h>
+
 #include <system_error>
 
 namespace llvm {
