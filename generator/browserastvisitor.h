@@ -24,6 +24,7 @@
 #include "annotator.h"
 #include "qtsupport.h"
 #include <clang/AST/ASTConsumer.h>
+#include <clang/AST/Attr.h>
 #include <clang/AST/DeclGroup.h>
 #include <clang/AST/Decl.h>
 #include <clang/AST/Stmt.h>
@@ -117,9 +118,11 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             }
         }
 
+        bool isDefinition = d->isThisDeclarationADefinition() || d->hasAttr<clang::AliasAttr>();
+
         annotator.registerReference(d, d->getNameInfo().getSourceRange(), Annotator::Decl,
-                             d->isThisDeclarationADefinition() ? Annotator::Definition : Annotator::Declaration,
-                             typeText);
+                                    isDefinition ? Annotator::Definition : Annotator::Declaration,
+                                    typeText);
         return true;
     }
     bool VisitEnumConstantDecl(clang::EnumConstantDecl *d) {

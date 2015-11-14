@@ -161,8 +161,13 @@ int function() {
       foo.m;
 }
 
+extern __typeof (function) function_alias1 __attribute__ ((weak, alias ("function")));
+extern __typeof (function) function_alias2 __attribute__ ((alias ("function")));
+
 std::string toString() {
     function();
+    function_alias1();
+    function_alias2();
     MyClass c;
     c.function(noDocumentationPlease(), !c.outofline(std::string("T")), MyEnum::Val1, toString());
 }
@@ -388,3 +393,5 @@ int testLong() {
 }
 
 }
+
+
