@@ -52,19 +52,12 @@ You need:
 
 Example:
 ```bash
-cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_CXX_COMPILER=/opt/llvm/bin/clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
+cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
-
-If you have errors related to exceptions, edit generator/CMakeLists.txt and replace -fno-rtti by -fexceptions
-
-Compiling the generator on OS X 10.9 Mavericks
+Compiling the generator on OS X
 ==============================================
-
-You need:
- - The clang libraries, for example in version 3.3
- - XCode 5.x and the command line tools and includes
 
 Install XCode and then the command line tools:
 ```bash
@@ -73,13 +66,12 @@ xcode-select --install
 
 Install the clang libraries via homebrew ( http://brew.sh/ ):
 ```bash
-brew tap homebrew/versions
-brew install -vd llvm33  --with-libcxx --with-clang --rtti
+brew install llvm --with-clang --rtti
 ```
 
 Then compile the generator:
 ```bash
-cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DLLVM_CONFIG_EXECUTABLE=/usr/local//bin/llvm-config-3.3  -DCMAKE_BUILD_TYPE=Release
+cmake . -DLLVM_CONFIG_EXECUTABLE=/usr/local/Cellar/llvm/<your_llvm_version>/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
