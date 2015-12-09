@@ -1,0 +1,534 @@
+<!DOCTYPE HTML>
+<html><head>
+<title>Symbol inspector - Woboq Code Browser</title>
+<script type="text/javascript" src="./jquery/jquery.min.js"></script>
+<script type="text/javascript" src="./jquery/jquery-ui.min.js"></script>
+<!--<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";-->
+<link rel="stylesheet" href="kdevelop.css">
+<style>/*<![CDATA[*/
+
+body { color:#000000; background-color:#ffffff; padding:1em; margin: 0;  font-family: Helvetica,sans-serif; }
+a { color: #037; border: none; text-decoration: none }
+a:hover{  text-decoration: underline }
+#footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
+#footer img { vertical-align: middle; }
+img { border: none; }
+input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
+p {  margin:0; padding: 0}
+h3 { padding: 0; margin: 1em 0 0.5ex 0; }
+.code i { white-space: pre-wrap; font-family: monospace }
+body > h1 { float:right; }
+
+ul { margin:0; padding-left: 1em }
+/*h1 { float: right; font-weight: large; padding: 0px; margin:1px;
+background-image: url(woboq-48.png); background-repeat: no-repeat;
+height:48px; width: 126px; overflow:hidden
+}
+h1 a { visibility:hidden }*/
+
+a { text-decoration:none}
+a.opener { color:inherit }
+
+hr { margin: 0; border-collapse:collapse;  }
+
+table#tree { margin: 0; padding: 1ex 1ex; }
+table#tree { width:640px; text-align:left;
+border-left: 1px solid #D8D8D8; border-right: 1px solid #D8D8D8;
+margin: auto}
+
+
+table#tree table { padding:0; padding-left: 4ex; width:100%; margin:0; border:0; }
+table#tree td { white-space: pre; font-family:monospace; margin:0; padding:0; border: 0 }
+table#tree tr { margin:0; border:0; padding:0 }
+
+/*]]>*/</style>
+
+
+<script>//<![CDATA[
+"use strict";
+
+$(function(){
+
+//BEGIN duplicated from codebrowser.js
+
+var escape_selector = function (str) {
+    return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}])/g,'\\$1')
+}
+
+function escape_html(str) {
+    return $("<p/>").text(str).html();
+}
+
+var useExplain = {
+    r: "r: The variable is read",
+    w: "w: The variable is modified",
+    a: "a: The address is taken",
+    c: "c: The function is called",
+    m: "m: a member is accessed",
+    "?": "?: The type of use of the variable is unknown"
+};
+
+
+// demangle the function name, don't care about the template or the argument
+function demangleFunctionName(mangle) {
+    if (! mangle) return mangle;
+    if (mangle[0] !== '_') return mangle;
+    if (mangle[1] !== 'Z') return mangle;
+    mangle = mangle.slice(2);
+    var result;
+    var last = "";
+    var scoped = false;
+    do {
+        if (!result)
+            result = "";
+        else
+            result += "::";
+        if (mangle[0]==='D') {
+            result += "~" + last;
+            break;
+        }
+        if (mangle[0]==='C') {
+            result += last;
+            break;
+        }
+        if (mangle[0]==='N') {
+            mangle = mangle.slice(1);
+            scoped = true;
+        }
+        if (mangle[0]==='K') mangle = mangle.slice(1);
+        if (mangle[0]==='L') mangle = mangle.slice(1);
+        if (mangle.match(/^St/)) { //St
+            mangle = mangle.slice(2);
+            result += "std::";
+        }
+        if (mangle[0]==='I') {
+            var n = 1;
+            var i;
+            for (i = 1; i < mangle.length && n > 0 ;i++) {
+                if (mangle[i] === 'I') n++;
+                if (mangle[i] === 'E') n--;
+            }
+            mangle = mangle.slice(i);
+        }
+        if (mangle.match(/^[a-z]/)) {
+            result += "operator";
+            break;
+        }
+        var len = parseInt(mangle);
+        if (!len) return null;
+        var start = ("" + len).length;
+        last = mangle.substr(start, len);
+        result += last;
+        mangle = mangle.slice(start + len)
+    } while(mangle && mangle[0]!='E' && scoped);
+    return result;
+}
+
+//### [...]
+
+var prefixLen = function( s1 , s2) {
+    var maxMatchLen = Math.min(s1.length, s2.length);
+    var res = -1;
+    while (++res < maxMatchLen) {
+        if (s1.charAt(res) != s2.charAt(res))
+            break;
+    }
+    return res * 256 + 256 - s1.length;
+}
+
+//END
+
+function getParameterByName(name) {
+    var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+    var root_path = getParameterByName("root");
+
+    if(root_path.substr(-1) === '/') { // remove trailing slash
+        root_path = root_path.substr(0, root_path.length - 1);
+    }
+    var proj_root_path = root_path;
+    var ref = getParameterByName("ref");
+    var file = "";
+
+    if (!ref) {
+        $("#main").html("<h2>Error</h2><p>Invalid symbol</p>");
+        return;
+    }
+
+    var url = proj_root_path + "/refs/" + ref;
+
+
+    $.get(url, function(data) {
+        var type ="", content ="";
+        var res = $("<data>"+data+"</data>");
+
+        content += "<h2>" + escape_html(demangleFunctionName(ref)) + "</h2>";
+
+        var types = res.find("[type]");
+        if (types.length) {
+            content += "<h3>Type</h3>";
+            types.each(function() {
+                var t = $(this).attr("type");
+                content += "<p class='code'><span class='type'>" + escape_html(t) + "</span></p>";
+            });
+        }
+
+
+
+//BEGIN extracted from the part of computeTooltipContent from codebrowser.js
+
+        var typePrefixLen = -1;
+
+        //comments:
+        var seen_comments = [];
+        res.find("doc").each(function() {
+            var comment = $(this).html();
+            if ($.inArray(comment, seen_comments) !== -1)
+                return;
+
+            if (seen_comments.length == 0) { // ###
+                content += "<h3>Documentation comments</h3><p class='code'>"
+            }
+            seen_comments.push(comment);
+            /* ###
+            if (comment.length > 550) {
+                // FIXME: we should not split in an escape code
+                comment = comment.substr(0, 500) + "<a href='#' class='expandcomment'> [more...]</a><span style='display:none'>" + comment.substr(500) + "</span>";
+            }
+            */
+            content += "<i>" + comment + "</i>"; //###
+
+            var f = $(this).attr("f");
+            var l = $(this).attr("l");
+            if (f && l) {
+                var url = proj_root_path + "/" + f + ".html#" + l;
+                content += " <a href='" + url +"'>&#8618;</a>";
+            }
+            content += "<br />"; //###
+        });
+
+        if (seen_comments.length) content += "</p>"; //###
+
+
+        var p = function (label, tag) {
+            var d = res.find(tag);
+            if (!d.length)
+                return;
+//            content += "<br/>" + label + ": (" + d.length + ")"; //###
+            content += "<h3>" + label + ": (" + d.length + ")</h3><p>"; //###
+            var shouldCompress = d.length > 15;
+            var dict = { number: 0 };
+            d.each(function() {
+                var th = $(this);
+                var f = th.attr("f");
+                var l = th.attr("l");
+                var t = th.attr("type");
+                if (t) {
+                    var prefixL = prefixLen(f, file)
+                    if (prefixL >= typePrefixLen) {
+                        typePrefixLen = prefixL;
+                        type = t;
+                    }
+                }
+                /* ###
+                if (shouldCompress) {
+                    if (!Object.prototype.hasOwnProperty.call(dict, f)) {
+                        dict[f] = [];
+                        dict.number++;
+                    }
+                    dict[f].push(l);
+                } else*/ {
+                    var url = proj_root_path + "/" + f + ".html#" + l;
+                    content += "<a href='" + url +"' >" + f + ":" + l + "</a>"; //###
+                    if (tag === "ovr" || tag === "inh") {
+                        var c = th.attr("c");
+                        if (c)
+                            content += " (" + demangleFunctionName(c) + ")";
+                    }
+                    content += "<br />"; //###
+
+                }
+            });
+            /* ###
+            if (shouldCompress) {
+                if (dict.number > 40) {
+                    content += "<br/>(Too many)";
+                    return;
+                }
+                for(var f in dict) {
+                    if (!Object.prototype.hasOwnProperty.call(dict,f) || f==="number") continue;
+                    var url_begin = proj_root_path + "/" + f + ".html";
+                    content += "<br/><a href='" + url_begin + "#" + dict[f][0] +"' >" + f +  "</a>";
+                    var len = dict[f].length;
+                    if (len > 100 || (f !== file && len >= 5))
+                        content += " (" + len + " times)";
+                    else {
+                        content += ": <a href='" + url_begin + "#" + dict[f][0] +"' >" + dict[f][0] +"</a>";
+                        for(var i = 1; i < len; i++) {
+                            content += ", <a href='" + url_begin + "#" + dict[f][i] +"' >" + dict[f][i] +"</a>";
+                        }
+                    }
+                }
+            }
+            */
+        }
+        p("Definitions", "def");
+        p("Declarations", "dec");
+        //var isType = elem.hasClass("type");
+        var isType = false; //### FIXME
+        p(isType ? "Inherit" : "Overrides", "inh");
+        p(isType ? "Inherited by" : "Overriden by", "ovr");
+
+        // Size:
+        var size = res.find("size");
+        if (size.length === 1) {
+            content += "<br/>Size: " + escape_html(size.text()) + " bytes";
+        }
+        var offset = res.find("offset");
+        if (offset.length === 1) {
+            content += "<br/>Offset: " + escape_html(offset.text() >> 3) + " bytes";
+        }
+
+        // Uses:
+        var uses = res.find("use");
+        /* ###
+        if (uses.length) {
+            content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/><span class='uses_placeholder'></span>"
+        }
+
+        var useShown = false;
+        showUseFunc = function(e) {
+            if (useShown) {
+                tt.find(".uses").toggle();
+                return false;
+            }
+            */
+            var dict = { };
+            uses.each(function() {
+                var t = $(this);
+                var f = t.attr("f");
+                var l = t.attr("l");
+                var c = t.attr("c");
+                var u = t.attr("u");
+                //if (!u) u = "?"
+                var url = proj_root_path + "/" + f + ".html#" + l;
+                if (!Object.prototype.hasOwnProperty.call(dict, f)) {
+                    dict[f] = { elem: $("<li/>").append($("<a/>").attr("href", url).text(f)),
+                                contexts: {},  prefixL: prefixLen(file, f), count: 0,
+                                f: f, brk: t.attr("brk")
+                    };
+                }
+                c = demangleFunctionName(c)
+                if (!c) c = f + ":" + l;
+                dict[f].count++;
+
+                if (!Object.prototype.hasOwnProperty.call(dict[f].contexts, c)) {
+                    dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
+                    dict[f].contexts[c].count = 1;
+                    if (u) {
+                        dict[f].contexts[c].usesType = "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                    } else {
+                        dict[f].contexts[c].usesType = "";
+                    }
+                } else {
+                    dict[f].contexts[c].count++;
+                    if (u && dict[f].contexts[c].usesType.indexOf(">"+u+"<") === -1)
+                        dict[f].contexts[c].usesType += "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                }
+            });
+            var list = [];
+            for (var xx in dict) {
+                if (Object.prototype.hasOwnProperty.call(dict, xx))
+                    list.push(dict[xx]);
+            }
+            // ###
+            //list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : a.brk ? 1 : b.f - a.f });
+            var ul = $("<ul class='uses'/>");
+            for (var i = 0; i < list.length; ++i) {
+                var subul = $("<ul/>");
+                for (var xx in list[i].contexts) if (Object.prototype.hasOwnProperty.call(list[i].contexts, xx)) {
+                    var context = list[i].contexts[xx];
+                    subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")"));
+                }
+                ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
+            }
+//END
+        if (uses.length > 0) {
+            content += "<h3 id='uses'>Uses (" + uses.length + ")</h3>" + $("<span>").append(ul).html();
+        }
+
+        $("#main").html(content);
+
+        // Jump to anchor:
+        if (location.hash)
+            window.location.href = location.hash
+
+    }).fail(function() {
+        $("#main").html("<h2>Error</h2><p>Symbol not found</p>");
+    });
+
+//----------------- SEARCH LINE  (everything duplicated)
+
+    var searchline = $("input#searchline");
+    var searchTerms;
+    searchline.focus(function() {
+        if (searchTerms)
+            return;
+        searchTerms = {}
+        var fileIndex = [];
+        var functionDict = {};
+
+        // Do a google seatch of the text on the project.
+        var text_search = function(text) {
+            /* ###
+            var location = "" + (window.location);
+            var idx = location.indexOf(file);
+            if (idx < 0)
+                return;
+            location = location.substring(0, idx);
+            window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
+            */
+        }
+
+//BEGIN  code duplicated in indexscript.js
+        // callback for jqueryui's autocomple activate
+        var activate = function(event,ui) {
+            var val = ui.item.value;
+            var type = searchTerms[val] && searchTerms[val].type;
+            if (type == "file") {
+                window.location = root_path + '/' +  searchTerms[val].file + ".html";
+            } else if (type == "ref") {
+                var ref = searchTerms[val].ref;
+                var url = root_path + "/refs/" + ref;
+                $.get(url, function(data) {
+                    var res = $("<data>"+data+"</data>");
+                    var def =  res.find("def");
+                    var result = {  len: -1 };
+                    def.each( function() {
+                        var cur = { len : -1,
+                                    f : $(this).attr("f"),
+                                    l : $(this).attr("l") }
+
+                        cur.len = prefixLen(cur.f, file)
+                        if (cur.len >= result.len) {
+                            result = cur;
+                            result.isMarcro = ($(this).attr("macro"));
+                        }
+                    });
+
+                    if (result.len >= 0) {
+                        var newloc = root_path + "/" + result.f + ".html#" +
+                            (result.isMarcro ? result.l : ref );
+                        window.location = newloc;
+                    }
+                });
+            } else {
+                text_search(val);
+            }
+        };
+
+        var getFnNameKey = function (request) {
+            if (request.indexOf('/') != -1 || request.indexOf('.') != -1)
+                return false;
+            request = request.replace(/^:*/, "");
+            if (request.length < 2)
+                return false;
+            var k = request.substr(0, 2).toLowerCase();
+            return k.replace(/[^a-z]/, '_')
+        }
+
+        var autocomplete = function(request, response) {
+            var term = $.ui.autocomplete.escapeRegex(request.term);
+            var rx1 = new RegExp(term, 'i');
+            var rx2 = new RegExp("(^|::)"+term.replace(/^:*/, ''), 'i');
+            var functionList = [];
+            var k = getFnNameKey(request.term)
+            if (k && Object.prototype.hasOwnProperty.call(functionDict,k)) {
+                functionList = functionDict[k].filter(
+                    function(word) { return word.match(rx2) });
+            }
+            var l = fileIndex.filter( function(word) { return word.match(rx1); });
+            l = l.concat(functionList);
+            l = l.slice(0,1000); // too big lists are too slow
+            response(l);
+        };
+
+        searchline.autocomplete( {source: autocomplete, select: activate, minLength: 4  } );
+
+        searchline.keypress(function(e) {
+            var value = searchline.val();
+            if(e.which == 13) {
+                activate({}, { item: { value: value } });
+            }
+        });
+
+        // When the content changes, fetch the list of function that starts with ...
+        searchline.on('input', function() {
+            var value = $(this).val();
+            var k = getFnNameKey(value);
+            if (k && !Object.prototype.hasOwnProperty.call(functionDict, k)) {
+                functionDict[k] = []
+                $.get(root_path + '/fnSearch/' + k, function(data) {
+                    var list = data.split("\n");
+                    for (var i = 0; i < list.length; ++i) {
+                        var sep = list[i].indexOf('|');
+                        var ref = list[i].slice(0, sep);
+                        var name = list[i].slice(sep+1);
+                        searchTerms[name] = { type:"ref", ref: ref };
+                        functionDict[k].push(name);
+                    }
+                    if (searchline.is(":focus")) {
+                        searchline.autocomplete("search", searchline.val());
+                    }
+                });
+            }
+        });
+
+        // Pasting should show the autocompletion
+        searchline.on("paste", function() { setTimeout(function() {
+                searchline.autocomplete("search", searchline.val());
+            }, 0);
+        });
+//END
+
+        // Fetch the list of all files
+        $.get(root_path + '/fileIndex', function(data) {
+            var list = data.split("\n");
+            fileIndex = list;
+            for (var i = 0; i < list.length; ++i) {
+                searchTerms[list[i]] = { type:"file", file: list[i] };
+            }
+            if (searchline.is(":focus")) {
+                searchline.autocomplete("search", searchline.val());
+            }
+        });
+
+        return false;
+    });
+
+
+});
+
+//]]>
+</script>
+
+</head>
+
+<body>
+
+<h1><a href="code.woboq.org"><img src='http://code.woboq.org/data/woboq-48.png' alt="Woboq"/></a></h1>
+<input id='searchline' type='text' placeholder='Search a file or function'/>
+
+
+<div id="main">
+<p>Loading...</p>
+</div>
+
+
+
+</body>
+
+</html>
+

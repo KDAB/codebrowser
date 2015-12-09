@@ -26,15 +26,12 @@ $(function() {
     root_path = root_path.replace(/\/$/, "");
     if(!root_path) root_path = ".";
 
-    var fileIndex = [];
-    var searchTerms = {}
-    var functionDict = {};
-    var file = path;
 
     //compute the length of the common prefix between two strings
+    // (copied from codebrowser.js)
     var prefixLen = function( s1 , s2) {
         var maxMatchLen = Math.min(s1.length, s2.length);
-        res = -1;
+        var res = -1;
         while (++res < maxMatchLen) {
             if (s1.charAt(res) != s2.charAt(res))
                 break;
@@ -47,6 +44,11 @@ $(function() {
         var location = "" + (window.location);
         window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
     }
+
+    var fileIndex = [];
+    var searchTerms = {}
+    var functionDict = {};
+    var file = path;
 
     var searchline = $("input#searchline");
 

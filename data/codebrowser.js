@@ -245,15 +245,56 @@ $(function () {
     }
 
     //compute the length of the common prefix between two strings
+    // duplicated indexscript.js
     var prefixLen = function( s1 , s2) {
         var maxMatchLen = Math.min(s1.length, s2.length);
-        res = -1;
+        var res = -1;
         while (++res < maxMatchLen) {
             if (s1.charAt(res) != s2.charAt(res))
                 break;
         }
         return res * 256 + 256 - s1.length;
     }
+
+    function absoluteUrl(relative) {
+        var a = document.createElement('a');
+        a.href = relative;
+        return a.href;
+    }
+
+    function computeRelativeUrlTo(source, dest) {
+        var src_splitted = source.split("/");
+        if (src_splitted.length > 0 && src_splitted[src_splitted.length-1] == "")
+            src_splitted.pop();
+        var dst_splitted = dest.split("/");
+        var maxMatch = Math.min(src_splitted.length, dst_splitted.length);
+        var pre = 0;
+        while (++pre < maxMatch) {
+            if (src_splitted[pre] != dst_splitted[pre])
+                break;
+        }
+        // make sure the host is the same (http://xxx/ is 3 parts)
+        if (pre < 3)
+            return dest;
+
+        var stack = [];
+        for (i = 0; i < src_splitted.length - pre; ++i) {
+            stack.push("..");
+        }
+        return stack.concat(dst_splitted.slice(pre)).join('/');
+    }
+    /*// Test
+    function test_cmp(a, b) { if (a!=b) { console.log("ASSERT", a, b); alert("FAIL! \n" + a + " != " + b); } }
+    test_cmp(computeRelativeUrlTo("", ""), "");
+    test_cmp(computeRelativeUrlTo("http://localhost/abcd", "http://code.woboq.org/abcd/e"), "http://code.woboq.org/abcd/e");
+    test_cmp(computeRelativeUrlTo("http://localhost/abcd", "http://localhost/abcd/e"), "e");
+    test_cmp(computeRelativeUrlTo("http://localhost/abcd/e", "http://localhost/abcd/"), "../");
+    test_cmp(computeRelativeUrlTo("http://localhost/abcd/e/", "http://localhost/abcd/"), "../");
+    test_cmp(computeRelativeUrlTo("http://localhost/abcd/e/", "http://localhost/abcd/foo"), "../foo");
+    test_cmp(computeRelativeUrlTo("http://localhost/abcd/e/f", "http://localhost/abcd/f/foo"), "../../f/foo");
+    test_cmp(computeRelativeUrlTo("http://code.woboq.org/qt5/", "http://code.woboq.org/qt5/hello"), "hello");
+    */
+
 
     var tooltip = {
         ref: "", //the 'ref' of the current symbol displayed
@@ -627,7 +668,17 @@ $(function () {
 
             tt.empty();
             if (!isMacro) {
-                if (id && id != "") {
+                var symbolUrl;
+                if (data) {  // this mean the ref symbol exists
+                    var absoluteRoot = absoluteUrl(proj_root_path);
+                    var absoluteDataPath = absoluteUrl(data_path);
+                    symbolUrl = data_path + "/symbol.html?root=" + computeRelativeUrlTo(absoluteDataPath, absoluteRoot) + "&ref=" + ref;
+                }
+
+                if (symbolUrl) {
+                    tt.append($("<b />").append($("<a class='link' href='"+ symbolUrl +"' />").text(title)));
+                    tt.append("<span style='float:right'><a href='" + symbolUrl +"'>&#x1f517;</a></span>");
+                } else if (id && id != "") {
                     tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
                 } else {
                     tt.append($("<b />").text(title));
@@ -838,6 +889,7 @@ $(function () {
             window.location = "http://google.com/search?sitesearch=" + encodeURIComponent(location) + "&q=" + encodeURIComponent(text);
         }
 
+//BEGIN  code duplicated in indexscript.js
         // callback for jqueryui's autocomple activate
         var activate = function(event,ui) {
             var val = ui.item.value;
@@ -936,6 +988,7 @@ $(function () {
                 searchline.autocomplete("search", searchline.val());
             }, 0);
         });
+//END
 
         // Fetch the list of all files
         $.get(root_path + '/fileIndex', function(data) {
