@@ -3,7 +3,10 @@
 <title>Symbol inspector - Woboq Code Browser</title>
 <script type="text/javascript" src="./jquery/jquery.min.js"></script>
 <script type="text/javascript" src="./jquery/jquery-ui.min.js"></script>
-<!--<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";-->
+<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/raphael-min.js"></script>
+<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graffle.js"></script>
+<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graph.js"></script>
+
 <link rel="stylesheet" href="kdevelop.css">
 <style>/*<![CDATA[*/
 
@@ -361,6 +364,8 @@ function getParameterByName(name) {
 
         $("#main").html(content);
 
+        buildInheritenceGraph(ref, res)
+
         // Jump to anchor:
         if (location.hash)
             window.location.href = location.hash
@@ -511,6 +516,72 @@ function getParameterByName(name) {
         return false;
     });
 
+//------------------------------------------------------------------------------------------------
+// Graph
+    var graph = new Graph();
+
+    var waiting = 0;
+    function maybeDraw() {
+        waiting--;
+        if (!waiting) {
+            updateGraph();
+        }
+    }
+
+    function expandGraphRec(ref, up, data) {
+        var d = data.find(up ? "ovr" : "inh");
+        if (d.length >= 1) {
+            graph.addNode(ref, { label: ref, render: renderNode });
+        }
+        var changed = false;
+        d.each(function() {
+            var th = $(this);
+            var c = th.attr("c");
+            if (c) {
+                graph.addNode(c, { label: c, render: renderNode });
+                if (up)
+                    graph.addEdge(ref, c, { directed : true });
+                else
+                    graph.addEdge(c, ref, { directed : true });
+                changed = true;
+                var url = proj_root_path + "/refs/" + c;
+                waiting++;
+                $.get(url, function(data) {
+                    var res = $("<data>"+data+"</data>");
+                    expandGraphRec(c, up, res);
+                    maybeDraw();
+                }).fail(maybeDraw);
+            }
+        });
+    }
+
+    function buildInheritenceGraph(ref, data) {
+        expandGraphRec(ref, true, data);
+        expandGraphRec(ref, false, data);
+    }
+
+    var renderNode = function(r, n) {
+        var set = r.set().push(
+            r.rect(n.point[0]-30, n.point[1]-13, 60, 44).attr({"fill": "#feb", r : "12px", "stroke-width" : n.distance == 0 ? "3px" : "1px" })).push(
+                r.text(n.point[0], n.point[1] + 10, (n.label || n.id) + "\n(" + (n.distance == undefined ? "Infinity" : n.distance) + ")"));
+        return set;
+    };
+
+    function updateGraph() {
+        //            $("#graph").text(graph.string);
+        var layouter = new Graph.Layout.Spring(graph);
+        layouter.layout();
+
+        var height = 800;
+        var width = 800;
+
+        /* draw the graph using the RaphaelJS draw implementation */
+        var renderer = new Graph.Renderer.Raphael('canvas', graph, width, height);
+        renderer.draw();
+    }
+
+//------------------------------------------------------------------------------------------------
+
 
 });
 
@@ -528,6 +599,14 @@ function getParameterByName(name) {
 <div id="main">
 <p>Loading...</p>
 </div>
+
+
+<!--<div>
+<pre id="graph">
+</pre>
+</div>-->
+<div id="canvas"></div>
+
 
 
 
