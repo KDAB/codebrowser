@@ -93,6 +93,9 @@ $(function() {
         var getFnNameKey = function (request) {
             if (request.indexOf('/') != -1 || request.indexOf('.') != -1)
                 return false;
+            var mx = request.match(/::([^:]{2})[^:]*$/);
+            if (mx)
+                return mx[1].toLowerCase().replace(/[^a-z]/, '_');
             request = request.replace(/^:*/, "");
             if (request.length < 2)
                 return false;
