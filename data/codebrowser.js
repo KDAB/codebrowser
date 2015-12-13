@@ -1074,7 +1074,8 @@ $(function () {
             return false;
     });
 
-    $("#header").prepend("<a class='logo' href='http://code.woboq.org'><img src='http://code.woboq.org/data/woboq-48.png'/></a>");
+    var cwo_url = document.location.protocol === 'http:' ? 'http://code.woboq.org' : 'https://code.woboq.org';
+    $("#header").prepend("<a class='logo' href='" + cwo_url + "'><img src='" + cwo_url + "/data/woboq-48.png'/></a>");
 
 /*-------------------------------------------------------------------------------------*/
 
