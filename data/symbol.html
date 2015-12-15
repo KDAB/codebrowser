@@ -3,9 +3,9 @@
 <title>Symbol inspector - Woboq Code Browser</title>
 <script type="text/javascript" src="./jquery/jquery.min.js"></script>
 <script type="text/javascript" src="./jquery/jquery-ui.min.js"></script>
-<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/raphael-min.js"></script>
+<!--<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/raphael-min.js"></script>
 <script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graffle.js"></script>
-<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graph.js"></script>
+<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graph.js"></script>-->
 
 <link rel="stylesheet" href="kdevelop.css">
 <style>/*<![CDATA[*/
@@ -518,7 +518,156 @@ function getParameterByName(name) {
 
 //------------------------------------------------------------------------------------------------
 // Graph
-    var graph = new Graph();
+
+    var graph = {
+        config: { boxPadding: 5, rowSpacing:35, boxSpacing:15, arrowSide:8,  textColor: "black" },
+        nodes: {},
+        edges: [],
+        addNode: function(ref, data)  {
+            if (!Object.prototype.hasOwnProperty.call(this.nodes, ref)) {
+                this.nodes[ref] = { ref:ref, label:ref, downLink: [], upLink: []  };
+            }
+            var node = this.nodes[ref];
+            if (data) for (var xx in data) {
+                if (Object.prototype.hasOwnProperty.call(data, xx))
+                    node[xx] = data[xx];
+            }
+            return node;
+        },
+        addEdge: function(a, b) {
+            var na = this.addNode(a);
+            var nb = this.addNode(b);
+            na.downLink.push(b);
+            nb.upLink.push(a);
+        },
+        render: function(centralNode) {
+            if (!Object.prototype.hasOwnProperty.call(this.nodes, centralNode))
+                return;
+            var cn = this.nodes[centralNode];
+
+            var svgns = "http://www.w3.org/2000/svg";
+            var svg = $("<svg width='100%' height='390'/>")
+            $("#graph").html(svg);
+
+
+            // step 1: compute the sizes
+            for (var xx in this.nodes) {
+                if (!Object.prototype.hasOwnProperty.call(this.nodes, xx))
+                    continue;
+                var n = this.nodes[xx];
+                n.textNode = document.createElementNS(svgns, "text");
+                n.textNode.setAttributeNS(null, "fill", this.config.textColor);
+                n.textNode.textContent = n.label;
+                svg.append(n.textNode);
+                var bb = n.textNode.getBBox();
+                n.textWidth = bb.width;
+                n.textHeight = bb.height;
+            }
+
+            // step 2: generate rows:
+            var g = this;
+            var rows={};
+            var maxHeight = 0;
+            var minHeight = 0;
+            function computeRows(up, node, height) {
+                var array = up ? node.upLink : node.downLink;
+                if (!array)
+                    return;
+                maxHeight = Math.max(maxHeight, height);
+                minHeight = Math.min(minHeight, height);
+                if (!rows[height])
+                    rows[height] = [];
+                array.forEach(function(ref) {
+                    var n = g.nodes[ref];
+                    n.height = height;
+                    rows[height].push(ref);
+                    computeRows(up, n, up?height+1:height-1);
+                });
+            }
+            rows[0]=[centralNode];
+            computeRows(true, cn, 1);
+            computeRows(false, cn, -1);
+
+            // step 3: compute height and width
+            function sum(array) { var s = 0; array.forEach(function(x){s+=x;}); return s; }
+            var w = 0;
+            var h = 0;
+            for (var r = minHeight; r <= maxHeight; ++r) {
+                if (!rows[r].length) continue;
+                var ws = rows[r].map(function(x){ return g.nodes[x].textWidth + 2 * g.config.boxPadding; });
+                var hs = rows[r].map(function(x){ return g.nodes[x].textHeight + 2 * g.config.boxPadding; });
+                w = Math.max(w, sum(ws) + rows[r].length*g.config.boxSpacing);
+                h += g.config.rowSpacing + Math.max.apply(Math, hs);
+            }
+            svg.attr("width", w);
+            svg.attr("height", h);
+
+            //step 4: layout items;
+            var y = 0;
+            for (var r = minHeight; r <= maxHeight; ++r) {
+                if (!rows[r].length) continue;
+                var ws = rows[r].map(function(x){ return g.nodes[x].textWidth + 2 * g.config.boxPadding; });
+                var hs = rows[r].map(function(x){ return g.nodes[x].textHeight + 2 * g.config.boxPadding; });
+                var wspace = (w - sum(ws)) / rows[r].length;
+                var x = wspace/2;
+                for (var i = 0; i < rows[r].length; ++i) {
+                    var n = g.nodes[rows[r][i]];
+                    n.textNode.setAttributeNS(null, "x", x + g.config.boxPadding);
+                    n.textNode.setAttributeNS(null, "y", y + g.config.boxPadding + n.textHeight*2/3);
+                    n.x = x;
+                    n.y = y;
+
+                    var box = document.createElementNS(svgns, "rect");
+                    box.setAttributeNS(null, "fill", "transparent");
+                    box.setAttributeNS(null, "stroke", r === 0 ? "red": "black");
+                    box.setAttributeNS(null, "x", x);
+                    box.setAttributeNS(null, "y", y);
+                    box.setAttributeNS(null, "width", n.textWidth + 2 * g.config.boxPadding);
+                    box.setAttributeNS(null, "height", n.textHeight + 2 * g.config.boxPadding);
+
+                    if (n.link) {
+                        var link = document.createElementNS(svgns, "a");
+                        link.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", n.link);
+                        link.appendChild(box);
+                        svg.append(link);
+                    } else {
+                        svg.append(box);
+                    }
+
+                    x += wspace + n.textWidth;
+
+                    // draw the arrow
+                    n.downLink.forEach(function(l) {
+                        var n2 = g.nodes[l];
+                        var line = document.createElementNS(svgns, "line");
+                        line.setAttributeNS(null, "x1", n.x + g.config.boxPadding + n.textWidth/2);
+                        line.setAttributeNS(null, "x2", n2.x + g.config.boxPadding + n2.textWidth/2);
+
+                        line.setAttributeNS(null, "y1", n.y);
+                        line.setAttributeNS(null, "y2", n2.y + g.config.boxPadding*2 + n2.textHeight);
+
+                        line.setAttributeNS(null, "stroke", "black")
+                        svg.append(line)
+
+                        var arrow_side=g.config.arrowSide;
+                        var arrow = document.createElementNS(svgns, "polygon");
+                        arrow.setAttributeNS(null, "fill", "black");
+                        var arrow_x = (n2.x + g.config.boxPadding + n2.textWidth/2);
+                        var arrow_y = (n2.y + g.config.boxPadding*2 + n2.textHeight);
+
+                        arrow.setAttributeNS(null, "points",
+                                            arrow_x+","+arrow_y+" "+
+                                            (arrow_x+arrow_side/2)+","+(arrow_y+arrow_side)+" "+
+                                            (arrow_x-arrow_side/2)+","+(arrow_y+arrow_side));
+
+                        svg.append(arrow);
+
+                    });
+                }
+                y += g.config.rowSpacing + Math.max.apply(Math, hs);
+            }
+        }
+    }
 
     var waiting = 0;
     function maybeDraw() {
@@ -529,20 +678,21 @@ function getParameterByName(name) {
     }
 
     function expandGraphRec(ref, up, data) {
-        var d = data.find(up ? "ovr" : "inh");
+        var d = data.find(!up ? "ovr" : "inh");
         if (d.length >= 1) {
-            graph.addNode(ref, { label: ref, render: renderNode });
+            graph.addNode(ref, { label: ref });
         }
         var changed = false;
         d.each(function() {
             var th = $(this);
             var c = th.attr("c");
             if (c) {
-                graph.addNode(c, { label: c, render: renderNode });
+                var l = proj_root_path + "/" + escape_html(th.attr("f")) + ".html#" + escape_html(c);
+                graph.addNode(c, { label: c, link: l });
                 if (up)
-                    graph.addEdge(ref, c, { directed : true });
+                    graph.addEdge(ref, c);
                 else
-                    graph.addEdge(c, ref, { directed : true });
+                    graph.addEdge(c, ref);
                 changed = true;
                 var url = proj_root_path + "/refs/" + c;
                 waiting++;
@@ -560,24 +710,11 @@ function getParameterByName(name) {
         expandGraphRec(ref, false, data);
     }
 
-    var renderNode = function(r, n) {
-        var set = r.set().push(
-            r.rect(n.point[0]-30, n.point[1]-13, 60, 44).attr({"fill": "#feb", r : "12px", "stroke-width" : n.distance == 0 ? "3px" : "1px" })).push(
-                r.text(n.point[0], n.point[1] + 10, (n.label || n.id) + "\n(" + (n.distance == undefined ? "Infinity" : n.distance) + ")"));
-        return set;
-    };
-
     function updateGraph() {
-        //            $("#graph").text(graph.string);
-        var layouter = new Graph.Layout.Spring(graph);
-        layouter.layout();
-
-        var height = 800;
-        var width = 800;
-
-        /* draw the graph using the RaphaelJS draw implementation */
-        var renderer = new Graph.Renderer.Raphael('canvas', graph, width, height);
-        renderer.draw();
+        graph.render(ref);
+        // Jump to anchor:
+        if (location.hash)
+            window.location.href = location.hash
     }
 
 //------------------------------------------------------------------------------------------------
@@ -605,7 +742,7 @@ function getParameterByName(name) {
 <pre id="graph">
 </pre>
 </div>-->
-<div id="canvas"></div>
+<div id="graph"></div>
 
 
 
