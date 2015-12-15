@@ -3,9 +3,6 @@
 <title>Symbol inspector - Woboq Code Browser</title>
 <script type="text/javascript" src="./jquery/jquery.min.js"></script>
 <script type="text/javascript" src="./jquery/jquery-ui.min.js"></script>
-<!--<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/raphael-min.js"></script>
-<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graffle.js"></script>
-<script type="text/javascript" src="http://dracula.ameisenbar.de/0.0.3alpha/js/dracula_graph.js"></script>-->
 
 <link rel="stylesheet" href="kdevelop.css">
 <style>/*<![CDATA[*/
@@ -519,13 +516,16 @@ function getParameterByName(name) {
 //------------------------------------------------------------------------------------------------
 // Graph
 
+    // Math.sign is ES06,  this is a naive implementation that works for our use case
+    if (!Math.sign) Math.sign = function(a) { return a < 0 ? -1 : a > 0 ? 1 : 0 };
+
     var graph = {
-        config: { boxPadding: 5, rowSpacing:35, boxSpacing:15, arrowSide:8,  textColor: "black" },
+        config: { boxPadding: 5, rowSpacing:50, boxSpacing:15, arrowSide:10,  textColor: "black" },
         nodes: {},
         edges: [],
         addNode: function(ref, data)  {
             if (!Object.prototype.hasOwnProperty.call(this.nodes, ref)) {
-                this.nodes[ref] = { ref:ref, label:ref, downLink: [], upLink: []  };
+                this.nodes[ref] = { ref:ref, label:ref, downLink: [], upLink: [], height:0  };
             }
             var node = this.nodes[ref];
             if (data) for (var xx in data) {
@@ -548,6 +548,7 @@ function getParameterByName(name) {
             var svgns = "http://www.w3.org/2000/svg";
             var svg = $("<svg width='100%' height='390'/>")
             $("#graph").html(svg);
+            $("#graph").prepend("<h3>Inheritance diagram</h3>");
 
 
             // step 1: compute the sizes
@@ -579,7 +580,8 @@ function getParameterByName(name) {
                     rows[height] = [];
                 array.forEach(function(ref) {
                     var n = g.nodes[ref];
-                    n.height = height;
+                    if (Math.abs(height) > Math.abs(n.height) )
+                        n.height = height;
                     rows[height].push(ref);
                     computeRows(up, n, up?height+1:height-1);
                 });
@@ -590,28 +592,48 @@ function getParameterByName(name) {
 
             // step 3: compute height and width
             function sum(array) { var s = 0; array.forEach(function(x){s+=x;}); return s; }
-            var w = 0;
-            var h = 0;
+            var w_sum = 0;
+            var w_max = 0;
+            var h_sum = 0;
+            var h_max = 0;
             for (var r = minHeight; r <= maxHeight; ++r) {
                 if (!rows[r].length) continue;
                 var ws = rows[r].map(function(x){ return g.nodes[x].textWidth + 2 * g.config.boxPadding; });
                 var hs = rows[r].map(function(x){ return g.nodes[x].textHeight + 2 * g.config.boxPadding; });
-                w = Math.max(w, sum(ws) + rows[r].length*g.config.boxSpacing);
-                h += g.config.rowSpacing + Math.max.apply(Math, hs);
+                w_max = Math.max(w_max, sum(ws) + rows[r].length*g.config.boxSpacing);
+                h_max = Math.max(h_max, sum(hs) + rows[r].length*g.config.boxSpacing);
+                w_sum += g.config.rowSpacing + Math.max.apply(Math, ws);
+                h_sum += g.config.rowSpacing + Math.max.apply(Math, hs);
             }
+
+            // we take the layout that has the smaller width
+            var horizontal = (w_max > w_sum);
+            var w = horizontal ? w_sum : w_max;
+            var h = horizontal ? h_max : h_sum;
             svg.attr("width", w);
             svg.attr("height", h);
 
+
             //step 4: layout items;
             var y = 0;
+            var x = 0;
+            var space = 0;
             for (var r = minHeight; r <= maxHeight; ++r) {
                 if (!rows[r].length) continue;
                 var ws = rows[r].map(function(x){ return g.nodes[x].textWidth + 2 * g.config.boxPadding; });
                 var hs = rows[r].map(function(x){ return g.nodes[x].textHeight + 2 * g.config.boxPadding; });
-                var wspace = (w - sum(ws)) / rows[r].length;
-                var x = wspace/2;
+                if (horizontal) {
+                    space = (h - sum(hs)) / rows[r].length;
+                    y = space/2;
+                } else {
+                    space = (w - sum(ws)) / rows[r].length;
+                    x = space/2;
+                }
                 for (var i = 0; i < rows[r].length; ++i) {
                     var n = g.nodes[rows[r][i]];
+                    if (n.height !== r || n.drawnAlready)
+                        continue;
+                    n.drawnAlready = true;
                     n.textNode.setAttributeNS(null, "x", x + g.config.boxPadding);
                     n.textNode.setAttributeNS(null, "y", y + g.config.boxPadding + n.textHeight*2/3);
                     n.x = x;
@@ -634,37 +656,75 @@ function getParameterByName(name) {
                         svg.append(box);
                     }
 
-                    x += wspace + n.textWidth;
+                    if (horizontal)
+                        y += space + n.textHeight;
+                    else
+                        x += space + n.textWidth;
 
                     // draw the arrow
                     n.downLink.forEach(function(l) {
                         var n2 = g.nodes[l];
+                        var x1, x2, y1, y2;
+                        if (horizontal) {
+                            x1 = n.x;
+                            x2 = n2.x + g.config.boxPadding*2 + n2.textWidth;
+                            y1 = n.y + g.config.boxPadding + n.textHeight/2;
+                            y2 = n2.y + g.config.boxPadding + n2.textHeight/2
+                        } else {
+                            x1 = n.x + g.config.boxPadding + n.textWidth/2;
+                            x2 = n2.x + g.config.boxPadding + n2.textWidth/2;
+                            y1 = n.y;
+                            y2 = n2.y + g.config.boxPadding*2 + n2.textHeight
+                        }
                         var line = document.createElementNS(svgns, "line");
-                        line.setAttributeNS(null, "x1", n.x + g.config.boxPadding + n.textWidth/2);
-                        line.setAttributeNS(null, "x2", n2.x + g.config.boxPadding + n2.textWidth/2);
-
-                        line.setAttributeNS(null, "y1", n.y);
-                        line.setAttributeNS(null, "y2", n2.y + g.config.boxPadding*2 + n2.textHeight);
-
+                        line.setAttributeNS(null, "x1", x1);
+                        line.setAttributeNS(null, "x2", x2);
+                        line.setAttributeNS(null, "y1", y1);
+                        line.setAttributeNS(null, "y2", y2);
                         line.setAttributeNS(null, "stroke", "black")
                         svg.append(line)
 
                         var arrow_side=g.config.arrowSide;
                         var arrow = document.createElementNS(svgns, "polygon");
-                        arrow.setAttributeNS(null, "fill", "black");
-                        var arrow_x = (n2.x + g.config.boxPadding + n2.textWidth/2);
-                        var arrow_y = (n2.y + g.config.boxPadding*2 + n2.textHeight);
+                        arrow.setAttributeNS(null, "fill", "blue");
 
-                        arrow.setAttributeNS(null, "points",
+                        var arrow_x = x2;
+                        var arrow_y = y2;
+
+                        if (Math.abs(x1-x2) < 1) {
+                            arrow.setAttributeNS(null, "points",
                                             arrow_x+","+arrow_y+" "+
-                                            (arrow_x+arrow_side/2)+","+(arrow_y+arrow_side)+" "+
-                                            (arrow_x-arrow_side/2)+","+(arrow_y+arrow_side));
+                                            (arrow_x+arrow_side/3)+","+(arrow_y+arrow_side)+" "+
+                                            (arrow_x-arrow_side/3)+","+(arrow_y+arrow_side));
+                        } else if(Math.abs(y1-y2) < 1) {
+                            arrow.setAttributeNS(null, "points",
+                                            arrow_x+","+arrow_y+" "+
+                                            (arrow_x+arrow_side)+","+(arrow_y+arrow_side/3)+" "+
+                                            (arrow_x+arrow_side)+","+(arrow_y-arrow_side/3));
+                        } else {
+                            var a = (y1-y2)/(x1-x2);
+                            var px = (arrow_side/Math.sqrt(1+a*a)) * Math.sign(x1-x2);
+
+                            var py = px*a;
+
+                            var ppx = (arrow_side/3)/Math.sqrt(1+1/(a*a));
+                            var ppy = -ppx/a;
+
+                            arrow.setAttributeNS(null, "points",
+                                    arrow_x+","+arrow_y+" "+
+                                    (arrow_x+px+ppx)+","+(arrow_y+py+ppy)+" "+
+                                    (arrow_x+px-ppx)+","+(arrow_y+py-ppy));
+                        }
 
                         svg.append(arrow);
 
                     });
                 }
-                y += g.config.rowSpacing + Math.max.apply(Math, hs);
+                if (horizontal)
+                    x += g.config.rowSpacing + Math.max.apply(Math, ws);
+                else
+                    y += g.config.rowSpacing + Math.max.apply(Math, hs);
+
             }
         }
     }
@@ -677,28 +737,34 @@ function getParameterByName(name) {
         }
     }
 
-    function expandGraphRec(ref, up, data) {
+    function expandGraphRec(ref, up, data, max_depth) {
         var d = data.find(!up ? "ovr" : "inh");
+        if (d.length >= 30)
+            return; // Graph too big
         if (d.length >= 1) {
-            graph.addNode(ref, { label: ref });
+            graph.addNode(ref, { label: demangleFunctionName(ref), fetched: true });
         }
         var changed = false;
         d.each(function() {
             var th = $(this);
             var c = th.attr("c");
             if (c) {
-                var l = proj_root_path + "/" + escape_html(th.attr("f")) + ".html#" + escape_html(c);
-                graph.addNode(c, { label: c, link: l });
+                //var l = proj_root_path + "/" + escape_html(th.attr("f")) + ".html#" + escape_html(c);
+                var l = "symbol.html?root=" + escape_html(proj_root_path) + "&ref=" + escape_html(c);
+                var n = graph.addNode(c, { label: demangleFunctionName(c), link: l });
                 if (up)
                     graph.addEdge(ref, c);
                 else
                     graph.addEdge(c, ref);
                 changed = true;
+                if (max_depth <= 0 || n.fetched)
+                    return;
                 var url = proj_root_path + "/refs/" + c;
                 waiting++;
+                n.fetched = true;
                 $.get(url, function(data) {
                     var res = $("<data>"+data+"</data>");
-                    expandGraphRec(c, up, res);
+                    expandGraphRec(c, up, res, max_depth -1);
                     maybeDraw();
                 }).fail(maybeDraw);
             }
@@ -706,8 +772,8 @@ function getParameterByName(name) {
     }
 
     function buildInheritenceGraph(ref, data) {
-        expandGraphRec(ref, true, data);
-        expandGraphRec(ref, false, data);
+        expandGraphRec(ref, true, data, 10);
+        expandGraphRec(ref, false, data, 7);
     }
 
     function updateGraph() {
