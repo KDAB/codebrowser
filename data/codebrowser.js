@@ -449,6 +449,13 @@ $(function () {
                 return false;
             };
 
+            var symbolUrl;
+            if (data) {  // this mean the ref symbol exists
+                var absoluteRoot = absoluteUrl(proj_root_path);
+                var absoluteDataPath = absoluteUrl(data_path);
+                symbolUrl = data_path + "/symbol.html?root=" + computeRelativeUrlTo(absoluteDataPath, absoluteRoot) + "&ref=" + ref;
+            }
+
             if (elem.hasClass("local") || elem.hasClass("tu") || elem.hasClass("lbl")
                     || (isMacro && !data && ref)) {
                 type = $("#" + escape_selector(ref)).attr("data-type");
@@ -505,6 +512,7 @@ $(function () {
                 type = elem.attr("data-type");
             } else {
                 var res = $("<data>"+data+"</data>");
+                var isType = elem.hasClass("type");
 
                 var typePrefixLen = -1;
 
@@ -531,8 +539,11 @@ $(function () {
                 var p = function (label, tag) {
                     var d = res.find(tag);
                     if (!d.length)
-                        return;
+                        return false;
                     content += "<br/>" + label + ": (" + d.length + ")";
+                    if (tag === "inh" && symbolUrl && isType) {
+                        content += " &nbsp; [<a href='"+ symbolUrl +"#graph'>Show Graph</a>]";
+                    }
                     var shouldCompress = d.length > 15;
                     var dict = { number: 0 };
                     d.each(function() {
@@ -566,7 +577,7 @@ $(function () {
                     if (shouldCompress) {
                         if (dict.number > 40) {
                             content += "<br/>(Too many)";
-                            return;
+                            return false;
                         }
                         for(var f in dict) {
                             if (!Object.prototype.hasOwnProperty.call(dict,f) || f==="number") continue;
@@ -583,10 +594,10 @@ $(function () {
                             }
                         }
                     }
+                    return true;
                 }
                 p("Definitions", "def");
                 p("Declarations", "dec");
-                var isType = elem.hasClass("type");
                 p(isType ? "Inherit" : "Overrides", "inh");
                 p(isType ? "Inherited by" : "Overriden by", "ovr");
 
@@ -603,7 +614,11 @@ $(function () {
                 // Uses:
                 var uses = res.find("use");
                 if (uses.length) {
-                    content += "<br/><a href='#' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/><span class='uses_placeholder'></span>"
+                    var href ="#";
+                    if (symbolUrl) {
+                        href = symbolUrl+"#uses";
+                    }
+                    content += "<br/><a href='" + href + "' class='showuse'>Show Uses:</a> (" + uses.length + ")<br/><span class='uses_placeholder'></span>"
                 }
                 var useShown = false;
                 showUseFunc = function(e) {
@@ -668,13 +683,6 @@ $(function () {
 
             tt.empty();
             if (!isMacro) {
-                var symbolUrl;
-                if (data) {  // this mean the ref symbol exists
-                    var absoluteRoot = absoluteUrl(proj_root_path);
-                    var absoluteDataPath = absoluteUrl(data_path);
-                    symbolUrl = data_path + "/symbol.html?root=" + computeRelativeUrlTo(absoluteDataPath, absoluteRoot) + "&ref=" + ref;
-                }
-
                 if (symbolUrl) {
                     tt.append($("<b />").append($("<a class='link' href='"+ symbolUrl +"' />").text(title)));
                     tt.append("<span style='float:right'><a href='" + symbolUrl +"'>&#x1f517;</a></span>");
