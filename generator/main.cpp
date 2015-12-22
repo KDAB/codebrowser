@@ -391,8 +391,13 @@ int main(int argc, const char **argv) {
 
         llvm::SmallString<256> filename;
         canonicalize(file, filename);
-        if (!projectManager.shouldProcess(filename, projectManager.projectForFile(filename))) {
-            std::cerr << "Skipping already processed " << filename.c_str() << std::endl;
+        if (auto project = projectManager.projectForFile(filename)) {
+            if (!projectManager.shouldProcess(filename, project)) {
+                std::cerr << "Skipping already processed " << filename.c_str() << std::endl;
+                continue;
+            }
+        } else {
+            std::cerr << "Skipping file not included by any project " << filename.c_str() << std::endl;
             continue;
         }
 
@@ -419,8 +424,13 @@ int main(int argc, const char **argv) {
     for (const auto &it : NotInDB) {
         std::string file = clang::tooling::getAbsolutePath(it);
         Progress++;
-        if (!projectManager.shouldProcess(file, projectManager.projectForFile(file))) {
-            std::cerr << "Skipping already processed " << file.c_str() << std::endl;
+        if (auto project = projectManager.projectForFile(file)) {
+            if (!projectManager.shouldProcess(file, project)) {
+                std::cerr << "Skipping already processed " << file.c_str() << std::endl;
+                continue;
+            }
+        } else {
+            std::cerr << "Skipping file not included by any project " << file.c_str() << std::endl;
             continue;
         }
 
