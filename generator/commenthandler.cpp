@@ -156,6 +156,7 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
 
     clang::NamedDecl *Decl = nullptr;
     std::string DeclRef;
+    std::vector<std::pair<std::string, Doc>> SubDocs; // typically for enum values
 
     void visit(const clang::comments::Comment *C) {
         Base::visit(C);
@@ -188,6 +189,8 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
         tag("command", {C->getLocStart(),  nameRange.getEnd().getLocWithOffset(-1)});
         for (unsigned int i = 0; i < C->getNumArgs(); ++i)
             tag("arg", C->getArgRange(i));
+        if (C->getCommandName(traits) == "value")
+            parseEnumValue(C);
     }
     //void visitParamCommandComment(const clang::comments::ParamCommandComment *C);
     //void visitTParamCommandComment(const clang::comments::TParamCommandComment *C);
@@ -238,6 +241,40 @@ private:
             generator.addTag("span", attr, offset, len);
         }
     }
+
+    // Parse the \value command  (for enum values)
+    void parseEnumValue(const clang::comments::BlockCommandComment *C) {
+        auto ED = llvm::dyn_cast_or_null<clang::EnumDecl>(Decl);
+        if (!ED)
+            return;
+        auto P = C->getParagraph();
+        if (!P)
+            return;
+        auto valueStartLoc = P->getLocStart();
+        const char *data = annotator.getSourceMgr().getCharacterData(valueStartLoc);
+        auto begin = data;
+        while(clang::isWhitespace(*begin))
+            begin++;
+        auto end = begin;
+        while(clang::isIdentifierBody(*end))
+            end++;
+        llvm::StringRef value(begin, end-begin);
+
+        auto it = std::find_if(ED->enumerator_begin(), ED->enumerator_end(),
+                               [&value](const clang::EnumConstantDecl *EC)
+                               { return value == EC->getName(); } );
+        if (it == ED->enumerator_end())
+            return;
+        auto ref = annotator.getVisibleRef(*it);
+
+        tag("arg", {valueStartLoc.getLocWithOffset(begin-data),
+            valueStartLoc.getLocWithOffset(end-data)}, ref);
+
+        auto range = C->getSourceRange();
+        auto len = range.getEnd().getRawEncoding() - range.getBegin().getRawEncoding() + 1;
+        auto ctn = std::string(annotator.getSourceMgr().getCharacterData(range.getBegin()), len);
+        SubDocs.push_back({std::move(ref), Doc{ std::move(ctn) , range.getBegin() } });
+    }
 };
 
 void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Sema &Sema,
@@ -247,8 +284,6 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
 {
     llvm::StringRef rawString(bufferStart+commentStart, len);
     std::string attributes;
-    std::string DeclRef;
-
 
     if ((rawString.ltrim().startswith("/**") && !rawString.ltrim().startswith("/***"))
             || rawString.ltrim().startswith("/*!") || rawString.ltrim().startswith("//!")
@@ -261,6 +296,7 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
 
         clang::Preprocessor &PP = Sema.getPreprocessor();
         clang::comments::CommandTraits traits(PP.getPreprocessorAllocator(), clang::CommentOptions());
+        traits.registerBlockCommand("value"); // enum value
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=4
         traits.registerBlockCommand("deprecated"); // avoid typo correction leading to crash.
 #endif
@@ -272,14 +308,15 @@ void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Se
         auto fullComment = parser.parseFullComment();
         CommentVisitor visitor{A, generator, traits, Sema};
         visitor.visit(fullComment);
-        DeclRef = visitor.DeclRef;
+        if (!visitor.DeclRef.empty()) {
+            for (auto &p : visitor.SubDocs)
+                docs.insert(std::move(p));
+            docs.insert({std::move(visitor.DeclRef), { rawString.str() , commentLoc }});
+            generator.addTag("i", attributes, commentStart, len);
+            return;
+        }
     }
 
-    if (!DeclRef.empty()) {
-        docs.insert({std::move(DeclRef), { rawString.str() , commentLoc }});
-        generator.addTag("i", attributes, commentStart, len);
-        return;
-    }
 
     // Try to find a matching declaration
     const auto &dof = decl_offsets;

@@ -166,3 +166,17 @@ public:
 /*! \fn SuperList::SuperList()  */
 /*! \fn SuperList::SuperList(T)  */
 /*! \fn SuperList::at  */
+
+
+enum DocumentedEnum {
+    A, Hello, Yolla
+};
+
+/*!  \enum DocumentedEnum
+ * \value A some value
+ * \value Hello this is some other value that is verry interesting so the text is a
+ *        bit logner but it's still one
+ * \value Yolla that's another value
+ *
+ * and here some more text about the enum
+ */
