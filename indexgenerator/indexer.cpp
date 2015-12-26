@@ -82,7 +82,7 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
     myfile << "<script>var path = '"<< path <<"'; var root_path = '"<< rel <<"'; var project='"<< project <<"'; </script>\n"
               "<script src='" << data_path << "/indexscript.js'></script>\n"
               "</head>\n<body>\n";
-    myfile << "<h1><a href='http://code.woboq.org'>Woboq Code Browser</a></h1>\n";
+    myfile << "<h1><a href='https://code.woboq.org'>Woboq Code Browser</a></h1>\n";
     myfile << "<p><input id='searchline' placeholder='Search for a file'  type='text'/></p>\n";
     myfile << "<h2> Index of <em>" << breadcrumb << "</em></h2>\n";
     myfile << "<hr/><table id='tree'>\n";
@@ -121,7 +121,7 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
             myfile <<" revision <em>" << it->second << "</em>";
         }
     }
-    myfile << "<br />Powered by <a href='http://woboq.com'><img alt='Woboq' src='http://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='http://code.woboq.org'>Code Browser</a> "
+    myfile << "<br />Powered by <a href='https://woboq.com'><img alt='Woboq' src='https://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='https://code.woboq.org'>Code Browser</a> "
             CODEBROWSER_VERSION "\n</p>\n</body></html>\n";
 }
 

@@ -1,15 +1,15 @@
 This is the generator for the woboq code browser.
 
-See http://code.woboq.org for an example.
+See https://code.woboq.org for an example.
 
 To browse the source code of the generator using the code browser itself:
-http://code.woboq.org/userspace/codebrowser/
+https://code.woboq.org/userspace/codebrowser/
 
-Main page: http://woboq.com/codebrowser.html
+Main page: https://woboq.com/codebrowser.html
 
-The announcement blog: http://woboq.com/blog/codebrowser-introduction.html
+The announcement blog: https://woboq.com/blog/codebrowser-introduction.html
 
-The feature tour http://woboq.com/codebrowser-features.html
+The feature tour https://woboq.com/codebrowser-features.html
 
 
 Introduction and Design
@@ -135,17 +135,17 @@ codebrowser_generator -a -o <output_dir> -b <buld_dir> -p <projectname>:<source_
 
  -d specify the data url where all the javascript and css files are found.
     default to ../data relative to the output dir
-    example: -d http://code.woboq.org/data
+    example: -d https://code.woboq.org/data
 
  -e reference to an external project.
-    example:-e llvm/tools/clang/include/clang:/opt/llvm/include/clang/:http://code.woboq.org/userspace
+    example:-e clang/include/clang:/opt/llvm/include/clang/:https://code.woboq.org/llvm
 
 Licence information:
 ====================
 Licensees holding valid commercial licenses provided by Woboq may use
 this software in accordance with the terms contained in a written agreement
 between the licensee and Woboq.
-For further information see http://woboq.com/codebrowser.html
+For further information see https://woboq.com/codebrowser.html
 
 Alternatively, this work may be used under a Creative Commons
 Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
