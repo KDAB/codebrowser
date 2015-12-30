@@ -5,6 +5,11 @@ add_executable(codebrowser_indexgenerator indexer.cpp)
 
 target_link_libraries(codebrowser_indexgenerator)
 
+INSTALL(
+  TARGETS codebrowser_indexgenerator
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+  )
+
 ADD_DEFINITIONS("-std=c++11")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 
