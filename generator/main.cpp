@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2012-2014 Woboq GmbH
+ * Copyright (C) 2012-2016 Woboq GmbH
  * Olivier Goffart <contact at woboq.com>
  * http://woboq.com/codebrowser.html
  *
