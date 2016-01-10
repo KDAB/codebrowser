@@ -35,6 +35,7 @@ class PreprocessorCallback  : public clang::PPCallbacks {
     Annotator &annotator;
     clang::Preprocessor &PP;
     bool disabled = false; // To prevent recurstion
+    bool seenPragma = false; // To detect _Pragma in expansion
 
 public:
     PreprocessorCallback(Annotator &fm, clang::Preprocessor &PP) : annotator(fm), PP(PP) {}
@@ -61,6 +62,9 @@ public:
 #endif
 
 #if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
+    void PragmaDirective(clang::SourceLocation Loc, clang::PragmaIntroducerKind Introducer) override
+    { seenPragma = true; }
+
     virtual void If(clang::SourceLocation Loc, clang::SourceRange ConditionRange, ConditionValueKind ConditionValue) override
     { HandlePPCond(Loc, Loc); }
     virtual void Ifndef(clang::SourceLocation Loc, const clang::Token& MacroNameTok, MyMacroDefinition MD) override

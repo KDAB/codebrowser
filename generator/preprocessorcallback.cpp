@@ -102,11 +102,21 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     // _Pragma and __pragma is much harder.
     bool pragmasPreviouslyEnabled = PP.getPragmasEnabled();
     PP.setPragmasEnabled(false);
+    seenPragma = false;
 
     PP.EnterTokenStream(tokens.data(), tokens.size(), false, false);
 
     PP.Lex(tok);
     while(tok.isNot(clang::tok::eof)) {
+        if (seenPragma) {
+            // skip pragma
+            while(tok.isNot(clang::tok::eof) && tok.isNot(clang::tok::eod))
+                PP.Lex(tok);
+            seenPragma = false;
+            PP.Lex(tok);
+            continue;
+        }
+
         // If the tokens were already space separated, or if they must be to avoid
         // them being implicitly pasted, add a space between them.
         if (tok.hasLeadingSpace())
