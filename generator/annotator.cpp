@@ -298,7 +298,8 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                    WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
                                         "It may have many parsing errors.");
 
-        fileIndex << fn << '\n';
+        if (projectinfo.type == ProjectInfo::Normal)
+            fileIndex << fn << '\n';
     }
 
     // make sure all the docs are in the references
