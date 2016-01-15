@@ -428,10 +428,18 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
 
         llvm::SmallString<8> saved;
-        size_t pos = 0;
-        while (true) {
-            if (fnName.size() - pos < 4)
+        auto pos = fnName.size() + 2;
+        int count = 0;
+        while (count < 2) {
+            count++;
+            if (pos < 4)
                 break;
+            pos = fnName.rfind("::", pos-4);
+            if (pos >= fnName.size()) {
+                pos = 0;
+            } else {
+                pos += 2; // skip ::
+            }
             char idx[3] = { normalizeForfnIndex(fnName[pos]), normalizeForfnIndex(fnName[pos+1]) , '\0' };
             llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
             if (saved.find(idxRef) == std::string::npos) {
@@ -458,11 +466,6 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                 funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
                 saved.append(idxRef); //include \0;
             }
-            pos = fnName.find("::", pos);
-
-            if (pos == std::string::npos)
-                break;
-            pos += 2; // skip ::
         }
     }
     return true;
