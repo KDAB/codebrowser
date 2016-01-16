@@ -82,7 +82,7 @@ $(function () {
     var elapsed;
 
     var escape_selector = function (str) {
-        return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}])/g,'\\$1')
+        return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}\\])/g,'\\$1')
     }
 
     function escape_html(str) {

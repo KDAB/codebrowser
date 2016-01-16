@@ -52,7 +52,7 @@ $(function(){
 //BEGIN duplicated from codebrowser.js
 
 var escape_selector = function (str) {
-    return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}])/g,'\\$1')
+    return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}\\])/g,'\\$1')
 }
 
 function escape_html(str) {
