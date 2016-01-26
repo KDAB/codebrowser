@@ -1110,12 +1110,17 @@ $(function () {
         if (target.length) {
             //Smooth scrolling and let back go to the last location
             var contentTop = $("#content").offset().top;
+            if (parseInt(anchor)) {
+                // if the anchor is a line number, (or a function local) we want to give a bit more
+                // context on top
+                contentTop += target.height() * 7; // 7 lines
+            }
 
             if (isLink) {
             //   history.replaceState({contentTop: contentTop, bodyTop: $("body").scrollTop() }, undefined)
-            history.pushState({bodyTop: target.offset().top - contentTop},
-                              document.title + "**" + anchor,
-                              window.location.pathname + "#" + anchor);
+                history.pushState({bodyTop: target.offset().top - contentTop},
+                                    document.title + "**" + anchor,
+                                    window.location.pathname + "#" + anchor);
             }
             //     $("#content").animate({scrollTop:target.position().top + contentTop }, 300);
             $("html,body").animate({scrollTop:target.offset().top - contentTop  }, isLink ? 300 : 1);
