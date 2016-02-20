@@ -155,6 +155,15 @@ $(function () {
 
     // ident and highlight code (for macros)
     function identAndHighlightMacro(origin) {
+
+        // count the number of slashes before character i in origin
+        function countSlashes(i) {
+            var count = 0;
+            while(count < i && origin.charAt(i-count-1) == '\\')
+                count++;
+            return count;
+        }
+
         var len = origin.length;
         var result = "";
         var ident= "\n";
@@ -213,18 +222,22 @@ $(function () {
                     if (string == 0) {
                         result += "<q>\""
                         string = 1;
-                    } else if (string == 1 && (origin.charAt(i-1) != '\\' || origin.charAt(i-2) == '\\')) {
+                    } else if (string == 1 && (countSlashes(i)%2) == 0) {
                         string = 0;
                         result += "\"</q>"
+                    } else {
+                        result += c;
                     }
                     break;
                 case '\'':
                     if (string == 0) {
                         result += "<kdb>\'"
                         string = 2;
-                    } else if (string == 2 && (origin.charAt(i-1) != '\\' || origin.charAt(i-2) == '\\')) {
+                    } else if (string == 2 && (countSlashes(i)%2) == 0) {
                         string = 0;
                         result += "\'</kdb>"
+                    } else {
+                        result += c;
                     }
                     break;
                 case ' ':

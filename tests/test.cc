@@ -170,6 +170,8 @@ std::string toString() {
     function_alias2();
     MyClass c;
     c.function(noDocumentationPlease(), !c.outofline(std::string("T")), MyEnum::Val1, toString());
+#define STRIGNIFY(X) #X
+    return STRIGNIFY(true && "hello \"world\"")
 }
 
 int hasOwnProperty() {
