@@ -277,12 +277,55 @@ private:
     }
 };
 
+static void handleUrlsInComment(Generator& generator, llvm::StringRef rawString, int commentStart)
+{
+    std::size_t pos = 0;
+    while ((pos = rawString.find("http", pos)) != llvm::StringRef::npos) {
+        int begin = pos;
+        pos +=4;
+        if (begin != 0 && llvm::StringRef(" \t/*[]()<>|:\"'{}").find(rawString[begin-1]) == llvm::StringRef::npos) {
+            // the URL need to be the first character, or follow a space or one of the character
+            continue;
+        }
+        if (rawString[pos] == 's') pos++;
+        if (!rawString.substr(pos).startswith("://"))
+            continue;
+        pos+=3;
+        // We have an URL
+
+        llvm::StringRef urlChars = "-._~:/?#[]@!$&'()*+,;=%"; // chars valid in the URL
+        while(std::isalpha(rawString[pos]) ||
+                urlChars.find(rawString[pos]) != llvm::StringRef::npos)
+            pos++;
+
+        // don't end with a period
+        if (rawString[pos-1]=='.') pos--;
+
+        // Don't end with a closing parenthese or bracket unless the URL contains an opening one
+        // (e.g. wikipedia urls)
+        auto candidate = rawString.substr(begin, pos-begin);
+        if (rawString[pos-1]==')' && candidate.find('(') == llvm::StringRef::npos) pos--;
+        if (rawString[pos-1]==']' && candidate.find('[') == llvm::StringRef::npos) pos--;
+
+        // don't end with a period
+        if (rawString[pos-1]=='.') pos--;
+
+        auto len = pos - begin;
+        generator.addTag("a", "href=\"" % rawString.substr(begin, len) % "\"",
+                         commentStart+begin, len);
+    }
+
+}
+
 void CommentHandler::handleComment(Annotator &A, Generator& generator, clang::Sema &Sema,
                                    const char *bufferStart, int commentStart, int len,
                                    clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd,
                                    clang::SourceLocation commentLoc)
 {
     llvm::StringRef rawString(bufferStart+commentStart, len);
+
+    handleUrlsInComment(generator, rawString, commentStart);
+
     std::string attributes;
 
     if ((rawString.ltrim().startswith("/**") && !rawString.ltrim().startswith("/***"))

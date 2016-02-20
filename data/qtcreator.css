@@ -59,6 +59,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
 .code i, .code q, .code kbd, .code u>a { color: #008000 ; font-style:normal; font-weight: normal}
 .code i.doc { color: #000080; }
 .code i .command { color: #00f }
+.code i a { color: #037; }
 .code var, .code u, .code .macro { color: #000080;  text-decoration: none; font-style:normal }
 
 .code .type, .code .typedef, .code .namespace, .code .enum  { color: #800080}

@@ -95,6 +95,7 @@ struct ForwardDeclareWillBeDeclaredAfter
     int mustBailHere;
 };
 
+//http://code.woboq.org this is an url
 
 /*!
  * yo
@@ -111,7 +112,10 @@ struct ForwardDeclareWillBeDeclaredAfter
  *
  * dsd
  *
- * whaaat?
+ * (http://woboq.com/)
+ * visit https://woboq.com/blog.
+ * https://en.wikipedia.org/wiki/Qt_(software)
+ *
  */
 
 int MyClass::outofline(std::string foo)
