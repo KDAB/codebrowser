@@ -294,7 +294,7 @@ static void handleUrlsInComment(Generator& generator, llvm::StringRef rawString,
         // We have an URL
 
         llvm::StringRef urlChars = "-._~:/?#[]@!$&'()*+,;=%"; // chars valid in the URL
-        while(std::isalpha(rawString[pos]) ||
+        while(std::isalnum(rawString[pos]) ||
                 urlChars.find(rawString[pos]) != llvm::StringRef::npos)
             pos++;
 
