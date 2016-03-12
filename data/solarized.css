@@ -57,6 +57,7 @@ p.warnmsg { color: #D44; padding: 0 1ex; margin: 0.5ex 0; }
 
 
 body, table.code, input, select, div#header, div#header + hr { background-color: #002b36; color: #839496;}
+h1, h3, h2 { color: #93a1a1; }
 
 .code th { background-color: #073642; color: #93a1a1; }
 a { color: #93a1a1; }
