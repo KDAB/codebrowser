@@ -36,7 +36,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     if (disabled)
         return;
 
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 7
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
     auto *MI = MD.getMacroInfo();
 #else
     auto *MI = MD->getMacroInfo();
@@ -104,7 +104,12 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     PP.setPragmasEnabled(false);
     seenPragma = false;
 
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 9
+    PP.EnterTokenStream(tokens, /*DisableMacroExpansion=*/false);
+#else
     PP.EnterTokenStream(tokens.data(), tokens.size(), false, false);
+#endif
+
 
     PP.Lex(tok);
     while(tok.isNot(clang::tok::eof)) {
@@ -200,7 +205,7 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
     clang::FileID defFID;
 
     if (MD) {
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 7
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
         auto *MI = MD.getMacroInfo();
 #else
         auto *MI = MD->getMacroInfo();
@@ -280,7 +285,7 @@ void PreprocessorCallback::Defined(const clang::Token& MacroNameTok, MyMacroDefi
     clang::FileID defFID;
 
     if (MD) {
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 7
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
         auto *MI = MD.getMacroInfo();
 #else
         auto *MI = MD->getMacroInfo();
