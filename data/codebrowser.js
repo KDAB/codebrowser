@@ -374,12 +374,6 @@ $(function () {
 
     };
 
-
-    // Compatibility with code browser <= 1.3:   generate the div#content
-    if ($("body > #content").length != 1) {
-        $("body > :not(#mask, #header, #tooltip, #header+hr)").wrapAll("<div id='content' />");
-    }
-
     tooltip.init();
 
     //highlight the line numbers of the warnings
@@ -409,10 +403,9 @@ $(function () {
         highlight_items(anchor_id);
     }
     scrollToAnchor(anchor_id, false);
-    var skipHighlightTimerId = null;
-    skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600)
 
 /*-------------------------------------------------------------------------------------*/
+    var skipHighlightTimerId = null;
     var onMouseLeave = function(e) { tooltip.hideAfterDelay(e); }
     var onMouseClick = function(e) {
         if (e.ctrlKey || e.altKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
@@ -861,6 +854,13 @@ $(function () {
     $("#header").on({"click":onMouseClick }, "a");
 
     $(document).bind( "touchstart", function() { isTouchEvent = true; } )
+
+
+    if (typeof(initRef) !== 'undefined') {
+        onMouseEnterRef.apply($(initRef)[0]);
+    }
+    skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600)
+
 
 /*-------------------------------------------------------------------------------------*/
 
