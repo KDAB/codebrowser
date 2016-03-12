@@ -66,7 +66,7 @@ if (style_match) {
     var style = style_match[1];
     switchStylestyleAndSetCookie(style);
 } else {
-    var c = readCookie('style');
+    var c = readCookie('style') || "qtcreator";
     if (c) switchStylestyle(c);
 }
 
