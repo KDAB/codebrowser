@@ -421,6 +421,25 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             Generator::escapeAttr(myfile, it2->second.content);
             myfile << "</doc>\n";
         }
+        auto itU = sub_refs.find(it.first);
+        if (itU != sub_refs.end()) {
+            for (const auto &sub : itU->second) {
+                switch (sub.what) {
+                    case SubRef::Function: myfile << "<fun "; break;
+                    case SubRef::Member: myfile << "<mbr "; break;
+                    case SubRef::Static: myfile << "<smbr "; break;
+                    case SubRef::None: continue; // should not happen
+                }
+                const auto &r = sub.ref;
+                myfile << "r='" << Generator::EscapeAttr{r} << "'";
+                auto itF = field_offsets.find(r);
+                if (itF != field_offsets.end() && itF->second != -1)
+                    myfile << " o='" << itF->second << "'";
+                if (!sub.type.empty())
+                    myfile << " t='" << Generator::EscapeAttr{sub.type} << "'";
+                myfile << "/>\n";
+            }
+        }
     }
 
     // now the function names
@@ -757,6 +776,19 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
             }
             clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
+            if (auto parentStruct = llvm::dyn_cast<clang::RecordDecl>(decl->getDeclContext())) {
+                auto parentRef = getReferenceAndTitle(parentStruct).first;
+                if (!parentRef.empty()) {
+                    SubRef sr;
+                    sr.ref = ref;
+                    if (decl->isFunctionOrFunctionTemplate()) sr.what = SubRef::Function;
+                    else if (llvm::isa<clang::FieldDecl>(decl)) sr.what = SubRef::Member;
+                    else if (llvm::isa<clang::VarDecl>(decl)) sr.what = SubRef::Static;
+                    if (sr.what != SubRef::Function)
+                        sr.type = typeRef;
+                    sub_refs[parentRef].push_back(sr);
+                }
+            }
         }
     }
 }

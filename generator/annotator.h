@@ -94,6 +94,12 @@ private:
     std::map<std::string, std::vector<Reference>> references;
     std::map<std::string, ssize_t> structure_sizes;
     std::map<std::string, ssize_t> field_offsets;
+    struct SubRef {
+        std::string ref;
+        std::string type;
+        enum Type { None, Function, Member, Static } what = None;
+    };
+    std::map<std::string, std::vector<SubRef>> sub_refs;
     std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;
     CommentHandler commentHandler;
 

@@ -729,6 +729,8 @@ function getParameterByName(name) {
         }
     }
 
+    var classData = { };
+
     var waiting = 0;
     function maybeDraw() {
         waiting--;
@@ -738,6 +740,7 @@ function getParameterByName(name) {
     }
 
     function expandGraphRec(ref, up, data, max_depth) {
+        if (up) classData[ref] = data;
         var d = data.find(!up ? "ovr" : "inh");
         if (d.length >= 30)
             return; // Graph too big
@@ -745,6 +748,7 @@ function getParameterByName(name) {
             graph.addNode(ref, { label: demangleFunctionName(ref), fetched: true });
         }
         var changed = false;
+        waiting++;
         d.each(function() {
             var th = $(this);
             var c = th.attr("c");
@@ -769,6 +773,7 @@ function getParameterByName(name) {
                 }).fail(maybeDraw);
             }
         });
+        maybeDraw();
     }
 
     function buildInheritenceGraph(ref, data) {
@@ -778,11 +783,86 @@ function getParameterByName(name) {
 
     function updateGraph() {
         graph.render(ref);
+        buildLayout(ref);
         // Jump to anchor:
         if (location.hash)
             window.location.href = location.hash
     }
 
+//------------------------------------------------------------------------------------------------
+// Class layout
+
+
+    function buildLayout(ref) {
+        var html = "";
+        // Note, sometimes there is a virtual table pointer before the first base.
+        // There is also sometimes alignement between bases which are not taken into account
+        function buildLayoutRecursive(data, baseOffset, depth) {
+            if (depth > 255) return;
+            // Go in every bases
+            var baseOffset2 = baseOffset;
+            data.find("inh").each(function() {
+                var c = $(this).attr("c");
+                if (c && classData[c]) {
+                    var baseData = classData[c];
+                    var baseSize = parseInt(baseData.find("size").text());
+                    buildLayoutRecursive(baseData, baseOffset2, depth + 1);
+                    if (baseSize)
+                        baseOffset2 += baseSize;
+                }
+            });
+            data.find("mbr").each(function() {
+                var th = $(this);
+                var o = parseInt(th.attr('o'))/8 + baseOffset;
+                var r = th.attr('r');
+                var t = th.attr('t');
+                html += "<tr data-ref='"+escape_html(r)+"'><th>" + o + "</th><td>"
+                    + escape_html(t) + "</td><td><a href='#'>"
+                    + escape_html(demangleFunctionName(r)) + "</a></td></tr>";
+            });
+        }
+        if (classData[ref])
+            buildLayoutRecursive(classData[ref], 0, 0);
+
+        if (html) {
+            $("#layout").html("<h3>Class layout</h3><table border='1'>"+html+"</table>");
+            var getUrl = function(ref, callback) {
+                var url = proj_root_path + "/refs/" + ref;
+                $.get(url, function(data) {
+                    var res = $("<data>"+data+"</data>");
+                    var def =  res.find("dec[f],def[f]");
+                    if (def.length > 0) {
+                        var def = $(def[0]);
+                        var file = def.attr("f");
+                        var line = def.attr("l");
+                        var isMarcro = def.attr("macro");
+                        //var brk = def.attr("brk"); //--
+                        callback(proj_root_path + "/" + file + ".html#" + (isMarcro ? result.line : ref ));
+                    }
+                });
+            };
+
+            $('#layout [data-ref]').on(
+                { "click": function(e) {
+                    var tt = $(this);
+                    if (tt.attr("href") === "#") {
+                        getUrl(tt.parent().parent().attr("data-ref"), function(url) {
+                            window.location = url;
+                        });
+                        e.preventDefault()
+                        return false;
+                    }
+                }, "mouseenter": function(e) {
+                    var tt = $(this);
+                    if (tt.attr("href") === "#" && !this._requested) {
+                        this._requested = true;
+                        getUrl(tt.parent().parent().attr("data-ref"), function(url) {
+                            tt.attr("href", url);
+                        });
+                    }
+                }}, "a");
+        }
+    }
 //------------------------------------------------------------------------------------------------
 
 
@@ -803,17 +883,8 @@ function getParameterByName(name) {
 <p>Loading...</p>
 </div>
 
-
-<!--<div>
-<pre id="graph">
-</pre>
-</div>-->
 <div id="graph"></div>
-
-
-
-
+<div id="layout"></div>
 </body>
-
 </html>
 

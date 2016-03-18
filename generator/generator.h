@@ -72,4 +72,10 @@ public:
 
     static llvm::StringRef escapeAttr(llvm::StringRef, llvm::SmallVectorImpl<char> &buffer);
     static void escapeAttr(llvm::raw_ostream& os, llvm::StringRef s);
+
+    struct EscapeAttr { llvm::StringRef value; };
 };
+
+inline llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Generator::EscapeAttr s)
+{ Generator::escapeAttr(os, s.value);  return os; }
+
