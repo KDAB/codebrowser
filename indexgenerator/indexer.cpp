@@ -75,7 +75,9 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
     breadcrumb = "<a href='../" +parent +"'>" + project + "</a>/" + breadcrumb;
 
     myfile << "<!doctype html>\n"
-              "<head><title>Index of " << path << " - Woboq Code Browser</title>"
+              "<head><title>";
+    myfile << project << "/" << path;
+    myfile << " Source Tree - Woboq Code Browser</title>"
               "<link rel=\"stylesheet\" href=\"" << data_path << "/indexstyle.css\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";
