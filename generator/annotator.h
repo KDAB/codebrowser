@@ -85,8 +85,13 @@ private:
 
     void addReference(const std::string& ref, clang::SourceLocation refLoc, Annotator::TokenType type,
                       Annotator::DeclType dt, const std::string &typeRef, clang::Decl *decl);
-    // ref -> [ what, loc, typeRef ]
-    std::map<std::string, std::vector<std::tuple<DeclType, clang::SourceLocation, std::string>>> references;
+
+    struct Reference {
+        DeclType what;
+        clang::SourceLocation loc;
+        std::string typeOrContext;
+    };
+    std::map<std::string, std::vector<Reference>> references;
     std::map<std::string, ssize_t> structure_sizes;
     std::map<std::string, ssize_t> field_offsets;
     std::unordered_map<pathTo_cache_key_t, std::string> pathTo_cache;

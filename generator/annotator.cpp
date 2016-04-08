@@ -316,7 +316,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
     for (auto it : commentHandler.docs) references[it.first];
 
     create_directories(llvm::Twine(projectManager.outputPrefix, "/refs/_M"));
-    for (auto it : references) {
+    for (const auto &it : references) {
         if (llvm::StringRef(it.first).startswith("__builtin"))
             continue;
         if (it.first == "main")
@@ -341,8 +341,8 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
         }
 #endif
-        for (auto &it2 : it.second) {
-            clang::SourceLocation loc = std::get<1>(it2);
+        for (const auto &it2 : it.second) {
+            clang::SourceLocation loc = it2.loc;
             clang::SourceManager &sm = getSourceMgr();
             clang::SourceLocation exp = sm.getExpansionLoc(loc);
             std::string fn = htmlNameForFile(sm.getFileID(exp));
@@ -351,7 +351,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
             const char *tag = "";
             char usetype = '\0';
-            switch(std::get<0>(it2)) {
+            switch(it2.what) {
                 case Use:
                     tag = "use";
                     break;
@@ -393,9 +393,9 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             if (loc.isMacroID()) myfile << " macro='1'";
             if (!WasInDatabase) myfile << " brk='1'";
             if (usetype) myfile << " u='" << usetype << "'";
-            const auto &refType = std::get<2>(it2);
+            const auto &refType = it2.typeOrContext;
             if (!refType.empty()) {
-                myfile << ((std::get<0>(it2) < Use) ? " type='" : " c='");
+                myfile << ((it2.what < Use) ? " type='" : " c='");
                 Generator::escapeAttr(myfile, refType);
                 myfile <<"'";
             }
@@ -749,7 +749,7 @@ void Annotator::addReference(const std::string &ref, clang::SourceLocation refLo
         if (size >= 0) {
             structure_sizes[ref] = size;
         }
-        references[ref].push_back( std::make_tuple(dt, refLoc, typeRef) );
+        references[ref].push_back( { dt, refLoc, typeRef } );
         if (dt < Use) {
             ssize_t offset = getFieldOffset(decl);
             if (offset >= 0) {
@@ -773,16 +773,16 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
 
     auto ovrRef = getReferenceAndTitle(overrided).first;
     auto declRef = getReferenceAndTitle(decl).first;
-    references[ovrRef].push_back( std::make_tuple(Override, expensionloc, declRef) );
+    references[ovrRef].push_back( { Override, expensionloc, declRef } );
 
     // Register the reversed relation.
     clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
-    references[declRef].push_back( std::make_tuple(Inherit, ovrLoc, ovrRef) );
+    references[declRef].push_back( { Inherit, ovrLoc, ovrRef } );
 }
 
 void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refLoc, DeclType declType)
 {
-    references[ref].push_back( std::make_tuple(declType, refLoc, std::string()) );
+    references[ref].push_back( { declType, refLoc, std::string() } );
     if (declType == Annotator::Declaration) {
         commentHandler.decl_offsets.insert({ refLoc, {ref, true} });
     }
