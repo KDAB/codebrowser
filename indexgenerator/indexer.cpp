@@ -39,6 +39,49 @@ struct FolderInfo {
     std::map<std::string, std::shared_ptr<FolderInfo>> subfolders;
 };
 
+std::string extractMetaFromHTML(std::string metaName, std::string fullPath) {
+    std::ifstream filein(fullPath, std::ifstream::in);
+    std::string needle = "<meta name=\"woboq:interestingDefinitions\" content=\"";
+    std::string endneedle = "\"/>\n";
+    for (std::string line; std::getline(filein, line); ) {
+        if (line.find(needle, 0) == 0) {
+            return line.substr(needle.length(), line.length() - needle.length() - endneedle.length());
+        }
+    }
+    return "";
+}
+
+std::string cutNameSpace(std::string &className) {
+    int colonPos = className.find_last_of("::");
+    if (colonPos != std::string::npos)
+        return className.substr(colonPos+1);
+    else
+        return className;
+}
+
+void linkInterestingDefinitions(std::ofstream &myfile, std::string linkFile, std::string &interestingDefitions)
+{
+    if (interestingDefitions.length() == 0) {
+        return;
+    }
+    myfile << "<ul>";
+    std::istringstream f(interestingDefitions);
+    std::string className;
+    while (std::getline(f, className, ',')) {
+        if (className.length() == 0) {
+            continue;
+        }
+        myfile << "<li><a href='" << linkFile << "#" << className << "'"
+               << " title='" << className << "'" << ">";
+        if (className.find("(anonymous") == std::string::npos) {
+            className = cutNameSpace(className);
+        }
+        myfile << className  << "</a></li>";
+    }
+    myfile << "</ul>";
+
+}
+
 void gererateRecursisively(FolderInfo *folder, const std::string &root, const std::string &path, const std::string &rel = "") {
     std::ofstream myfile;
     std::string filename = root + "/" + path + "index.html";
@@ -47,17 +90,18 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
         std::cerr << "Error generating " << filename << std::endl;
         return;
     }
+    std::cerr << "Generating " << filename << std::endl;
 
     std::string data_path = data_url ? std::string(data_url) : (rel + "../data");
 
-    unsigned int pos = root.rfind('/', root.size()-2);
+    size_t pos = root.rfind('/', root.size()-2);
     std::string project = pos < root.size() ? root.substr(pos+1) : root;
-    std::string breadcrumb = path;
+    std::string breadcrumb = "<a href=''>" +path + "</a>";
     std::string parent;
 
     pos = path.rfind('/', path.size()-2);
     if (pos < path.size()) {
-      breadcrumb = path.substr(pos+1);
+      breadcrumb = "<a href=''>" + path.substr(pos+1)+ "</a>";
 
       unsigned int next_pos;
       while (pos > 0 && (next_pos = path.rfind('/', pos-1)) < path.size()) {
@@ -72,26 +116,31 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
           breadcrumb = "<a href='" +parent +"'>" + path.substr(0, pos) + "</a>/" + breadcrumb;
       }
     }
-    breadcrumb = "<a href='../" +parent +"'>" + project + "</a>/" + breadcrumb;
+    if (path.length() > 0) {
+        breadcrumb = "<a href='../" +parent +"'>" + project + "</a>/" + breadcrumb;
+    } else {
+        breadcrumb = "<a href=''>" + project + "</a>/" + breadcrumb;
+    }
 
     myfile << "<!doctype html>\n"
               "<head><title>";
     myfile << project << "/" << path;
-    myfile << " Source Tree - Woboq Code Browser</title>"
+    myfile << " Source Tree - Woboq Code Browser</title>\n"
+           << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
               "<link rel=\"stylesheet\" href=\"" << data_path << "/indexstyle.css\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";
     myfile << "<script>var path = '"<< path <<"'; var root_path = '"<< rel <<"'; var project='"<< project <<"'; </script>\n"
               "<script src='" << data_path << "/indexscript.js'></script>\n"
               "</head>\n<body>\n";
-    myfile << "<h1><a href='https://code.woboq.org'>Woboq Code Browser</a></h1>\n";
+    myfile << "<div id='toprightlogo'><a href='https://code.woboq.org'></a></div>\n";
     myfile << "<p><input id='searchline' placeholder='Search for a file'  type='text'/></p>\n";
-    myfile << "<h2> Index of <em>" << breadcrumb << "</em></h2>\n";
+    myfile << "<h1 id='title'>Browse the source code of " << breadcrumb << " online</h1>\n";
     myfile << "<hr/><table id='tree'>\n";
 
     //if (!path.empty())
     {
-        myfile << " <tr><td class='parent'>    <a href='../'>../</a></td></tr>\n";
+        myfile << " <tr><td class='parent'>    <a href='../'>../</a></td><td></td></tr>\n";
     }
 
     for (auto it : folder->subfolders) {
@@ -99,11 +148,17 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
         if (it.second) {
             gererateRecursisively(it.second.get(), root, path+name+"/", rel + "../");
             myfile << "<tr><td class='folder'><a href='"<< name <<"/' class='opener' data-path='" << path << name << "'>[+]</a> "
-                      "<a href='" << name << "/'>" << name << "/</a></td></tr>\n";
+                      "<a href='" << name << "/'>" << name << "/</a></td><td></td></tr>\n";
         } else {
+            std::string interestingDefintions = extractMetaFromHTML("woboq:interestingDefinitions", root + "/" + path + name + ".html");
             myfile << "<tr><td class='file'>    <a href='" << name << ".html'>"
                    << name
-                   << "</a></td></tr>\n";
+                   << "</a>"
+                   << "<span class='meta'>";
+            linkInterestingDefinitions(myfile, name+".html", interestingDefintions);
+            myfile << "</span>"
+                   << "</td>"
+                   << "</tr>\n";
         }
     }
 
@@ -124,7 +179,7 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
         }
     }
     myfile << "<br />Powered by <a href='https://woboq.com'><img alt='Woboq' src='https://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='https://code.woboq.org'>Code Browser</a> "
-            CODEBROWSER_VERSION "\n</p>\n</body></html>\n";
+            CODEBROWSER_VERSION "\n<br/>Generator usage only permitted with license</p>\n</body></html>\n";
 }
 
 int main(int argc, char **argv) {

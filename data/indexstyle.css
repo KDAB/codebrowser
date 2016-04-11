@@ -6,11 +6,15 @@ a:visited { color: #737; }
 a:hover{  text-decoration: underline }
 #footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
 #footer img { vertical-align: middle; }
-#whatisit { width: 640px; margin: auto }
+#whatisit { max-width: 30em; margin: auto; padding:1ex; }
 img { border: none; }
 input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
+@media only screen and (max-width: 30em) {
+    input#searchline {max-width: 90%; }
+}
 p {  margin:0 }
 
+/* 1.9 logo, we keep this for compatibility for a common data/ directory */
 h1 { float: right; padding: 0px; margin:1px;
     background-image: url(woboq-48.png); background-repeat: no-repeat;
     height:48px; width: 126px; overflow:hidden
@@ -19,16 +23,30 @@ h1 a { visibility:hidden }
 
 h2 { font-size:medium; font-weight: normal;
         padding:0; margin: 0 1ex 2ex 1ex;   }
+/* end compatibility */
+div#toprightlogo {
+    float: right; padding: 0px; margin:1px;
+    background-image: url(woboq-48.png); background-repeat: no-repeat;
+    height:48px; width: 126px; overflow:hidden
+}
+@media only screen and (max-width: 30em) {
+    div#toprightlogo {display:block;float:none; margin:1em auto;  padding: 0}
+}
+/* new h1 breadcrumb: */
+h1#title { float: none; background-image: none; height:auto;width:auto; font-size:1em;
+font-weight:normal;  margin-left:1ex;}
+h1#title a { visibility: visible }
+
 
 a { text-decoration:none}
 
 hr { margin: 0; border-collapse:collapse;  }
 
-table#tree { margin: 0; padding: 1ex 1ex; }
-table#tree { width:640px; text-align:left;  margin: auto}
+table#tree { padding: 1ex 1ex; }
+table#tree { text-align:left; margin: auto}
 
 
-table#tree table { padding:0; padding-left: 4ex; width:100%; margin:0; border:0; }
+table#tree table { padding:0; padding-left: 4ex; margin:0; border:0; }
 table#tree td { white-space: pre; font-family:monospace; margin:0; padding:0; border: 0 }
 table#tree tr { margin:0; border:0; padding:0 }
 
@@ -45,3 +63,9 @@ td.file > a { padding-left: 22px; background: url("txt.png") no-repeat left }
 td.parent > a { padding-left: 22px; background: url("back.png") no-repeat left }
 
 td a.opener { color:inherit; background: none; padding:0 }
+
+/* class list */
+td span.meta { white-space:pre-line;display:inline ; float:right;}
+td span.meta a { }
+td span.meta ul { margin: 0; padding:0; display:inline ;}
+td span.meta ul li { list-style-type: none; padding:0; margin:0;padding-left:1ex; };

@@ -29,6 +29,7 @@
 #include <iostream>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/ADT/StringExtras.h>
 
 llvm::StringRef Generator::escapeAttr(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
 {
@@ -75,7 +76,8 @@ void Generator::Tag::close(std::ostream &myfile) const
 }
 
 void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, const std::string &filename,
-                         const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage)
+                         const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage,
+                         const std::set<std::string> &interestingDefinitions)
 {
     std::string real_filename = outputPrefix % "/" % filename % ".html";
     // Make sure the parent directory exist:
@@ -99,7 +101,11 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
     "<html>\n<head>\n";
-    myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " [" << filename << "] - Woboq Code Browser</title>\n";
+    myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " source code [" << filename << "] - Woboq Code Browser</title>\n";
+    if (interestingDefinitions.size() > 0) {
+        std::string interestingDefitionsStr =  llvm::join(interestingDefinitions.begin(), interestingDefinitions.end(), ",");
+        myfile << "<meta name=\"woboq:interestingDefinitions\" content=\"" << interestingDefitionsStr << " \"/>\n";
+    }
     myfile << "<link rel=\"stylesheet\" href=\"" << dataPath << "/kdevelop.css\" title=\"KDevelop\"/>\n";
     myfile << "<link rel=\"alternate stylesheet\" href=\"" << dataPath << "/qtcreator.css\" title=\"QtCreator\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery.min.js\"></script>\n";
@@ -118,7 +124,9 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "</script>\n"
               "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
-    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Source code of </span>";
+    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse source code of </span>";
+    // FIXME: If interestingDefitions has only 1 class, add it to the h1
+
     {
         int i = 0;
         llvm::StringRef tail = filename;
@@ -134,9 +142,10 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
             ++i;
         }
         auto split = tail.split('/');
-        myfile << "<a href='./'>" << split.first.str() << "</a>/" << split.second.str();
+        myfile << "<a href='./'>" << split.first.str() << "</a>/";
+        myfile << "<a href='" << split.second.str() << ".html'>" << split.second.str() << "</a>";
     }
-    myfile << "</h1></div>\n<hr/><div id='content'>";
+    myfile << " online</h1></div>\n<hr/><div id='content'>";
 
     if (!warningMessage.empty()) {
         myfile << "<p class=\"warnmsg\">";
@@ -237,6 +246,6 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile.write(footer.begin(), footer.size());
 
     myfile << "<br />Powered by <a href='https://woboq.com'><img alt='Woboq' src='https://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='https://code.woboq.org'>Code Browser</a> "
-              CODEBROWSER_VERSION "\n</p>\n</div></body></html>\n";
+              CODEBROWSER_VERSION "\n<br/>Generator usage only permitted with license.</p>\n</p>\n</div></body></html>\n";
 }
 

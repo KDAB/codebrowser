@@ -24,6 +24,8 @@
 #include <string>
 #include <set>
 #include <map>
+#include <vector>
+#include <unordered_set>
 #include <llvm/ADT/SmallString.h>
 
 namespace llvm {
@@ -65,7 +67,8 @@ public:
     }
 
     void generate(llvm::StringRef outputPrefix, std::string dataPath, const std::string &filename,
-                  const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage);
+                  const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage,
+                  const std::set<std::string> &interestingDefitions);
 
     static llvm::StringRef escapeAttr(llvm::StringRef, llvm::SmallVectorImpl<char> &buffer);
     static void escapeAttr(llvm::raw_ostream& os, llvm::StringRef s);

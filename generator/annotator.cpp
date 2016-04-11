@@ -36,6 +36,7 @@
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
+#include <clang/Tooling/Tooling.h>
 
 #include <iostream>
 #include <sstream>
@@ -231,6 +232,13 @@ static char normalizeForfnIndex(char c) {
     return c;
 }
 
+void Annotator::registerInterestingDefinition(clang::SourceRange sourceRange, clang::NamedDecl *decl) {
+    std::string declName = decl->getQualifiedNameAsString();
+    clang::FileID fileId = sourceManager->getFileID(sourceRange.getBegin());
+    auto &set = interestingDefinitionsInFile[fileId];
+    set.insert(declName);
+}
+
 bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 {
     std::ofstream fileIndex;
@@ -296,7 +304,8 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
                    Buf->getBufferStart(), Buf->getBufferEnd(), footer,
                    WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
-                                        "It may have many parsing errors.");
+                                        "It may have many parsing errors.",
+                   interestingDefinitionsInFile[FID]);
 
         if (projectinfo.type == ProjectInfo::Normal)
             fileIndex << fn << '\n';
@@ -553,6 +562,18 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     clang::SourceManager &sm = getSourceMgr();
 
     Visibility visibility = getVisibility(decl);
+
+    // Interesting definitions
+    if (declType == Annotator::Definition && visibility == Visibility::Global) {
+        if (llvm::isa<clang::TagDecl>(decl) ||
+                (llvm::isa<clang::FunctionDecl>(decl)
+                 && decl->getName().equals("main"))) {
+            if (decl->getDeclContext()->isNamespace() || decl->getDeclContext()->isTranslationUnit()) {
+                registerInterestingDefinition(range, decl);
+            }
+        }
+    }
+
 
     if (!range.getBegin().isFileID()) { //macro expension.
         clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());

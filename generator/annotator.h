@@ -25,6 +25,7 @@
 #include <string>
 #include <map>
 #include <unordered_map>
+#include <set>
 #include <vector>
 #include <clang/AST/Mangle.h>
 #include "commenthandler.h"
@@ -99,6 +100,8 @@ private:
 
     std::unordered_map<unsigned, int> localeNumbers;
 
+    std::map<clang::FileID, std::set<std::string> > interestingDefinitionsInFile;
+
     std::string args;
     clang::SourceManager *sourceManager = nullptr;
     const clang::LangOptions *langOption = nullptr;
@@ -138,6 +141,9 @@ public:
     void registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overrided, clang::SourceLocation loc);
     // same, but for macro
     void registerMacro(const std::string &ref, clang::SourceLocation refLoc, DeclType declType);
+
+    // Class names, structs, objective C identifiers, main function
+    void registerInterestingDefinition(clang::SourceRange range, clang::NamedDecl *decl);
 
     void reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string& clas);
 

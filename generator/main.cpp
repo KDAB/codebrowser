@@ -496,7 +496,8 @@ int main(int argc, const char **argv) {
             Generator g;
             g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
                        Buf->getBufferStart(), Buf->getBufferEnd(), footer,
-                       "Warning: This file is not a C or C++ file. It does not have highlighting.");
+                       "Warning: This file is not a C or C++ file. It does not have highlighting.",
+                       std::set<std::string>());
 
             std::ofstream fileIndex;
             fileIndex.open(projectManager.outputPrefix + "/otherIndex", std::ios::app);
