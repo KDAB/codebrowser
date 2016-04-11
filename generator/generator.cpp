@@ -66,7 +66,9 @@ void Generator::Tag::open(std::ostream &myfile) const
     if (len) {
         myfile << ">";
     } else {
-        myfile << "/>";
+        // Unfortunately, html5 won't allow <a /> or <span /> tags, they need to be explicitly closed
+        //    myfile << "/>";
+        myfile << "></" << name << ">";
     }
 }
 

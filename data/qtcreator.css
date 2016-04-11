@@ -78,4 +78,6 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
  
  /* Macro expansions.*/
  .expansion { display: none;  white-space: pre ; }
- 
+
+.fake { display: inline-block; position:relative; bottom: 0.7em; opacity: 0.8; font-size:small }
+.fake::before { content: "\2380"; }

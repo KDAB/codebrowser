@@ -43,8 +43,11 @@ class Generator {
         int pos;
         int len;
         bool operator<(const Tag &other) const {
+            //This is the order of the opening tag. Order first by position, then by length
+            // (in the reverse order) with the exception of length of 0 which always goes first.
             // Ordered first by position, and then by lenth (reverse order)
-            return (pos != other.pos) ? pos < other.pos : len > other.len;
+            return (pos != other.pos) ? pos < other.pos
+                                      : len == 0 || (other.len != 0 && len > other.len);
         }
         void open(std::ostream& myfile) const;
         void close(std::ostream& myfile) const;

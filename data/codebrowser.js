@@ -699,11 +699,14 @@ $(function () {
 
             tt.empty();
             if (!isMacro) {
+                var preTitle = "";
+                if (elem.hasClass("fake"))
+                    preTitle = "Implicit copy or conversion: ";
                 if (symbolUrl) {
-                    tt.append($("<b />").append($("<a class='link' href='"+ symbolUrl +"' />").text(title)));
+                    tt.append($("<b />").append(preTitle, $("<a class='link' href='"+ symbolUrl +"' />").text(title)));
                     tt.append("<span style='float:right'><a href='" + symbolUrl +"'>&#x1f517;</a></span>");
                 } else if (id && id != "") {
-                    tt.append($("<b />").append($("<a class='link' href='#"+ id +"' />").text(title)));
+                    tt.append($("<b />").append(preTitle, $("<a class='link' href='#"+ id +"' />").text(title)));
                 } else {
                     tt.append($("<b />").text(title));
                 }

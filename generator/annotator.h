@@ -139,8 +139,16 @@ public:
     std::string pathTo(clang::FileID From, clang::FileID To, std::string *proj = nullptr);
     std::string pathTo(clang::FileID From, const clang::FileEntry* To);
 
-    // only use typeRef for declarations (or definition)
-    // only use usedContext for uses
+    /**
+     * Registers that the code in the given \a range refers to the specified declaration.
+     * This will highlight the rights portion of the code and registers it in the database.
+     *
+     * When the range.getEndLocation refers to an invalid location, this means this is a
+     * virtual range with no associated token (e.g. implicit conversions) which will be handled
+     * with an empty <span>.
+     *
+     * Only use typeRef for declarations (or definition), only use usedContext for uses
+     */
     void registerReference(clang::NamedDecl *decl, clang::SourceRange range,
                            TokenType type, DeclType declType = Annotator::Use,
                            std::string typeRef = std::string(),

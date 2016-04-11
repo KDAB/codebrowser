@@ -143,10 +143,15 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     }
 
     bool VisitMemberExpr(clang::MemberExpr *e) {
-       annotator.registerUse(e->getMemberDecl(), e->getMemberNameInfo().getSourceRange() ,
+        auto range = e->getMemberNameInfo().getSourceRange();
+        if (range.getBegin().isInvalid()) {
+            // implicit conversion operator;
+            range = {e->getLocStart(), clang::SourceLocation{}};
+        }
+        annotator.registerUse(e->getMemberDecl(), range,
                              isMember(e->getMemberDecl()) ? Annotator::Member : Annotator::Ref,
                              currentContext, classify());
-       return true;
+        return true;
     }
     bool VisitDeclRefExpr(clang::DeclRefExpr *e) {
         clang::ValueDecl* decl = e->getDecl();
@@ -240,9 +245,13 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 #else
             clang::SourceLocation parenLoc = ctr->getParenOrBraceRange().getBegin();
 #endif
-
-            // Highlight the opening parenthese
-            annotator.registerUse(decl, parenLoc, Annotator::Ref, currentContext, Annotator::Use_Call);
+            if (parenLoc.isValid()) {
+                // Highlight the opening parenthese
+                annotator.registerUse(decl, parenLoc, Annotator::Ref, currentContext, Annotator::Use_Call);
+            } else if (!ctr->isElidable()) {
+                annotator.registerUse(decl, {ctr->getLocation(), clang::SourceLocation{}} ,
+                                      Annotator::Ref, currentContext, Annotator::Use_Call);
+            }
         }
         QtSupport qt{annotator, currentContext};
         qt.visitCXXConstructExpr(ctr);

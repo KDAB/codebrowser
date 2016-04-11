@@ -128,5 +128,7 @@ $green:     #859900;
  /* Old Macro expansions.*/
  .expansion { display: none; }
 
+.fake { display: inline-block; position:relative; bottom: 0.7em; opacity: 0.8; font-size:small }
+.fake::before { content: "\2380"; }
 
 

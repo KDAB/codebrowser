@@ -594,6 +594,12 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     }
 
 
+    // When the end location is invalid, this is a virtual range with no matching tokens
+    // (eg implicit conversion)
+    bool isVirtualLocation = range.getEnd().isInvalid();
+    if (isVirtualLocation)
+        range = range.getBegin();
+
     if (!range.getBegin().isFileID()) { //macro expension.
         clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());
         clang::FileID FID = sm.getFileID(expensionloc);
@@ -620,9 +626,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     }
     clang::FileID FID = sm.getFileID(range.getBegin());
 
-    if (FID != sm.getFileID(range.getEnd())) {
+    if (!isVirtualLocation && FID != sm.getFileID(range.getEnd()))
         return;
-    }
 
     if (!shouldProcess(FID))
         return;
@@ -706,13 +711,17 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
     clang::SourceLocation B = range.getBegin();
-    clang::SourceLocation E = range.getEnd();
+    clang::SourceLocation E = isVirtualLocation ? B : range.getEnd();
 
     int pos = sm.getFileOffset(B);
-    int len =  sm.getFileOffset(E) - pos;
+    int len = sm.getFileOffset(E) - pos;
 
-    // Include the whole end token in the range.
-    len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
+    if (!isVirtualLocation) {
+        // Include the whole end token in the range.
+        len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
+    } else {
+        clas += " fake";
+    }
 
     canonDecl = getDefinitionDecl(decl);
 
@@ -750,7 +759,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             }
         }
         llvm::SmallString<6> locBuffer;
-        link %= "#" % (loc.isFileID() ? escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).toStringRef(locBuffer));
+        link %= "#" % (loc.isFileID() && !decl->isImplicit() ?
+                escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).toStringRef(locBuffer));
         std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
         generator(FID).addTag("a", tag, pos, len);
     } else {
