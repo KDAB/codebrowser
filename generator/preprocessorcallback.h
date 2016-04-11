@@ -24,6 +24,7 @@
 #include <clang/Lex/PPCallbacks.h>
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Basic/Version.h>
+#include <clang/AST/Decl.h>
 
 namespace clang {
 class Preprocessor;
