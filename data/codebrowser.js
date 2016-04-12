@@ -633,6 +633,7 @@ $(function () {
                         return false;
                     }
                     var dict = { };
+                    var usesTypeCount = { };
                     uses.each(function() {
                         var t = $(this);
                         var f = t.attr("f");
@@ -650,19 +651,25 @@ $(function () {
                         c = demangleFunctionName(c)
                         if (!c) c = f + ":" + l;
                         dict[f].count++;
+                        usesTypeCount[u||"?"] = (usesTypeCount[u||"?"]||0) + 1;
 
                         if (!Object.prototype.hasOwnProperty.call(dict[f].contexts, c)) {
                             dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
                             dict[f].contexts[c].count = 1;
                             if (u) {
                                 dict[f].contexts[c].usesType = "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                                dict[f].contexts[c].usesRaw = u;
                             } else {
                                 dict[f].contexts[c].usesType = "";
+                                dict[f].contexts[c].usesRaw = "?";
                             }
                         } else {
                             dict[f].contexts[c].count++;
-                            if (u && dict[f].contexts[c].usesType.indexOf(">"+u+"<") === -1)
-                                dict[f].contexts[c].usesType += "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                            if (dict[f].contexts[c].usesRaw.indexOf(u||"?") === -1) {
+                                if (u)
+                                    dict[f].contexts[c].usesType += "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                                dict[f].contexts[c].usesRaw += (u||"?");
+                            }
                         }
                     });
                     var list = [];
@@ -673,12 +680,15 @@ $(function () {
                     list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : a.brk ? 1 : b.f - a.f });
                     var ul = $("<ul class='uses'/>");
                     for (var i = 0; i < list.length; ++i) {
+                        var usestypes = "";
                         var subul = $("<ul/>");
                         for (var xx in list[i].contexts) if (Object.prototype.hasOwnProperty.call(list[i].contexts, xx)) {
                             var context = list[i].contexts[xx];
-                            subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")"));
+                            usestypes += context.usesRaw;
+                            subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")")
+                                .attr("data-uses", context.usesRaw));
                         }
-                        ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
+                        ul.append(list[i].elem.append(" (" + list[i].count+")").attr("data-uses",usestypes).append(subul));
                     }
                     tt.find(".uses_placeholder").append(ul).html();
                     useShown = true;

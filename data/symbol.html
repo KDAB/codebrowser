@@ -306,6 +306,7 @@ function getParameterByName(name) {
             }
             */
             var dict = { };
+            var usesTypeCount = { };
             uses.each(function() {
                 var t = $(this);
                 var f = t.attr("f");
@@ -323,19 +324,25 @@ function getParameterByName(name) {
                 c = demangleFunctionName(c)
                 if (!c) c = f + ":" + l;
                 dict[f].count++;
+                usesTypeCount[u||"?"] = (usesTypeCount[u||"?"]||0) + 1;
 
                 if (!Object.prototype.hasOwnProperty.call(dict[f].contexts, c)) {
                     dict[f].contexts[c] = $("<li/>").append($("<a/>").attr("href", url).text(c));
                     dict[f].contexts[c].count = 1;
                     if (u) {
                         dict[f].contexts[c].usesType = "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                        dict[f].contexts[c].usesRaw = u;
                     } else {
                         dict[f].contexts[c].usesType = "";
+                        dict[f].contexts[c].usesRaw = "?";
                     }
                 } else {
                     dict[f].contexts[c].count++;
-                    if (u && dict[f].contexts[c].usesType.indexOf(">"+u+"<") === -1)
-                        dict[f].contexts[c].usesType += "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                    if (dict[f].contexts[c].usesRaw.indexOf(u||"?") === -1) {
+                        if (u)
+                            dict[f].contexts[c].usesType += "<abbr title='"+ useExplain[u] +"'>"+u+"</abbr>";
+                        dict[f].contexts[c].usesRaw += (u||"?");
+                    }
                 }
             });
             var list = [];
@@ -347,19 +354,45 @@ function getParameterByName(name) {
             //list.sort(function(a,b){ var dif = b.prefixL - a.prefixL; return dif ? dif : a.brk ? 1 : b.f - a.f });
             var ul = $("<ul class='uses'/>");
             for (var i = 0; i < list.length; ++i) {
+                var usestypes = "";
                 var subul = $("<ul/>");
                 for (var xx in list[i].contexts) if (Object.prototype.hasOwnProperty.call(list[i].contexts, xx)) {
                     var context = list[i].contexts[xx];
-                    subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")"));
+                    usestypes += context.usesRaw;
+                    subul.append(list[i].contexts[xx].append(" (" + context.count+" " + context.usesType + ")")
+                        .attr("data-uses", context.usesRaw));
                 }
-                ul.append(list[i].elem.append(" (" + list[i].count+")").append(subul));
+                ul.append(list[i].elem.append(" (" + list[i].count+")").attr("data-uses",usestypes).append(subul));
             }
 //END
         if (uses.length > 0) {
-            content += "<h3 id='uses'>Uses (" + uses.length + ")</h3>" + $("<span>").append(ul).html();
+            content += "<h3 id='uses'>Uses (" + uses.length + ")</h3>" ;
+            content += "<form>";
+            var useLabel = {
+                r: "Read",
+                w: "Write",
+                a: "Address Taken",
+                c: "Called",
+                m: "Member Accessed",
+                "?": "Others"
+            };
+            for (var xx in usesTypeCount) {
+                if (useLabel[xx]) {
+                    content += "<label title='" + useExplain[xx]
+                        + "'><input type='checkbox' checked='1' data-check='" + xx + "' />"
+                        + useLabel[xx] + " (" + usesTypeCount[xx] + ") &nbsp; </label> &nbsp; ";
+                }
+            }
+            content += "</form>" + $("<span>").append(ul).html();
         }
 
         $("#main").html(content);
+        $("#uses+form input").change(function() {
+            $("[data-uses]").hide();
+            $("#uses+form input:checked").each(function() {
+                $("[data-uses*='"+$(this).attr("data-check")+"']").show();
+            });
+        });
 
         buildInheritenceGraph(ref, res)
 
