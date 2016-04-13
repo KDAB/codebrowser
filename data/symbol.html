@@ -388,10 +388,14 @@ function getParameterByName(name) {
 
         $("#main").html(content);
         $("#uses+form input").change(function() {
-            $("[data-uses]").hide();
+            var style = "[data-uses]"
             $("#uses+form input:checked").each(function() {
-                $("[data-uses*='"+$(this).attr("data-check")+"']").show();
+                style+=":not([data-uses*='"+$(this).attr("data-check")+"'])";
             });
+            style+="{display:none}"
+            var s = $("style#uses_style");
+            if (s.length) s.text(style);
+            else $("<style id='uses_style'>"+style+"</style>").appendTo("head");
         });
 
         buildInheritenceGraph(ref, res)
