@@ -68,4 +68,13 @@ td a.opener { color:inherit; background: none; padding:0 }
 td span.meta { white-space:pre-line;display:inline ; float:right;}
 td span.meta a { }
 td span.meta ul { margin: 0; padding:0; display:inline ;}
-td span.meta ul li { list-style-type: none; padding:0; margin:0;padding-left:1ex; };
+td span.meta ul li { list-style-type: none; padding:0; margin:0;padding-left:1ex; }
+
+/* Hide [+], make more list-ish */
+@media only screen and (max-width: 30em) {
+    table#tree td { white-space: pre-line; }
+    td a.opener { display : none; }
+    td span.meta { display: block; float: none;}
+    td > a { margin-bottom: 1em !important; display:block;}
+    td span.meta ul li { margin-bottom: 1em ; }
+}
