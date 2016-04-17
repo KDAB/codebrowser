@@ -294,8 +294,8 @@ static void handleUrlsInComment(Generator& generator, llvm::StringRef rawString,
         // We have an URL
 
         llvm::StringRef urlChars = "-._~:/?#[]@!$&'()*+,;=%"; // chars valid in the URL
-        while(std::isalnum(rawString[pos]) ||
-                urlChars.find(rawString[pos]) != llvm::StringRef::npos)
+        while(pos < rawString.size() && (std::isalnum(rawString[pos]) ||
+                urlChars.find(rawString[pos]) != llvm::StringRef::npos))
             pos++;
 
         // don't end with a period
