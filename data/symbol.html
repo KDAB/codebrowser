@@ -851,6 +851,7 @@ function getParameterByName(name) {
             data.find("mbr").each(function() {
                 var th = $(this);
                 var o = parseInt(th.attr('o'))/8 + baseOffset;
+                o = o || "";
                 var r = th.attr('r');
                 var t = th.attr('t');
                 html += "<tr data-ref='"+escape_html(r)+"'><th>" + o + "</th><td>"
@@ -862,7 +863,8 @@ function getParameterByName(name) {
             buildLayoutRecursive(classData[ref], 0, 0);
 
         if (html) {
-            $("#layout").html("<h3>Class layout</h3><table border='1'>"+html+"</table>");
+            $("#layout").html("<h3>Class layout</h3><table border='1'>"
+                +"<tr><th>Offset</th><th>Type</th><th>Member</th></tr>"+html+"</table>");
             var getUrl = function(ref, callback) {
                 var url = proj_root_path + "/refs/" + ref;
                 $.get(url, function(data) {
