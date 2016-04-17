@@ -584,15 +584,13 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     // Interesting definitions
     if (declType == Annotator::Definition && visibility == Visibility::Global) {
-        if (llvm::isa<clang::TagDecl>(decl) ||
-                (llvm::isa<clang::FunctionDecl>(decl)
-                 && decl->getName().equals("main"))) {
+        if (llvm::isa<clang::TagDecl>(decl) || (llvm::isa<clang::FunctionDecl>(decl)
+                && decl->getDeclName().isIdentifier() && decl->getName() == "main")) {
             if (decl->getDeclContext()->isNamespace() || decl->getDeclContext()->isTranslationUnit()) {
                 registerInterestingDefinition(range, decl);
             }
         }
     }
-
 
     // When the end location is invalid, this is a virtual range with no matching tokens
     // (eg implicit conversion)
