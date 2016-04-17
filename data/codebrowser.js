@@ -708,7 +708,7 @@ $(function () {
                 } else if (id && id != "") {
                     tt.append($("<b />").append(preTitle, $("<a class='link' href='#"+ id +"' />").text(title)));
                 } else {
-                    tt.append($("<b />").text(title));
+                    tt.append($("<b />").text(preTitle + title));
                 }
             } else {
                 if (title) {
