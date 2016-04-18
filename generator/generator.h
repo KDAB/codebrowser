@@ -49,6 +49,10 @@ class Generator {
             return (pos != other.pos) ? pos < other.pos
                                       : len == 0 || (other.len != 0 && len > other.len);
         }
+        bool operator==(const Tag &other) const {
+            return std::tie(pos, len, name, attributes) !=
+                   std::tie(other.pos, other.len, other.name, other.attributes);
+        }
         void open(std::ostream& myfile) const;
         void close(std::ostream& myfile) const;
     };
@@ -63,7 +67,10 @@ public:
         if (len < 0) {
             return;
         }
-        tags.insert({std::move(name), std::move(attributes), pos, len});
+        Tag t = {std::move(name), std::move(attributes), pos, len};
+        auto it = tags.find(t);
+        if (it != tags.end() && *it == t) return; //Hapens in macro for example
+        tags.insert(std::move(t));
     }
     void addProject(std::string a, std::string b) {
         projects.insert({std::move(a), std::move(b) });

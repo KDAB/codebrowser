@@ -732,7 +732,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     llvm::SmallString<40> escapedRefBuffer;
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
-    tags %= " data-ref=\"" % escapedRef % "\" ";
+    tags %= " data-ref=\"" % escapedRef % "\"";
 
     if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;
@@ -743,11 +743,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             link = pathTo(FID, declFID, &dataProj);
 
             if (!dataProj.empty()) {
-                tags %= "data-proj=\"" % dataProj % "\" ";
+                tags %= " data-proj=\"" % dataProj % "\"";
             }
 
-            if (declType != Annotator::Use) {
-                tags %= "id=\"" % escapedRef % "\" ";
+            if (declType < Annotator::Use) {
+                tags %= " id=\"" % escapedRef % "\"";
             }
 
             if (link.empty()) {
