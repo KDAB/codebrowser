@@ -231,11 +231,11 @@ $(function () {
                     break;
                 case '\'':
                     if (string == 0) {
-                        result += "<kdb>\'"
+                        result += "<kbd>\'"
                         string = 2;
                     } else if (string == 2 && (countSlashes(i)%2) == 0) {
                         string = 0;
-                        result += "\'</kdb>"
+                        result += "\'</kbd>"
                     } else {
                         result += c;
                     }

@@ -1120,7 +1120,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
                 ++TokOffs;
                 --TokLen;
             case tok::char_constant:
-                generator.addTag("kdb", {}, TokOffs, TokLen);
+                generator.addTag("kbd", {}, TokOffs, TokLen);
                 break;
             case tok::numeric_constant:
                 generator.addTag("var", {}, TokOffs, TokLen);

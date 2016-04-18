@@ -95,7 +95,7 @@ $green:     #859900;
 .code q::before , .code q::after { content:none; }
 /*.directive,*/ .code u { color: #dc322f; text-decoration:none; }
 /*.num,      */ .code var { color: #2aa198; font-style: normal; }
-/*.char,     */ .code kdb { color: #dc322f }
+/*.char,     */ .code kbd, .code kdb { color: #dc322f }
 
 /* code a,  code dfn  */
 .code .ref, .code .decl { color:#93a1a1}

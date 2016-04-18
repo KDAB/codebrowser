@@ -69,7 +69,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0 }
 .code q::before , .code q::after { content:none; }
 /*.directive,*/ .code u { color: #063; text-decoration:none; }
 /*.num,      */ .code var { color: #B08000; font-style: normal; }
-/*.char,     */ .code kdb { color: #FF80E0 }
+/*.char,     */ .code kdb, .code kbd { color: #FF80E0 }
 
 /* code a,  code dfn  */
 .code .ref { color: #208 }
