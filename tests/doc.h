@@ -11,7 +11,7 @@
     *  * Continued
     * @endcode
     *
-    * <a href="http://woboq.com">and a \c url</a>
+    * <a href="https://woboq.com">and a \c url</a>
     *
     * some more description here, i should really write a lot
     *

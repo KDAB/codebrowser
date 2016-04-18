@@ -1,7 +1,7 @@
 /****************************************************************************
  * Copyright (C) 2012-2016 Woboq GmbH
  * Olivier Goffart <contact at woboq.com>
- * http://woboq.com/codebrowser.html
+ * https://woboq.com/codebrowser.html
  *
  * This file is part of the Woboq Code Browser.
  *
@@ -9,7 +9,7 @@
  * Licensees holding valid commercial licenses provided by Woboq may use
  * this file in accordance with the terms contained in a written agreement
  * between the licensee and Woboq.
- * For further information see http://woboq.com/codebrowser.html
+ * For further information see https://woboq.com/codebrowser.html
  *
  * Alternatively, this work may be used under a Creative Commons
  * Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
@@ -236,7 +236,7 @@ $(function() {
     $("#footer").before("<div id='whatisit'><h3>What is this ?</h3><p>This is an online code browser that allows you to browse C/C++ code just like in your IDE, "
                         +  "with <b>semantic highlighting</b> and contextual <b>tooltips</b> that show you the usages and cross references.<br/>"
 						+  "Open a C or C++ file and try it by hovering over the symbols!<br />"
-						+  "Or take the <a href='http://woboq.com/codebrowser-features.html'>feature tour</a>."
+						+  "Or take the <a href='https://woboq.com/codebrowser-features.html'>feature tour</a>."
 						+  "</p></div>")
 });
 

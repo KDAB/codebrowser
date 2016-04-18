@@ -112,7 +112,7 @@ struct ForwardDeclareWillBeDeclaredAfter
  *
  * dsd
  *
- * (http://woboq.com/)
+ * (https://woboq.com/)
  * visit https://woboq.com/blog.
  * https://en.wikipedia.org/wiki/Qt_(software)
  *
