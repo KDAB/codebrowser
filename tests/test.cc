@@ -337,6 +337,7 @@ struct Val { int v;
 } valval;
 const Val operator+(const Val&, const Val&);
 struct Uses {
+    void operator[](int);
     int hello;
     Val hello2;
     Uses(int i) : hello(i) {}
@@ -348,6 +349,7 @@ struct Uses {
         Val vvv = valval;
         vvv = valval;
         vvv = hello2;
+        (*this)[value];
         while(value) { }
         return value;
     }

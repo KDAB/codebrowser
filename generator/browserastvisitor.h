@@ -394,11 +394,19 @@ private:
                 if (previous == call->getCallee())
                     return Annotator::Use_Call;
                 auto decl = call->getDirectCallee();
+                if (!decl) return Annotator::Use;
                 for (uint i = 0; i < call->getNumArgs(); ++i) {
-                    if (!decl || decl->getNumParams() <= i)
-                        break;
                     if (call->getArg(i) != previous)
                         continue;
+                    if (llvm::isa<clang::CXXOperatorCallExpr>(call)
+                            && decl->getNumParams() < call->getNumArgs()) {
+                        // For example, member operators: first argument is the 'this'
+                        if (i == 0)
+                            return Annotator::Use_MemberAccess;
+                        i--;
+                        if (i >= decl->getNumParams())
+                            break;
+                    }
                     auto t = decl->getParamDecl(i)->getType();
                     if (t->isReferenceType() && !t.getNonReferenceType().isConstQualified())
                         return Annotator::Use_Address; // non const reference
