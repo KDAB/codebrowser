@@ -82,6 +82,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     }
     bool VisitNamespaceAliasDecl(clang::NamespaceAliasDecl *d) {
         annotator.registerReference(d, d->getLocation(), Annotator::Namespace, Annotator::Declaration);
+        annotator.registerReference(d, d->getTargetNameLoc() , Annotator::Namespace);
         return true;
     }
     bool VisitFunctionDecl(clang::FunctionDecl *d) {
@@ -220,9 +221,11 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return Base::TraverseNestedNameSpecifierLoc(NNS);
     }
     bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl *d) {
+        auto qualBeginLoc = d->getQualifierLoc().getBeginLoc();
+        auto identLoc = d->getIdentLocation();
         annotator.registerReference(d->getNominatedNamespace(),
-                                    { d->getQualifierLoc().getBeginLoc(), d->getIdentLocation() }
-                                    , Annotator::Namespace);
+                                    { qualBeginLoc.isValid() ? qualBeginLoc : identLoc, identLoc },
+                                    Annotator::Namespace);
         // don't call Base::TraverseUsingDirectiveDecl in order to skip prefix
         return true;
     }

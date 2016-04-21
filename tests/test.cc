@@ -21,7 +21,7 @@ namespace NS {
 }
 
 using namespace NS::Foo::Bar;
-
+using namespace NS;
 
 /* comment 1 (NOT doc) */  /* comment 2 (NOT doc) */
 struct MyBase {
