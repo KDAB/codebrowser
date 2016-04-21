@@ -404,9 +404,9 @@ private:
                         if (i == 0)
                             return Annotator::Use_MemberAccess;
                         i--;
-                        if (i >= decl->getNumParams())
-                            break;
                     }
+                    if (i >= decl->getNumParams())
+                        break;
                     auto t = decl->getParamDecl(i)->getType();
                     if (t->isReferenceType() && !t.getNonReferenceType().isConstQualified())
                         return Annotator::Use_Address; // non const reference
