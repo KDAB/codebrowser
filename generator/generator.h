@@ -50,7 +50,7 @@ class Generator {
                                       : len == 0 || (other.len != 0 && len > other.len);
         }
         bool operator==(const Tag &other) const {
-            return std::tie(pos, len, name, attributes) !=
+            return std::tie(pos, len, name, attributes) ==
                    std::tie(other.pos, other.len, other.name, other.attributes);
         }
         void open(std::ostream& myfile) const;

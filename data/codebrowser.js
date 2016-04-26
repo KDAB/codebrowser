@@ -838,6 +838,12 @@ $(function () {
         tooltip.showAfterDelay(elem, computePPCondTooltipContent);
     }
 
+    var onMouseEnterArg = function(e) {
+        $(this).attr("title", "Argument passed by reference");
+        tooltip.showAfterDelay($(this), function() {
+            tooltip.tooltip.text("Argument passed by reference");
+        });
+    }
 
     var elemWithTooltip;
     var isTouchEvent = false;
@@ -860,6 +866,8 @@ $(function () {
                   "[data-ref], .macro");
     code.on({"mouseenter": onMouseEnterPPCond, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterPPCond)},
                   "[data-ppcond]");
+    code.on({"mouseenter": onMouseEnterArg, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterArg) },
+                  ".refarg");
     code.on({"click":onMouseClick }, "th a")
 
     tooltip.tooltip.on({"mouseup": onMouseClick}, "a")

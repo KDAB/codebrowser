@@ -828,8 +828,7 @@ void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refL
     }
 }
 
-
-void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string &clas)
+void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, std::string attributes)
 {
     clang::SourceManager &sm = getSourceMgr();
     if (!range.getBegin().isFileID()) {
@@ -855,13 +854,14 @@ void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& ms
     // Include the whole end token in the range.
     len += clang::Lexer::MeasureTokenLength(E, sm, getLangOpts());
 
-    bool Invalid = false;
-    if (Invalid)
-        return;
-    llvm::SmallString<40> buffer;
-    generator(FID).addTag("span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"", pos, len);
+    generator(FID).addTag(std::move(tag), std::move(attributes), pos, len);
 }
 
+void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string &clas)
+{
+    llvm::SmallString<40> buffer;
+    annotateSourceRange(range, "span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"");
+}
 
 //basically loosely inspired from clang_getSpecializedCursorTemplate
 static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D) {

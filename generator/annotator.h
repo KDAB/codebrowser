@@ -164,6 +164,11 @@ public:
     // Class names, structs, objective C identifiers, main function
     void registerInterestingDefinition(clang::SourceRange range, clang::NamedDecl *decl);
 
+    /**
+     * Wrap the source range in an HTML tag
+     */
+    void annotateSourceRange(clang::SourceRange range, std::string tag, std::string attributes);
+
     void reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string& clas);
 
     bool shouldProcess(clang::FileID);

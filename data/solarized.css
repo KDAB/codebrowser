@@ -130,5 +130,6 @@ $green:     #859900;
 
 .fake { display: inline-block; position:relative; bottom: 0.7em; opacity: 0.8; font-size:small }
 .fake::before { content: "\2380"; }
-
+.refarg::before { display: inline-block; position:relative; bottom: 0.7em;
+    opacity: 0.8; font-size:x-small; color: gray; content: "&"; }
 

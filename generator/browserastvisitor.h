@@ -261,6 +261,29 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return true;
     }
 
+
+    bool VisitCallExpr(clang::CallExpr *e) {
+        // Find out arguments passed by references
+        auto decl = e->getDirectCallee();
+        if (decl && !llvm::isa<clang::CXXOperatorCallExpr>(e)) {
+            // Don't handle CXXOperatorCallExpr because it is obvious for operator=  += and so on.
+            // And also because of the wierd rules regarding the member operators and their number
+            // of arguments
+            for (uint i = 0; decl && i < e->getNumArgs() && i < decl->getNumParams() ; ++i) {
+                auto t = decl->getParamDecl(i)->getType();
+                if (t->isLValueReferenceType() && !t.getNonReferenceType().isConstQualified()) {
+                    annotator.annotateSourceRange(e->getArg(i)->getSourceRange(), "span", "class='refarg'");
+                }
+            }
+        }
+
+        // support QObject::connect SIGNAL and SLOT
+        QtSupport qt{annotator, currentContext};
+        qt.visitCallExpr(e);
+        return true;
+    }
+
+
     bool VisitGotoStmt(clang::GotoStmt *stm) {
         if (auto label = stm->getLabel()) {
             annotator.registerReference(label, stm->getLabelLoc(), Annotator::Label, Annotator::Use, {}, currentContext);
@@ -342,14 +365,6 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
     bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo) {
         // Do not visit the TypeLoc of constructor or destructors
-        return true;
-    }
-
-
-    // This is only to support QObject::connect SIGNAL and SLOT
-    bool VisitCallExpr(clang::CallExpr *e) {
-        QtSupport qt{annotator, currentContext};
-        qt.visitCallExpr(e);
         return true;
     }
 

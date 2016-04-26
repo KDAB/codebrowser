@@ -338,6 +338,7 @@ struct Val { int v;
 const Val operator+(const Val&, const Val&);
 struct Uses {
     void operator[](int);
+    void refFunc(int&);
     int hello;
     Val hello2;
     Uses(int i) : hello(i) {}
@@ -377,9 +378,13 @@ struct Uses {
         auto v2 = &value;
         auto &xx = (&valval)->v;
         auto *hi = &hello;
+        refFunc(value);
         return value;
     }
 };
+
+int &func(int &x, int &y)
+{ return x == 1 ? func(y, func(y, func(y, x))) : x; }
 
 namespace SUPERlongNAMeSpace12345679814563efrqslkdjfq__hsdqsfsdqsdfqdsfqsdfqsdfqsdfgsgfhfjhsgs {
 
