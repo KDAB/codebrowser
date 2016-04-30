@@ -315,7 +315,9 @@ $(function () {
         hideTimerId : null,
         tooltip : {}, // set when the document is initialized
         showDelay : 350,
-        hideDelay : 200,
+        normalHideDelay : 200, // time to hide the tooltip if the cursor was not on it
+        focusHideDelay: 700, // time to hide the tooltip after when it was hovered
+        hideDelay : this.normalHideDelay,
         gap : 12,
 
         init: function() {
@@ -323,7 +325,10 @@ $(function () {
             this.tooltip = $("#tooltip");
             var this_ = this;
             this.tooltip.hover(
-                function () { clearTimeout(this_.hideTimerId);  },
+                function () {
+                    this_.hideDelay = this_.focusHideDelay;
+                    clearTimeout(this_.hideTimerId);
+                },
                 function () { this_.hideAfterDelay(); }
             );
         },
@@ -355,6 +360,7 @@ $(function () {
                 tt.tooltip.stop(true, true);
                 tt.tooltip.fadeIn();
                 tt.setUnderElem(elem);
+                tt.hideDelay = tt.normalHideDelay;
             }, this.showDelay);
         },
 
