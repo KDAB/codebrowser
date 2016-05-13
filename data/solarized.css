@@ -6,7 +6,8 @@ a { color: #037; border: none; text-decoration: none }
 a:hover{  text-decoration: underline }
 
 div#header { position:fixed; top:0; left:0; right:0; background-color: #ffffff; z-index:2; height: 5.2em; overflow: clip; }
-div#header+hr {position:fixed; top:5.2em; left:0; right:0; background-color: #ffffff; z-index:2}
+div#header+hr {position:fixed; top:5.2em; left:0; right:0; z-index:2}
+div#header input {-webkit-appearance:searchfield;-moz-appearance:searchfield;appearance:searchfield;}
 div#content { margin-top: 5.3em;}
 
 .code { border-collapse:collapse; width:100%; padding:0 }
@@ -22,7 +23,7 @@ img { border: none; }
 input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
 #breadcrumb { padding:0; margin: 0 1ex 2ex 1ex; font-size:inherit; font-weight: normal }
 h1#breadcrumb span { display:none }
-hr { margin: 0; }
+hr { margin: 0; border-collapse:collapse; background-color: #e5e5e5; height:1px;border:none;}
 p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0 1ex 0 0  }
 a.logo { float:right }
 #breadcrumb_symbol a { color:inherit }
