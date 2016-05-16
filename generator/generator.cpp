@@ -103,6 +103,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
     "<html>\n<head>\n";
+    myfile << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
     myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " source code [" << filename << "] - Woboq Code Browser</title>\n";
     if (interestingDefinitions.size() > 0) {
         std::string interestingDefitionsStr =  llvm::join(interestingDefinitions.begin(), interestingDefinitions.end(), ",");
@@ -126,7 +127,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "</script>\n"
               "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
-    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse source code of </span>";
+    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span class='nomobile'>Browse the source code of </span>";
     // FIXME: If interestingDefitions has only 1 class, add it to the h1
 
     {
@@ -147,7 +148,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
         myfile << "<a href='./'>" << split.first.str() << "</a>/";
         myfile << "<a href='" << split.second.str() << ".html'>" << split.second.str() << "</a>";
     }
-    myfile << " online</h1></div>\n<hr/><div id='content'>";
+    myfile << "</h1></div>\n<hr/><div id='content'>";
 
     if (!warningMessage.empty()) {
         myfile << "<p class=\"warnmsg\">";

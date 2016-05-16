@@ -8,7 +8,7 @@ a:hover{  text-decoration: underline }
 div#header { position:fixed; top:0; left:0; right:0; background-color: #ffffff; z-index:2; height: 5.2em; overflow: clip; }
 div#header+hr {position:fixed; top:5.2em; left:0; right:0; z-index:2}
 div#header input {-webkit-appearance:searchfield;-moz-appearance:searchfield;appearance:searchfield;}
-div#content { margin-top: 5.3em;}
+div#content { margin-top: 5.3em; overflow-x:auto;}
 
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: DejaVu sans Mono , monospace; }
@@ -134,3 +134,8 @@ $green:     #859900;
 .refarg::before { display: inline-block; position:relative; bottom: 0.7em;
     opacity: 0.8; font-size:x-small; color: gray; content: "&"; }
 
+@media only screen and (max-width: 30em) {
+    .nomobile { display:none; }
+    .code {font-size: smaller;}
+    p#options {display:none;}
+}
