@@ -8,7 +8,7 @@ a:hover{  text-decoration: underline }
 div#header { position:fixed; top:0; left:0; right:0; background-color: #f5f5f5; z-index:2; height: 5.2em; overflow: clip; }
 div#header+hr {position:fixed; top:5.2em; left:0; right:0; z-index:2}
 div#header input {-webkit-appearance:searchfield;-moz-appearance:searchfield;appearance:searchfield;}
-div#content { margin-top: 5.3em; overflow-x:auto;}
+div#content { margin-top: 5.3em; }
 
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: monospace; }
