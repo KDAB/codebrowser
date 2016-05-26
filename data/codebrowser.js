@@ -1117,10 +1117,6 @@ $(function () {
         switchStylestyleAndSetCookie(this.options[this.selectedIndex].value);
         //return false;
     });
-    $(".opt_close").click(function() {
-        $("#options_dlg").dialog('close');
-            return false;
-    });
 
     var cwo_url = 'https://code.woboq.org';
     $("#header").prepend("<a class='logo' href='" + cwo_url + "'><img src='" + cwo_url + "/data/woboq-48.png'/></a>");
