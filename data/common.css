@@ -27,7 +27,6 @@ p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0
 a.logo { float:right }
 #breadcrumb_symbol a { color:inherit }
 
-
 #tooltip {
     position:absolute;
     display:none;
@@ -72,7 +71,10 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
     opacity: 0.8; font-size:x-small; color: gray; content: "&"; }
 
 @media only screen and (max-width: 30em) {
-    .nomobile { display:none; }
     .code {font-size: smaller;}
     p#options {display:none;}
+    #breadcrumb span { display:none; }
+    /* This makes sure that there is no horizontal scrollbar on mobile.
+       Mobile users can use tab to scroll, and google does not consider we are mobile-ready otherwise */
+    div#content { overflow-x:auto; }
 }

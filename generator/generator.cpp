@@ -127,7 +127,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "</script>\n"
               "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
-    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span class='nomobile'>Browse the source code of </span>";
+    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse the source code of </span>";
     // FIXME: If interestingDefitions has only 1 class, add it to the h1
 
     {
