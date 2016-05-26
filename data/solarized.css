@@ -1,60 +1,10 @@
-@import "jquery/jquery-ui.css";
+@import "common.css";
 
-/* layout */
-body { color:#000000; background-color:#ffffff; padding:0; margin: 0;  font-family: Helvetica,sans-serif; }
-a { color: #037; border: none; text-decoration: none }
-a:hover{  text-decoration: underline }
-
-div#header { position:fixed; top:0; left:0; right:0; background-color: #ffffff; z-index:2; height: 5.2em; overflow: clip; }
-div#header+hr {position:fixed; top:5.2em; left:0; right:0; z-index:2}
-div#header input {-webkit-appearance:searchfield;-moz-appearance:searchfield;appearance:searchfield;}
-div#content { margin-top: 5.3em; overflow-x:auto;}
-
-.code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: DejaVu sans Mono , monospace; }
-.code th { /*width:2.5em;*/ padding-right:1ex; background-color:#eeeeee ;
-            text-align:right; color:black; font-weight:normal;
-            -moz-user-select: none; }
-.code td { padding-left: 1ex; white-space: pre }
-
-#footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
-#footer img { vertical-align: middle; }
-img { border: none; }
-input#searchline { margin: 1ex;  width: 30em; max-width: 50%; }
-#breadcrumb { padding:0; margin: 0 1ex 2ex 1ex; font-size:inherit; font-weight: normal }
 h1#breadcrumb span { display:none }
 hr { margin: 0; border-collapse:collapse; background-color: #e5e5e5; height:1px;border:none;}
-p#options { font-size: small; position: absolute; right:1ex; top:48px; margin: 0 1ex 0 0  }
-a.logo { float:right }
-#breadcrumb_symbol a { color:inherit }
-
-#tooltip {
-    position:absolute;
-    display:none;
-    padding:1em;
-    padding-top:1ex;
-    border: 1px solid gray;
-    background-color: white;
-    font-size: smaller;
-    opacity: 0.9;
-    border-radius: 4px;
-    max-width: 80%;
-    box-shadow:1px 1px 7px gray;
-    z-index:2;
-}
-#tooltip ul { margin:0; padding-left: 1em }
-#tooltip a.showuse {color:inherit; text-decoration:underline}
-#tooltip b a { color:inherit }
-#tooltip abbr  { cursor: help; border-bottom: 1px dashed #000; }
-
 p.warnmsg { color: #D44; padding: 0 1ex; margin: 0.5ex 0; }
-
-/*#tooltip li { border: 1px solid blue; margin:0 }*/
-
-.code a:hover {  text-decoration: none }
-
 .code th a { color: inherit }
-
 
 
 body, table.code, input, select, div#header, div#header + hr { background-color: #002b36; color: #839496;}
@@ -116,26 +66,4 @@ $green:     #859900;
 .code dfn { font-style:normal }
 .code .virtual { font-style: italic; }
 
-
-.error { border-bottom: 1px dashed red }
-.warning { border-bottom: 1px dotted #c90; }
 .highlight { background-color: #073642 !important; }
-
-#tooltip i { color: #268bd2; white-space: pre-wrap; font-family: monospace }
-
-/* disable the keywords in strings  (macro have that)  */
-.code q em, .code q b, .code q var { color:inherit; font-style:inherit; font-weight:inherit; }
-
- /* Old Macro expansions.*/
- .expansion { display: none; }
-
-.fake { display: inline-block; position:relative; bottom: 0.7em; opacity: 0.8; font-size:small }
-.fake::before { content: "\2380"; }
-.refarg::before { display: inline-block; position:relative; bottom: 0.7em;
-    opacity: 0.8; font-size:x-small; color: gray; content: "&"; }
-
-@media only screen and (max-width: 30em) {
-    .nomobile { display:none; }
-    .code {font-size: smaller;}
-    p#options {display:none;}
-}
