@@ -36,3 +36,5 @@
 .code .virtual { font-style: italic; }
 
 .highlight { background-color: #FBFA96 !important; color: black !important;}
+th.highlight { font-weight: bold; }
+th.highlight+td { background-color: #f8f7f6; }

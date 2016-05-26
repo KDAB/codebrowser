@@ -67,3 +67,4 @@ $green:     #859900;
 .code .virtual { font-style: italic; }
 
 .highlight { background-color: #073642 !important; }
+th.highlight+td { background-color: #073642 !important; }

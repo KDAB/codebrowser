@@ -16,4 +16,6 @@
 .code .virtual { font-style: italic }
 
 .highlight { background-color: #eee; border-radius:3px; border: 1px solid #B4B4B4; margin:-1px}
+th.highlight { font-weight: bold; }
+th.highlight+td { background-color: #eee; }
 
