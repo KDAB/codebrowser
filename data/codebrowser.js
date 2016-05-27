@@ -1122,7 +1122,7 @@ $(function () {
             return false;
     });
 
-    var cwo_url = document.location.protocol === 'http:' ? 'http://code.woboq.org' : 'https://code.woboq.org';
+    var cwo_url = 'https://code.woboq.org';
     $("#header").prepend("<a class='logo' href='" + cwo_url + "'><img src='" + cwo_url + "/data/woboq-48.png'/></a>");
 
 /*-------------------------------------------------------------------------------------*/
