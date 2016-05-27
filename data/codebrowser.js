@@ -220,11 +220,11 @@ $(function () {
                     break;
                 case '"':
                     if (string == 0) {
-                        result += "<q>\""
+                        result += "<span class='string'>\""
                         string = 1;
                     } else if (string == 1 && (countSlashes(i)%2) == 0) {
                         string = 0;
-                        result += "\"</q>"
+                        result += "\"</span>"
                     } else {
                         result += c;
                     }
@@ -1169,6 +1169,14 @@ $(function () {
         if (e.state.bodyTop > 0) {
             $("html,body").animate({scrollTop: e.state.bodyTop});
         }
+    }
+
+    /*-------------------------------------------------------------------------------------*/
+
+    var isFirefox = typeof InstallTrigger != "undefined";
+    if(isFirefox) {
+        // Workaround Firefox selection bug with <q>, that would add fake quote in the clip board
+        $(".code q").replaceWith(function() { return $("<span class='string'/>").text($(this).text());  });
     }
 
 /*-------------------------------------------------------------------------------------*/

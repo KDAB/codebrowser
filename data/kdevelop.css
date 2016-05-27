@@ -11,7 +11,7 @@
                 .code i a { color: #037; }
 /*.keyword, */  .code b { font-weight: bold; }
 /*.keytype, */  .code em { color: #0057AE; font-style:normal }
-/*.string,  */  .code q { color: #BF0303; font-style: normal }
+.code .string,  .code q { color: #BF0303; font-style: normal }
 .code q::before , .code q::after { content:none; }
 /*.directive,*/ .code u { color: #063; text-decoration:none; }
 /*.num,      */ .code var { color: #B08000; font-style: normal; }

@@ -60,7 +60,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
 #tooltip .ppcond a { font-weight: normal; color:inherit  }
 
 /* disable the keywords in strings  (macro have that)  */
-.code q em, .code q b, .code q var { color:inherit; font-style:inherit; font-weight:inherit; }
+.code .string em, .code .string b, .code .string var { color:inherit; font-style:inherit; font-weight:inherit; }
 
 /* Old Macro expansions.*/
 .expansion { display: none;  }
