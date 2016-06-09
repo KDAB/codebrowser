@@ -12,7 +12,8 @@ div#content { margin-top: 5.3em; }
 
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: monospace; }
-.code th { /*width:2.5em;*/ padding-right:1ex; background-color:#eeeeee ;
+table.code{ table-layout:fixed; width: 100% } /* This improves performence.  The idea is that the second column just overflows */
+.code th { width:6.5ex; padding-right:1ex; background-color:#eeeeee ;
             text-align:right; color:black; font-weight:normal;
             -moz-user-select: none; }
 .code td { padding-left: 1ex; white-space: pre }
