@@ -1162,7 +1162,6 @@ $(function () {
             $("html,body").animate({scrollTop:target.offset().top - contentTop  }, isLink ? 300 : 1);
         }
     }
-    window.scrollToAnchor = scrollToAnchor;
 
     window.onpopstate = function (e) {
         if (!e.state)
@@ -1182,24 +1181,26 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
-    elapsed = new Date().getTime() - start;
-    console.log("init: " + elapsed);
-
     // The definitions side bar
     var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
-    dfnsDiv.find('h3').attr('onClick', 'javascript:$("#symbolSideBox ul").toggle();')
+    dfnsDiv.find('h3').click(function(){$("#symbolSideBox ul").toggle();});
     var theUl = dfnsDiv.find('ul');
     dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
 
     var dfns = document.getElementsByClassName('def');
     for (var i = 0; i < dfns.length - 1; ++i) {
         var li = $('<li><a>' + dfns[i].textContent + '</a></li>');
-        li.find('a').attr("href",'javascript:window.scrollToAnchor("' + dfns[i].id + '",true);');
+        li.find('a').attr("href",'#' + dfns[i].id);
         li.find('a').attr("title", demangleFunctionName(dfns[i].dataset.ref));
         theUl.append(li);
     }
     $('#content').append('<div id="allSideBoxes">');
     $('#allSideBoxes').append(dfnsDiv);
+    dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
+/*-------------------------------------------------------------------------------------*/
+    // End: print the time that was required to execute the code browser javascript
+    elapsed = new Date().getTime() - start;
+    console.log("init: " + elapsed);
 });
 
