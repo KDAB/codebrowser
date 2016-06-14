@@ -19,3 +19,5 @@
 th.highlight { font-weight: bold; }
 th.highlight+td { background-color: #eee; }
 
+#symbolSideBox { border: 1px solid #ddd; background-color: #eee; }
+

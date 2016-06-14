@@ -10,6 +10,19 @@ div#header+hr {position:fixed; top:5.2em; left:0; right:0; z-index:2}
 div#header input {-webkit-appearance:searchfield;-moz-appearance:searchfield;appearance:searchfield;}
 div#content { margin-top: 5.3em; }
 
+#allSideBoxes {
+position:fixed; margin-top:1ex; top:5.2em; right:10px; z-index:1;
+}
+#symbolSideBox {
+padding:1ex; border-radius:0.5ex; overflow:clip; font-size:smaller; }
+#symbolSideBox h3 { text-align:center; width:100%; cursor: pointer; cursor: hand; margin: 0;}
+#symbolSideBox ul {
+display:block; overflow:auto; max-width:20em; max-height:30em; list-style:none; margin: 0; padding: 1em;
+}
+#symbolSideBox li {
+list-style-type: none; padding: 0; margin-right: 1ex;
+}
+
 .code { border-collapse:collapse; width:100%; padding:0 }
 .code { font-family: monospace; }
 table.code{ table-layout:fixed; width: 100% } /* This improves performence.  The idea is that the second column just overflows */
@@ -78,4 +91,7 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
     /* This makes sure that there is no horizontal scrollbar on mobile.
        Mobile users can use tab to scroll, and google does not consider we are mobile-ready otherwise */
     div#content { overflow-x:auto; }
+}
+@media only screen and (max-width: 60em) {
+#symbolSideBox { display: none;}
 }
