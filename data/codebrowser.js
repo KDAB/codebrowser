@@ -1184,19 +1184,19 @@ $(function () {
     // The definitions side bar
     var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
     dfnsDiv.find('h3').click(function(){$("#symbolSideBox ul").toggle();});
-    var theUl = dfnsDiv.find('ul');
     dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
+    dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
+    var theUl = dfnsDiv.find('ul');
     var dfns = document.getElementsByClassName('def');
+    var html = "";
     for (var i = 0; i < dfns.length - 1; ++i) {
-        var li = $('<li><a>' + dfns[i].textContent + '</a></li>');
-        li.find('a').attr("href",'#' + dfns[i].id);
-        li.find('a').attr("title", demangleFunctionName(dfns[i].dataset.ref));
-        theUl.append(li);
+        html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</li>';
     }
+    theUl.append(html);
     $('#content').append('<div id="allSideBoxes">');
     $('#allSideBoxes').append(dfnsDiv);
-    dfnsDiv.on({"mouseup": onMouseClick}, "a");
+
 
 /*-------------------------------------------------------------------------------------*/
     // End: print the time that was required to execute the code browser javascript
