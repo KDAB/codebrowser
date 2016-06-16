@@ -1182,20 +1182,22 @@ $(function () {
 /*-------------------------------------------------------------------------------------*/
 
     // The definitions side bar
-    var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
-    dfnsDiv.find('h3').click(function(){$("#symbolSideBox ul").toggle();});
-    dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
-    dfnsDiv.on({"mouseup": onMouseClick}, "a");
-
-    var theUl = dfnsDiv.find('ul');
     var dfns = document.getElementsByClassName('def');
-    var html = "";
-    for (var i = 0; i < dfns.length - 1; ++i) {
-        html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</li>';
+    if (dfns.length) {
+        var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
+        dfnsDiv.find('h3').click(function(){$("#symbolSideBox ul").toggle();});
+        dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
+        dfnsDiv.on({"mouseup": onMouseClick}, "a");
+
+        var theUl = dfnsDiv.find('ul');
+        var html = "";
+        for (var i = 0; i < dfns.length - 1; ++i) {
+            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</li>';
+        }
+        theUl.append(html);
+        $('#content').append('<div id="allSideBoxes">');
+        $('#allSideBoxes').append(dfnsDiv);
     }
-    theUl.append(html);
-    $('#content').append('<div id="allSideBoxes">');
-    $('#allSideBoxes').append(dfnsDiv);
 
 
 /*-------------------------------------------------------------------------------------*/
