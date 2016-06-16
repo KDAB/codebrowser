@@ -220,11 +220,11 @@ $(function () {
                     break;
                 case '"':
                     if (string == 0) {
-                        result += "<span class='string'>\""
+                        result += "<q>\""
                         string = 1;
                     } else if (string == 1 && (countSlashes(i)%2) == 0) {
                         string = 0;
-                        result += "\"</span>"
+                        result += "\"</q>"
                     } else {
                         result += c;
                     }
