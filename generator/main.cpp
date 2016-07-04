@@ -206,7 +206,6 @@ public:
 std::set<std::string> BrowserAction::processed;
 ProjectManager *BrowserAction::projectManager = nullptr;
 
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
 static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
                            llvm::StringRef file, clang::FileManager *FM, bool WasInDatabase) {
     // This code change all the paths to be absolute paths
@@ -264,7 +263,6 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     }
     return result;
 }
-#endif
 
 int main(int argc, const char **argv) {
     std::unique_ptr<clang::tooling::CompilationDatabase> Compilations(
@@ -372,10 +370,6 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 3
-    clang::tooling::ClangTool Tool(*Compilations, Sources);
-    return Tool.run(clang::tooling::newFrontendActionFactory<BrowserAction>());
-#else
     clang::FileManager FM({"."});
     FM.Retain();
     int Progress = 0;
@@ -506,6 +500,5 @@ int main(int argc, const char **argv) {
             fileIndex << fn << '\n';
         }
     }
-#endif
 }
 

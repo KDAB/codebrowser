@@ -249,11 +249,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     // try to put a link to the right constructor
     bool VisitCXXConstructExpr(clang::CXXConstructExpr *ctr) {
         if (clang::CXXConstructorDecl *decl = ctr->getConstructor()) {
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<4
-            clang::SourceLocation parenLoc = ctr->getParenRange().getBegin();
-#else
             clang::SourceLocation parenLoc = ctr->getParenOrBraceRange().getBegin();
-#endif
             if (parenLoc.isValid()) {
                 // Highlight the opening parenthese
                 annotator.registerUse(decl, parenLoc, Annotator::Ref, currentContext, Annotator::Use_Call);

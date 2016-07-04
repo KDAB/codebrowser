@@ -264,7 +264,6 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
     annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E-B);
 }
 
-#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
 void PreprocessorCallback::Defined(const clang::Token& MacroNameTok, MyMacroDefinition MD,
                                    clang::SourceRange Range)
 {
@@ -341,4 +340,3 @@ void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::Source
     annotator.generator(FID).addTag("span", ("data-ppcond=\"" + clang::Twine(SM.getExpansionLineNumber(IfLoc)) + "\"").str(),
                                     SM.getFileOffset(Loc), clang::Lexer::MeasureTokenLength(Loc, SM, PP.getLangOpts()));
 }
-#endif

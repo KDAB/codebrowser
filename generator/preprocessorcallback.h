@@ -62,7 +62,6 @@ public:
     typedef bool ConditionValueKind;  // It's an enum in clang 3.5
 #endif
 
-#if  CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR > 3
     void PragmaDirective(clang::SourceLocation Loc, clang::PragmaIntroducerKind Introducer) override
     { seenPragma = true; }
 
@@ -87,5 +86,4 @@ public:
 private:
     std::map<clang::SourceLocation, clang::SourceLocation> ElifMapping;     // Map an elif location to the real if;
     void HandlePPCond(clang::SourceLocation Loc, clang::SourceLocation IfLoc);
-#endif
 };

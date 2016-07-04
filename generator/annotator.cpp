@@ -46,12 +46,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
-
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-#include <llvm/Support/PathV2.h>
-#else
 #include <llvm/Support/Path.h>
-#endif
 
 #include "stringbuilder.h"
 #include "projectmanager.h"
@@ -149,11 +144,7 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
 
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-    switch (decl->getLinkage())
-#else
     switch (decl->getLinkageInternal())
-#endif
     {
         default:
         case clang::NoLinkage:
@@ -324,11 +315,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
         std::string error;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-        llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::raw_fd_ostream::F_Append);
-#else
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
-#endif
         if (!error.empty()) {
             std::cerr << error<< std::endl;
             continue;
@@ -474,11 +461,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                 std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
                 std::string error;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=3
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::raw_fd_ostream::F_Append);
-#else
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
-#endif
                 if (!error.empty()) {
                     std::cerr << error << std::endl;
                     return false;
