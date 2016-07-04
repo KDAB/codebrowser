@@ -165,7 +165,8 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
    bool VisitDesignatedInitExpr(clang::DesignatedInitExpr *e) {
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<5
-        llvm::ArrayRef<clang::Designator> designators{e->designators_begin(), e->designators_end()};
+        llvm::ArrayRef<clang::DesignatedInitExpr::Designator> designators{e->designators_begin(),
+                                                                          e->designators_end()};
 #else
         auto designators = e->designators();
 #endif
