@@ -44,4 +44,5 @@ struct QtSupport {
 
 private:
     void handleSignalOrSlot(clang::Expr *obj, clang::Expr *method);
+    void handleInvokeMethod(clang::Expr *obj, clang::Expr *method);
 };

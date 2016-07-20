@@ -54,6 +54,9 @@ void MyObject::superSlot1(const QString& myString, const uint s)
     connect(this, SIGNAL(myBoolSignal(bool)) ,this, SLOT(deleteLater()));
     connect(this, SIGNAL(downloadMetaData(QList<QPair<QByteArray,QByteArray> >,int,QString,bool,QSharedPointer<char>,qint64)),
             this, SLOT(deleteLater()));
+
+    QMetaObject::invokeMethod(this, "superSlot1", Q_ARG(QString, "123"), Q_ARG(uint,5));
+    QMetaObject::invokeMethod(&stackOj, "superSlot2");
 }
 
 

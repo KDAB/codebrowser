@@ -31,6 +31,39 @@
 #include <llvm/Support/MemoryBuffer.h>
 
 /**
+ * Lookup candidates function of name \a methodName within the QObject derivative \a objClass
+ * its bases, or its private implementation
+ */
+static llvm::SmallVector<clang::CXXMethodDecl *, 10> lookUpCandidates(const clang::CXXRecordDecl* objClass,
+                                                                      llvm::StringRef methodName)
+{
+    llvm::SmallVector<clang::CXXMethodDecl *, 10> candidates;
+    clang::CXXMethodDecl *d_func = nullptr;
+    auto classIt = objClass;
+    while (classIt) {
+        if (!classIt->getDefinition())
+            break;
+
+        for (auto mi = classIt->method_begin(); mi != classIt->method_end(); ++mi) {
+            if ((*mi)->getName() == methodName)
+                candidates.push_back(*mi);
+            if (!d_func && (*mi)->getName() == "d_func" && !getResultType(*mi).isNull())
+                d_func = *mi;
+        }
+
+        // Look in the first base  (because the QObject need to be the first base class)
+        classIt = classIt->getNumBases() == 0 ? nullptr :
+            classIt->bases_begin()->getType()->getAsCXXRecordDecl();
+
+        if (d_func && !classIt && candidates.empty()) {
+            classIt = getResultType(d_func)->getPointeeCXXRecordDecl();
+            d_func = nullptr;
+        }
+    }
+    return candidates;
+}
+
+/**
  * \a obj is an expression to a type of an QObject (or pointer to) that is the sender or the receiver
  * \a method is an expression like SIGNAL(....)  or SLOT(....)
  *
@@ -81,31 +114,8 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 
     llvm::StringRef methodName = signature.slice(1 , lParenPos).trim();
 
-
     // Try to find the method which match this name in the given class or bases.
-    llvm::SmallVector<clang::CXXMethodDecl *, 10> candidates;
-    clang::CXXMethodDecl *d_func = nullptr;
-    auto classIt = objClass;
-    while (classIt) {
-        if (!classIt->getDefinition())
-            break;
-
-        for (auto mi = classIt->method_begin(); mi != classIt->method_end(); ++mi) {
-            if ((*mi)->getName() == methodName)
-                candidates.push_back(*mi);
-            if (!d_func && (*mi)->getName() == "d_func" && !getResultType(*mi).isNull())
-                d_func = *mi;
-        }
-
-        // Look in the first base  (because the QObject need to be the first base class)
-        classIt = classIt->getNumBases() == 0 ? nullptr :
-            classIt->bases_begin()->getType()->getAsCXXRecordDecl();
-
-        if (d_func && !classIt && candidates.empty()) {
-            classIt = getResultType(d_func)->getPointeeCXXRecordDecl();
-            d_func = nullptr;
-        }
-    }
+    auto candidates = lookUpCandidates(objClass, methodName);
 
     clang::LangOptions lo;
     lo.CPlusPlus = true;
@@ -245,6 +255,42 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
     annotator.registerUse(used, range, Annotator::Call, currentContext, Annotator::Use_Address);
 }
 
+/**
+ * Very similar to handleSignalOrSlot, but does not handle the fact that the string might be in a macro
+ * and does the string contains the method name and not the full signature
+ * \a obj is an expression to a type of an QObject (or pointer to) that is the sender or the receiver
+ * \a method is an expression of type char*
+ *
+ * TODO: handle overloads
+ */
+void QtSupport::handleInvokeMethod(clang::Expr* obj, clang::Expr* method)
+{
+    if (!obj || !method) return;
+    obj = obj->IgnoreImpCasts();
+    method = method->IgnoreImpCasts();
+    auto objType = obj->getType().getTypePtrOrNull();
+    if (!objType) return;
+    const clang::CXXRecordDecl* objClass = objType->getPointeeCXXRecordDecl();
+    if (!objClass) return;
+
+    const clang::StringLiteral *methodLiteral = clang::dyn_cast<clang::StringLiteral>(method);
+    if (!methodLiteral) return;
+    if (methodLiteral->getCharByteWidth() != 1) return;
+
+    auto methodName = methodLiteral->getString();
+    if (methodName.empty()) return;
+
+    // Try to find the method which match this name in the given class or bases.
+    auto candidates = lookUpCandidates(objClass, methodName);
+    if (candidates.size() != 1)
+        return;
+    // FIXME: overloads resolution using the Q_ARG
+
+    auto used = candidates.front();
+    clang::SourceRange range = methodLiteral->getSourceRange();
+    annotator.registerUse(used, range, Annotator::Call, currentContext, Annotator::Use_Address);
+}
+
 void QtSupport::visitCallExpr(clang::CallExpr* e)
 {
     clang::CXXMethodDecl *methodDecl = clang::dyn_cast_or_null<clang::CXXMethodDecl>(e->getCalleeDecl());
@@ -327,6 +373,11 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
     if (parentName == "QState" && methodDecl->getName() == "addTransition") {
         if (e->getNumArgs() >= 2) {
             handleSignalOrSlot(e->getArg(0), e->getArg(1));
+        }
+    }
+    if (parentName == "QMetaObject" && methodDecl->getName() == "invokeMethod") {
+        if (e->getNumArgs() >= 2) {
+            handleInvokeMethod(e->getArg(0), e->getArg(1));
         }
     }
 }
