@@ -9,9 +9,6 @@ Main page: https://woboq.com/codebrowser.html
 
 The announcement blog: https://woboq.com/blog/codebrowser-introduction.html
 
-The feature tour https://woboq.com/codebrowser-features.html
-
-
 Introduction and Design
 =======================
 
@@ -83,7 +80,9 @@ Step 1: Generate the compile_commands.json for your project
 
 The code browser is built around the clang tooling infrastructure that uses compile_commands.json
 http://clang.llvm.org/docs/JSONCompilationDatabase.html
+
 If your build system is cmake, just pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON to cmake to generate the script.
+
 For other build systems (e.g. qmake, make) you can use scripts/fake_compiler.sh as compiler (see comments in that file)
 
 Step 2: Create code HTML using codebrowser_generator
@@ -93,21 +92,11 @@ stale files from a previous generation.
 
 Call the codebrowser_generator. See later for argument specification
 
-Step 3: Generate the index HTML files using codebrowser_indexer
+Step 3: Generate the directory index HTML files using codebrowser_indexgenerator
 
-By running the codebrowser_indexer with the output directory as an argument
+By running the codebrowser_indexgenerator with the output directory as an argument
 
 Step 4: Copy the data/ directory one level above the generated html
-
-Example:
-To generate the code for this project itself:
-
-```bash
-cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-./generator/codebrowser_generator -b $PWD -a -o ~/public_html/codebrowser -p codebrowser:$PWD:`git describe --always --tags`
-./indexgenerator/codebrowser_indexgenerator ~/public_html/codebrowser
-ln -s ./data ~/public_html/
-```
 
 Step 5: Open it in a browser or upload it to your webserver
 
@@ -115,8 +104,30 @@ Note: By default, browsers do not allow AJAX on `file://` for security reasons.
 You need to upload the output directory on a web server, or serve your files with a local apache or nginx server. 
 Alternatively, you can disable that security in Firefox by setting security.fileuri.strict_origin_policy to false in about:config (http://kb.mozillazine.org/Security.fileuri.strict_origin_policy) or start Chrome with the [--allow-file-access-from-files](http://www.chrome-allow-file-access-from-file.com/) option.
 
+Full usage example
+==================
+
+Let's be meta in this example and try to generate the HTML files for the code browser itself.
+Assuming you are in the cloned directory:
+
+```bash
+OUTPUTDIRECTORY=~/public_html/codebrowser
+DATADIRECTORY=$OUTPUTDIRECTORY/../data
+BUILDIRECTORY=$PWD
+VERSION=`git describe --always --tags`
+cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+./generator/codebrowser_generator -b $BUILDIRECTORY -a -o $OUTPUTDIRECTORY -p codebrowser:$BUILDIRECTORY:$VERSION
+./indexgenerator/codebrowser_indexgenerator $OUTPUTDIRECTORY
+cp -rv ./data $DATADIRECTORY
+```
+
+You can adjust the variables and try similar commands to generate other projects.
+
+
 Arguments to codebrowser_generator
 ==================================
+
+Compiles sources into HTML files
 
 ```bash
 codebrowser_generator -a -o <output_dir> -b <buld_dir> -p <projectname>:<source_dir>[:<revision>] [-d <data_url>] [-e <remote_path>:<source_dir>:<remote_url>]
@@ -139,6 +150,35 @@ codebrowser_generator -a -o <output_dir> -b <buld_dir> -p <projectname>:<source_
 
  -e reference to an external project.
     example:-e clang/include/clang:/opt/llvm/include/clang/:https://code.woboq.org/llvm
+
+
+Arguments to codebrowser_indexgenerator
+=======================================
+
+Generates index HTML files for each directory for the generated HTML files
+
+```bash
+codebrowser_indexgenerator <output_dir> [-d data_url] [-p project_definition]
+```
+
+ -p (one or more) with project specification. That is the name of the project,
+    the absolute path of the source code, and the revision separated by colons
+    example: -p projectname:/path/to/source/code:0.3beta
+
+ -d specify the data url where all the javascript and css files are found.
+    default to ../data relative to the output dir
+    example: -d https://code.woboq.org/data
+
+
+Getting help
+============
+No matter if you are a licensee or are just curious and evaulating, we'd love to help you.
+Ask us via e-mail on contact@woboq.com
+Or on IRC in #woboq on irc.freenode.net
+
+If you find a bug or incompatibility, please file a github issue:
+https://github.com/woboq/woboq_codebrowser/issues
+
 
 Licence information:
 ====================
