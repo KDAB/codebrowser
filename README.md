@@ -72,21 +72,6 @@ cmake . -DLLVM_CONFIG_EXECUTABLE=/usr/local/Cellar/llvm/<your_llvm_version>/bin/
 make
 ```
 
-compile_commands.json
-=====================
-We need a compile_commands.json file to know how your project is usually compiled.
-There are multiple ways to get this file:
-
-* For cmake, pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON as a cmake parameter
-* For qmake, configure/autoconf and others, follow the instructions in scripts/fake_compiler.sh or scripts/woboq_cc.js.
-These are fake compilers that append the compiler invocation to the json file and forward to the real compiler.
-Your real compiler is overriden using the CC/CXX environment variables
-Make sure to have the json file properly terminated.
-* There is also a project called Build EAR (Bear) that achieves a similar thing as our fake compilers
-but is using LD_PRELOAD to inject itself into the build process to catch how the compiler is invoked.
-https://github.com/rizsotto/Bear
-
-
 Using the generator
 ===================
 
@@ -152,7 +137,9 @@ codebrowser_generator -a -o <output_dir> -b <buld_dir> -p <projectname>:<source_
 
  -o with the output directory where the generated files will be put
 
- -b the "build directory" containing the compile_commands.json
+ -b the "build directory" containing the compile_commands.json If this argument
+    is not passed, the compilation arguments can be passed on the command line
+    after  --
 
  -p (one or more) with project specification. That is the name of the project,
     the absolute path of the source code, and the revision separated by colons
@@ -182,6 +169,23 @@ codebrowser_indexgenerator <output_dir> [-d data_url] [-p project_definition]
  -d specify the data url where all the javascript and css files are found.
     default to ../data relative to the output dir
     example: -d https://code.woboq.org/data
+
+Compilation Database
+====================
+The generator is a tool which uses clang's LibTooling. It needs either a
+compile_commands.json or the arguments to be passed after '--' if they are
+the same for every file.
+
+To generate the compile_commands.json:
+* For cmake, pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON as a cmake parameter
+* For qmake, configure/autoconf and others, follow the instructions in scripts/fake_compiler.sh or scripts/woboq_cc.js.
+These are fake compilers that append the compiler invocation to the json file and forward to the real compiler.
+Your real compiler is overriden using the CC/CXX environment variables
+Make sure to have the json file properly terminated.
+* There is also a project called Build EAR (Bear) that achieves a similar thing as our fake compilers
+but is using LD_PRELOAD to inject itself into the build process to catch how the compiler is invoked.
+https://github.com/rizsotto/Bear
+
 
 
 Getting help
