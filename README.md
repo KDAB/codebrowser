@@ -75,7 +75,7 @@ make
 Using the generator
 ===================
 
-Step 1: Generate the compile_commands.json for your project
+Step 1: Generate the compile_commands.json (see chapter "Compilation Database" below) for your project
 
 The code browser is built around the clang tooling infrastructure that uses compile_commands.json
 http://clang.llvm.org/docs/JSONCompilationDatabase.html
@@ -170,8 +170,10 @@ codebrowser_indexgenerator <output_dir> [-d data_url] [-p project_definition]
     default to ../data relative to the output dir
     example: -d https://code.woboq.org/data
 
-Compilation Database
-====================
+
+
+Compilation Database (compile_commands.json)
+============================================
 The generator is a tool which uses clang's LibTooling. It needs either a
 compile_commands.json or the arguments to be passed after '--' if they are
 the same for every file.
