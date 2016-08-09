@@ -243,7 +243,13 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
                                   Init->isMemberInitializer() ? Annotator::Member : Annotator::Ref,
                                   currentContext, Init->isMemberInitializer() ? Annotator::Use_Write : Annotator::Use);
         }
-        return Base::TraverseConstructorInitializer(Init);
+        decltype(expr_stack) old_stack;
+        std::swap(expr_stack, old_stack);
+        expr_stack.topExpr = Init->getInit();
+        expr_stack.topType = Annotator::Use_Read;
+        Base::TraverseConstructorInitializer(Init);
+        std::swap(expr_stack, old_stack);
+        return true;
     }
 
     // try to put a link to the right constructor

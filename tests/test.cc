@@ -341,7 +341,7 @@ struct Uses {
     void refFunc(int&);
     int hello;
     Val hello2;
-    Uses(int i) : hello(i) {}
+    Uses(int i) : hello(value), hello2({valval.v}) {}
     int r() {
         auto v = value;
         v = value;
