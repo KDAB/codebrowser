@@ -1185,7 +1185,10 @@ $(function () {
     var dfns = document.getElementsByClassName('def');
     if (dfns.length) {
         var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
-        dfnsDiv.find('h3').click(function(){$("#symbolSideBox ul").toggle();});
+        dfnsDiv.find('h3').click(function() {
+            var hidden = !$("#symbolSideBox ul").toggle().is(":visible");
+            createCookie('symboxhid', hidden, 5);
+        });
         dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
         dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
@@ -1197,6 +1200,8 @@ $(function () {
         theUl.append(html);
         $('#content').append('<div id="allSideBoxes">');
         $('#allSideBoxes').append(dfnsDiv);
+        if (readCookie('symboxhid') === "true")
+            $("#symbolSideBox ul").hide()
     }
 
 
