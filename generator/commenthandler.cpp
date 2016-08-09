@@ -74,8 +74,15 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                 bool dummy;
                 auto TemplateKind = Sema.isTemplateName(Sema.getScopeForContext(TuDecl), SS, false, Name, {}, false, Template, dummy);
                 if (TemplateKind == clang::TNK_Non_template) {
+#if CLANG_VERSION_MAJOR >= 4
+                    clang::Sema::NestedNameSpecInfo nameInfo(II, Tok.getLocation(), Next.getLocation());
+                    if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), nameInfo , false, SS))
+#else
                     if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), *II, Tok.getLocation(), Next.getLocation(), {}, false, SS))
+#endif
+                    {
                         SS.SetInvalid(Tok.getLocation());
+                    }
                 } else if (auto T = Template.get().getAsTemplateDecl()) {
                     // FIXME: For template, it is a bit tricky
                     // It is still a bit broken but works in some cases for most normal functions
