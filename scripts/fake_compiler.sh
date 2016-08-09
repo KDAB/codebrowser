@@ -2,15 +2,15 @@
 
 #
 # This script can be used to generate the compile_commands.json file.
-# Configure this script as the compiler.
+# Configure this script as the compiler, e.g. with the CC/CXX environment variables.
 # Export the $COMPILATION_COMMANDS environement variable to the full path of the compile_commands.json file.
 # set $FORWARD_COMPILER to the path of the actual compiler to perform the actual compilation.
 #
-# Example:
+# Example using configure (similar when using qmake):
 #
 # export COMPILATION_COMMANDS=/path/to/compile_commands.json
 # export FORWARD_COMPILER=g++
-# CXX=/path/to/fake_compiler.sh ./configure
+# CC=/path/to/fake_compiler.sh CXX=/path/to/fake_compiler.sh ./configure
 # echo "[" > $COMPILATION_COMMANDS
 # make -j1
 # echo " { \"directory\": \".\", \"command\": \"true\", \"file\": \"/dev/null\" } ]" >> $COMPILATION_COMMANDS

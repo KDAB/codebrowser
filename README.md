@@ -72,6 +72,20 @@ cmake . -DLLVM_CONFIG_EXECUTABLE=/usr/local/Cellar/llvm/<your_llvm_version>/bin/
 make
 ```
 
+compile_commands.json
+=====================
+We need a compile_commands.json file to know how your project is usually compiled.
+There are multiple ways to get this file:
+
+* For cmake, pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON as a cmake parameter
+* For qmake, configure/autoconf and others, follow the instructions in scripts/fake_compiler.sh or scripts/woboq_cc.js.
+These are fake compilers that append the compiler invocation to the json file and forward to the real compiler.
+Your real compiler is overriden using the CC/CXX environment variables
+Make sure to have the json file properly terminated.
+* There is also a project called Build EAR (Bear) that achieves a similar thing as our fake compilers
+but is using LD_PRELOAD to inject itself into the build process to catch how the compiler is invoked.
+https://github.com/rizsotto/Bear
+
 
 Using the generator
 ===================
