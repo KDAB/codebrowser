@@ -1204,6 +1204,8 @@ $(function () {
             $("#symbolSideBox ul").hide()
     }
 
+    // Pre-fetch index. The XMLHttpRequest above will take it from browser cache then
+    $("head").append('<link rel="prefetch" href="'+root_path + '/fileIndex'+'">');
 
 /*-------------------------------------------------------------------------------------*/
     // End: print the time that was required to execute the code browser javascript
