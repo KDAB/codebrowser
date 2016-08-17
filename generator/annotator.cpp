@@ -629,7 +629,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             llvm::StringRef name = decl->getName();
             ref = (llvm::Twine(id) + name).str();
             if (type != Label) {
-                llvm::SmallString<40> buffer;
+                llvm::SmallString<64> buffer;
                 tags %= " title='" % Generator::escapeAttr(name, buffer) % "'";
                 clas %= " local col" % llvm::Twine(id % 10).str();
             }
@@ -653,7 +653,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
              }
         } else {
             if (!typeText.empty()) {
-                llvm::SmallString<40> buffer;
+                llvm::SmallString<64> buffer;
                 tags %= " data-type='" % Generator::escapeAttr(typeText, buffer) % "'";
             }
         }
@@ -713,7 +713,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         return;
     }
 
-    llvm::SmallString<40> escapedRefBuffer;
+    llvm::SmallString<64> escapedRefBuffer;
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\"";
 
@@ -842,7 +842,7 @@ void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, s
 
 void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string &clas)
 {
-    llvm::SmallString<40> buffer;
+    llvm::SmallString<64> buffer;
     annotateSourceRange(range, "span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"");
 }
 
@@ -915,7 +915,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
             std::replace(cached.first.begin(), cached.first.end(), '<' , '{');
             std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
         }
-        llvm::SmallString<40> buffer;
+        llvm::SmallString<64> buffer;
         cached.second = Generator::escapeAttr(qualName, buffer);
 
         if (cached.first.size() > 170) {

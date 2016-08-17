@@ -31,11 +31,27 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/ADT/StringExtras.h>
 
+template<int N>
+static void bufferAppend(llvm::SmallVectorImpl<char> &buffer, const char (&val)[N]) {
+    buffer.append(val, val + N - 1);
+}
+
 llvm::StringRef Generator::escapeAttr(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
 {
-    llvm::raw_svector_ostream os(buffer);
-    escapeAttr(os, s);
-    return os.str();
+    buffer.clear();
+    unsigned len = s.size();
+    for (unsigned i = 0 ; i < len; ++i) {
+        char c = s[i];
+        switch (c) {
+            default: buffer.push_back(c); break;
+            case '<': bufferAppend(buffer, "&lt;"); break;
+            case '>': bufferAppend(buffer, "&gt;"); break;
+            case '&': bufferAppend(buffer, "&amp;"); break;
+            case '\"': bufferAppend(buffer, "&quot;"); break;
+            case '\'': bufferAppend(buffer, "&apos;"); break;
+        }
+    }
+    return llvm::StringRef(buffer.begin(), buffer.size());
 }
 
 void Generator::escapeAttr(llvm::raw_ostream &os, llvm::StringRef s)
