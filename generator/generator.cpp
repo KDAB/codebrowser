@@ -57,7 +57,7 @@ void Generator::escapeAttr(llvm::raw_ostream &os, llvm::StringRef s)
 
 }
 
-void Generator::Tag::open(std::ostream &myfile) const
+void Generator::Tag::open(llvm::raw_ostream &myfile) const
 {
     myfile << "<" << name;
     if (!attributes.empty())
@@ -72,7 +72,7 @@ void Generator::Tag::open(std::ostream &myfile) const
     }
 }
 
-void Generator::Tag::close(std::ostream &myfile) const
+void Generator::Tag::close(llvm::raw_ostream &myfile) const
 {
     myfile << "</" << name << ">";
 }
@@ -84,13 +84,24 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     std::string real_filename = outputPrefix % "/" % filename % ".html";
     // Make sure the parent directory exist:
     create_directories(llvm::StringRef(real_filename).rsplit('/').first);
-    std::ofstream myfile;
 
-    myfile.open(real_filename);
-    if (!myfile) {
-        std::cerr << "Error generating " << real_filename << std::endl;
+#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
+    std::string error;
+    llvm::raw_fd_ostream myfile(real_filename, error, llvm::sys::fs::F_None);
+    if (!error.empty()) {
+        std::cerr << "Error generating " << real_filename << " ";
+        std::cerr << error<< std::endl;
         return;
     }
+#else
+    std::error_code error_code;
+    llvm::raw_fd_ostream myfile(real_filename, error_code, llvm::sys::fs::F_None);
+    if (error_code) {
+        std::cerr << "Error generating " << real_filename << " ";
+        std::cerr << error_code.message() << std::endl;
+        return;
+    }
+#endif
 
     int count = std::count(filename.begin(), filename.end(), '/');
     std::string root_path = "..";

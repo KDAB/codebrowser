@@ -53,8 +53,8 @@ class Generator {
             return std::tie(pos, len, name, attributes) ==
                    std::tie(other.pos, other.len, other.name, other.attributes);
         }
-        void open(std::ostream& myfile) const;
-        void close(std::ostream& myfile) const;
+        void open(llvm::raw_ostream& myfile) const;
+        void close(llvm::raw_ostream& myfile) const;
     };
 
     std::multiset<Tag> tags;
