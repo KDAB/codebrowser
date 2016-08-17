@@ -91,6 +91,12 @@ std::string locationToString(clang::SourceLocation loc, clang::SourceManager& sm
 }
 #endif
 
+enum class DatabaseType {
+    InDatabase,
+    NotInDatabase,
+    ProcessFullDirectory
+};
+
 struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
     Annotator &annotator;
     BrowserDiagnosticClient(Annotator &fm) : annotator(fm) {}
@@ -123,9 +129,9 @@ class BrowserASTConsumer : public clang::ASTConsumer
 {
     clang::CompilerInstance &ci;
     Annotator annotator;
-    bool WasInDatabase;
+    DatabaseType WasInDatabase;
 public:
-    BrowserASTConsumer(clang::CompilerInstance &ci, ProjectManager &projectManager, bool WasInDatabase)
+    BrowserASTConsumer(clang::CompilerInstance &ci, ProjectManager &projectManager, DatabaseType WasInDatabase)
         : clang::ASTConsumer(), ci(ci), annotator(projectManager), WasInDatabase(WasInDatabase)
     {
         //ci.getLangOpts().DelayedTemplateParsing = (true);
@@ -138,7 +144,8 @@ public:
     virtual void Initialize(clang::ASTContext& Ctx) override {
         annotator.setSourceMgr(Ctx.getSourceManager(), Ctx.getLangOpts());
         annotator.setMangleContext(Ctx.createMangleContext());
-        ci.getPreprocessor().addPPCallbacks(maybe_unique(new PreprocessorCallback(annotator, ci.getPreprocessor())));
+        ci.getPreprocessor().addPPCallbacks(maybe_unique(new PreprocessorCallback(
+            annotator, ci.getPreprocessor(), WasInDatabase == DatabaseType::ProcessFullDirectory)));
         ci.getDiagnostics().setClient(new BrowserDiagnosticClient(annotator), true);
         ci.getDiagnostics().setErrorLimit(0);
     }
@@ -164,7 +171,7 @@ public:
         v.TraverseDecl(Ctx.getTranslationUnitDecl());
 
 
-        annotator.generate(ci.getSema(), WasInDatabase);
+        annotator.generate(ci.getSema(), WasInDatabase == DatabaseType::NotInDatabase);
     }
 
     virtual bool shouldSkipFunctionBody(clang::Decl *D) override {
@@ -176,7 +183,7 @@ public:
 
 class BrowserAction : public clang::ASTFrontendAction {
     static std::set<std::string> processed;
-    bool WasInDatabase;
+    DatabaseType WasInDatabase;
 protected:
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
     virtual clang::ASTConsumer *
@@ -197,7 +204,7 @@ protected:
     }
 
 public:
-    BrowserAction(bool WasInDatabase = true) : WasInDatabase(WasInDatabase) {}
+    BrowserAction(DatabaseType WasInDatabase = DatabaseType::InDatabase) : WasInDatabase(WasInDatabase) {}
     virtual bool hasCodeCompletionSupport() const override { return true; }
     static ProjectManager *projectManager;
 };
@@ -207,7 +214,7 @@ std::set<std::string> BrowserAction::processed;
 ProjectManager *BrowserAction::projectManager = nullptr;
 
 static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
-                           llvm::StringRef file, clang::FileManager *FM, bool WasInDatabase) {
+                           llvm::StringRef file, clang::FileManager *FM, DatabaseType WasInDatabase) {
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
@@ -403,8 +410,8 @@ int main(int argc, const char **argv) {
         if (!compileCommandsForFile.empty() && !isHeader) {
             std::cerr << '[' << (100 * Progress / Sources.size()) << "%] Processing " << file << "\n";
             proceedCommand(compileCommandsForFile.front().CommandLine,
-                           compileCommandsForFile.front().Directory,
-                           file, &FM, true);
+                           compileCommandsForFile.front().Directory, file, &FM,
+                           IsProcessingAllDirectory ? DatabaseType::ProcessFullDirectory : DatabaseType::InDatabase);
         } else {
             // TODO: Try to find a command line for a file in the same path
             std::cerr << "Delayed " << file << "\n";
@@ -452,7 +459,9 @@ int main(int argc, const char **argv) {
                 command.push_back("-include");
                 command.push_back(llvm::StringRef(file).substr(0, file.size() - 5) % ".h");
             }
-            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory, file, &FM, false);
+            success = proceedCommand(std::move(command), compileCommandsForFile.front().Directory,
+                                     file, &FM,
+                                     IsProcessingAllDirectory ? DatabaseType::ProcessFullDirectory : DatabaseType::NotInDatabase);
         } else {
             std::cerr << "Could not find commands for " << file << "\n";
         }

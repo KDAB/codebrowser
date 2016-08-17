@@ -24,6 +24,7 @@
 #include "stringbuilder.h"
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Path.h>
 
 void ProjectManager::addProject(ProjectInfo info) {
     if (info.source_path.empty())
@@ -66,3 +67,62 @@ bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo* projec
             // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
 }
 
+std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::StringRef from)
+{
+    if (includeRecoveryCache.empty()) {
+        for (const auto &proj : projects) {
+            // skip sub project
+            llvm::StringRef sourcePath(proj.source_path);
+            auto parentPath = sourcePath.substr(0, sourcePath.rfind('/'));
+            if (projectForFile(parentPath))
+                continue;
+
+            std::error_code EC;
+            for (llvm::sys::fs::recursive_directory_iterator it(sourcePath, EC), DirEnd;
+                    it != DirEnd && !EC; it.increment(EC)) {
+                auto fileName = llvm::sys::path::filename(it->path());
+                if (fileName.startswith(".")) {
+                    it.no_push();
+                    continue;
+                }
+                includeRecoveryCache.insert({std::string(fileName), it->path()});
+            }
+        }
+    }
+    llvm::StringRef includeFileName = llvm::sys::path::filename(includeName);
+    std::string resolved;
+    int weight = -1000;
+    auto range = includeRecoveryCache.equal_range(includeFileName);
+    for (auto it = range.first; it != range.second; ++it) {
+        llvm::StringRef candidate(it->second);
+        uint suf_len = 0;
+        while (suf_len < std::min(candidate.size(), includeName.size())) {
+            if(candidate[candidate.size()-suf_len-1] != includeName[candidate.size()-suf_len-1])
+                break;
+            suf_len++;
+        }
+        //Each paths part that are similar from the expected name are weighted 1000 points f
+        int w = includeName.substr(candidate.size()-suf_len).count('/') * 1000;
+        if (w + 1000 < weight)
+            continue;
+
+        // after that, order by similarity with the from url
+        uint pref_len = 0;
+        while (pref_len < std::min(candidate.size(), from.size())) {
+            if(candidate[pref_len] != from[pref_len])
+                break;
+            pref_len++;
+        }
+        w += candidate.substr(0, pref_len).count('/') * 10;
+
+        // and the smaller the path, the better
+        w -= candidate.count('/');
+
+        if (w < weight)
+            continue;
+
+        weight = w;
+        resolved = candidate;
+    }
+    return resolved;
+}

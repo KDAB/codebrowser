@@ -37,9 +37,11 @@ class PreprocessorCallback  : public clang::PPCallbacks {
     clang::Preprocessor &PP;
     bool disabled = false; // To prevent recurstion
     bool seenPragma = false; // To detect _Pragma in expansion
+    bool recoverIncludePath; // If we should try to find the include paths harder
 
 public:
-    PreprocessorCallback(Annotator &fm, clang::Preprocessor &PP) : annotator(fm), PP(PP) {}
+    PreprocessorCallback(Annotator &fm, clang::Preprocessor &PP, bool recoverIncludePath)
+        : annotator(fm), PP(PP), recoverIncludePath(recoverIncludePath) {}
 
 #if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
     using MyMacroDefinition = const clang::MacroDefinition &;
@@ -54,6 +56,7 @@ public:
 
     void MacroUndefined(const clang::Token &MacroNameTok, MyMacroDefinition MD) override;
 
+    bool FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath) override;
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
                             bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;

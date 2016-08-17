@@ -75,8 +75,6 @@ private:
 
     Visibility getVisibility(const clang::NamedDecl *);
 
-    ProjectManager &projectManager;
-
     std::map<clang::FileID, std::pair<bool, std::string> > cache;
     std::map<clang::FileID, ProjectInfo* > project_cache;
     std::map<clang::FileID, Generator> generators;
@@ -121,6 +119,8 @@ private:
 public:
     explicit Annotator(ProjectManager &pm) : projectManager(pm) {}
     ~Annotator();
+
+    ProjectManager &projectManager;
 
     void setSourceMgr(clang::SourceManager &sm, const clang::LangOptions &lo)
     { sourceManager = &sm; langOption = &lo;  }

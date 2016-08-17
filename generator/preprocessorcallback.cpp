@@ -27,6 +27,7 @@
 #include <clang/Basic/Version.h>
 #include <llvm/ADT/Twine.h>
 #include "stringbuilder.h"
+#include "projectmanager.h"
 
 
 void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
@@ -238,6 +239,24 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
     std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
         % "\" data-ref=\"" % ref % "\"" % dataProj;
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
+}
+
+bool PreprocessorCallback::FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath)
+{
+    clang::SourceLocation currentLoc = static_cast<clang::Lexer *>(PP.getCurrentLexer())->getSourceLocation();
+    auto &SM = annotator.getSourceMgr();
+    const clang::FileEntry* entry = SM.getFileEntryForID(SM.getFileID(currentLoc));
+    if (!entry || !entry->getName())
+        return false;
+    std::string recovery = annotator.projectManager.includeRecovery(FileName, entry->getName());
+    if (recovery.empty() || !llvm::StringRef(recovery).endswith(FileName))
+        return false;
+    RecoveryPath.clear();
+    RecoveryPath.append(recovery.begin(), recovery.begin() + recovery.size() - FileName.size());
+    currentLoc.dump(SM);
+    llvm::errs() << " WARNING: File not found '" << FileName << "'. Recovering using " << RecoveryPath << "\n";
+
+    return true;
 }
 
 

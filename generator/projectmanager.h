@@ -24,6 +24,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 struct ProjectInfo {
     std::string name;
@@ -72,4 +73,9 @@ struct ProjectManager {
     // return true if the filename should be proesseded.
     // 'project' is the value returned by projectForFile
     bool shouldProcess(llvm::StringRef filename, ProjectInfo *project);
+
+    std::string includeRecovery(llvm::StringRef includeName, llvm::StringRef from);
+
+private:
+    std::unordered_multimap<std::string, std::string> includeRecoveryCache;
 };
