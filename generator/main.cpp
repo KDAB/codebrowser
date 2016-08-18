@@ -171,7 +171,7 @@ public:
         v.TraverseDecl(Ctx.getTranslationUnitDecl());
 
 
-        annotator.generate(ci.getSema(), WasInDatabase == DatabaseType::NotInDatabase);
+        annotator.generate(ci.getSema(), WasInDatabase != DatabaseType::NotInDatabase);
     }
 
     virtual bool shouldSkipFunctionBody(clang::Decl *D) override {
