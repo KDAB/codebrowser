@@ -243,6 +243,8 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
 
 bool PreprocessorCallback::FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath)
 {
+    if (!recoverIncludePath)
+        return false;
     clang::SourceLocation currentLoc = static_cast<clang::Lexer *>(PP.getCurrentLexer())->getSourceLocation();
     auto &SM = annotator.getSourceMgr();
     const clang::FileEntry* entry = SM.getFileEntryForID(SM.getFileID(currentLoc));
