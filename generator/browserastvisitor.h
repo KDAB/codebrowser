@@ -399,6 +399,10 @@ private:
             if (llvm::isa<clang::MemberExpr>(expr)) {
                 return Annotator::Use_MemberAccess;
             }
+            if (auto op = llvm::dyn_cast<clang::ImplicitCastExpr>(expr)) {
+                if (op->getCastKind() == clang::CK_LValueToRValue)
+                    return Annotator::Use_Read;
+            }
             if (auto op = llvm::dyn_cast<clang::BinaryOperator>(expr)) {
                 if (op->isAssignmentOp() && op->getLHS() == previous)
                     return Annotator::Use_Write;
@@ -461,9 +465,6 @@ private:
                         return Annotator::Use_Address; // non const reference
                     return Annotator::Use_Read; // anything else is considered as read;
                 }
-                return Annotator::Use;
-            }
-            if (llvm::isa<clang::InitListExpr>(expr)) {
                 return Annotator::Use;
             }
             previous = expr;

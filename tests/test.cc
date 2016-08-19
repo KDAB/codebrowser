@@ -347,6 +347,7 @@ struct Uses {
         v = value;
         v = { value };
         v = Uses{value}.hello;
+        long v2 = value;
         Val vvv = valval;
         vvv = valval;
         vvv = hello2;
@@ -376,10 +377,14 @@ struct Uses {
         auto *val = &valval;
         auto &v1 = value;
         auto v2 = &value;
+        int &v3 { value };
         auto &xx = (&valval)->v;
         auto *hi = &hello;
         refFunc(value);
         return value;
+    }
+    void o() {
+        (void) value;
     }
 };
 
