@@ -42,6 +42,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     typedef clang::RecursiveASTVisitor<BrowserASTVisitor> Base;
     Annotator &annotator;
     clang::NamedDecl *currentContext = nullptr;
+    int recursionCount = 0; // Used to avoid a stack overflow
 
     struct : std::deque<clang::Expr *>  {
         clang::Expr *topExpr = 0;
@@ -327,6 +328,11 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
     // Since we cannot find up the parent of a node, we keep a stack of parents
     bool TraverseStmt(clang::Stmt *s) {
+        if (++recursionCount > 10000) {
+            // Give up if the stack is too big to avoid stack overflow
+            std::cerr << "TraverseStmt: Stack overflow, giving up traversal";
+            return true;
+        }
         auto e = llvm::dyn_cast_or_null<clang::Expr>(s);
         decltype(expr_stack) old_stack;
         if (e) {
@@ -362,14 +368,17 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         } else {
             std::swap(old_stack, expr_stack);
         }
+        recursionCount--;
         return r;
     }
 
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 8
     bool shouldUseDataRecursionFor(clang::Stmt *S) {
         // We need to disable this data recursion feature otherwise this break the detection
         // of parents (expr_stack).  Especially for the CaseStmt
         return false;
     }
+#endif
 
     bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo) {
         // Do not visit the TypeLoc of constructor or destructors
