@@ -149,7 +149,7 @@ $(function () {
             last = mangle.substr(start, len);
             result += last;
             mangle = mangle.slice(start + len)
-        } while(mangle && mangle[0]!='E' && scoped);
+        } while(mangle && mangle[0]!='E' && mangle[0]!='B' && scoped);
         return result;
     }
 
