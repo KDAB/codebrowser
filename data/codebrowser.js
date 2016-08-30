@@ -1291,7 +1291,12 @@ $(function () {
             theUl.html(html);
         }
     }
-    refreshHistoryBox();
+    refreshHistoryBox(); // create/load
+    if (location.hash && location.hash.length >= 0) {
+        console.log(location.hash);
+        var hash = location.hash.replace('#','');
+        pushHistoryLog( { url: location.origin + location.pathname + "#" + hash, name: hash, ref: hash} );
+    }
 
 
     // Pre-fetch index. The XMLHttpRequest above will take it from browser cache then
