@@ -336,7 +336,9 @@ $(function () {
         setUnderElem: function(elem) {
             var content=$("div#content")
             var docwidth = content.innerWidth()-15;
-            var docheight= content.innerHeight()-18;
+            var winheight= $(window).height() - 18;
+            var contentTop = $("#content").offset().top;
+            var toppos = window.scrollY + contentTop;
             var twidth=this.tooltip.get(0).offsetWidth;
             var theight=this.tooltip.get(0).offsetHeight;
             var tipx=elem.position().left + elem.width()/2 - twidth/2 ;
@@ -345,7 +347,7 @@ $(function () {
             else if (tipx < 0) tipx = this.gap;
             var tipy=elem.position().top + elem.height()/2 + this.gap;
             tipy += content.scrollTop();
-            tipy=(tipy-content.scrollTop()+theight>docheight && tipy-theight>content.scrollTop()) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
+            tipy=(tipy-toppos+theight>winheight && tipy-theight>toppos) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
             this.tooltip.css({left: tipx, top: tipy});
         },
 
