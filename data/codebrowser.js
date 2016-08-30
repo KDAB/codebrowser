@@ -319,6 +319,7 @@ $(function () {
         focusHideDelay: 700, // time to hide the tooltip after when it was hovered
         hideDelay : this.normalHideDelay,
         gap : 12,
+        elem : null,
 
         init: function() {
             $("div#content").append("<div id='tooltip' style='position:absolute' />");
@@ -348,6 +349,7 @@ $(function () {
             var tipy=elem.position().top + elem.height()/2 + this.gap;
             tipy += content.scrollTop();
             tipy=(tipy-toppos+theight>winheight && tipy-theight>toppos) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
+            this.elem = elem;
             this.tooltip.css({left: tipx, top: tipy});
         },
 
@@ -384,6 +386,8 @@ $(function () {
 
     tooltip.init();
 
+/*-------------------------------------------------------------------------------------*/
+
     //highlight the line numbers of the warnings
     $(".warning, .error").each(function() {
         var t = $(this);
@@ -417,6 +421,39 @@ $(function () {
     var onMouseLeave = function(e) { tooltip.hideAfterDelay(e); }
     var onMouseClick = function(e) {
         if (e.ctrlKey || e.altKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
+        var toppos;
+        if (this.parentNode.tagName == "TD") {
+            // The node is part of the code, find out the context from there.
+            toppos = $(this).offset().top
+        } else if (tooltip.tooltip.is(":visible") && tooltip.elem) {
+            // If the tooltip is open, use the item from the tooltip
+            toppos = tooltip.elem.offset().top;
+        } else {
+            // else, from the top.
+            var contentTop = $("#content").offset().top;
+            toppos = window.scrollY + contentTop;
+        }
+        var context = undefined;
+        $('.def').each(function() {
+            var t = $(this);
+            if (t.offset().top > toppos + 1) {
+                return false;
+            }
+            context = t;
+        });
+        if (context !== undefined) {
+            if (context.hasClass("decl")) {
+                var c = context[0].title_;
+                if (c === undefined)
+                    c = context.attr("title");
+                var ref = context.attr("data-ref");
+                pushHistoryLog( { url: location.origin + location.pathname + "#" + ref, name: c, ref: ref} );
+            }
+        }
+
+        var ref = $(this).attr("data-ref")
+        if (ref && ref.match(/^[^0-9].*/))
+            pushHistoryLog( { url: this.href, ref: ref } );
 
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
@@ -434,6 +471,7 @@ $(function () {
                 }
             }
         }
+
         return true;
     }
 
@@ -1067,7 +1105,7 @@ $(function () {
         var context = undefined;
         $('.def').each(function() {
             var t = $(this);
-            if (t.offset().top > toppos) {
+            if (t.offset().top > toppos + 1) {
                 return false;
             }
             context = t;
@@ -1184,7 +1222,7 @@ $(function () {
 /*-------------------------------------------------------------------------------------*/
 
     // The definitions side bar
-    var dfns = document.getElementsByClassName('def');
+    /*var dfns = document.getElementsByClassName('def');
     if (dfns.length) {
         var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
         dfnsDiv.find('h3').click(function() {
@@ -1197,14 +1235,64 @@ $(function () {
         var theUl = dfnsDiv.find('ul');
         var html = "";
         for (var i = 0; i < dfns.length - 1; ++i) {
-            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</li>';
+            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</a></li>';
         }
         theUl.append(html);
         $('#content').append('<div id="allSideBoxes">');
         $('#allSideBoxes').append(dfnsDiv);
         if (readCookie('symboxhid') === "true")
             $("#symbolSideBox ul").hide()
+    }*/
+
+
+    var historylog = [];
+
+    function pushHistoryLog(hist) {
+        if (!historylog) historylog = [];
+        // don't add if recent history already constains this item
+        if (historylog.length >= 1 && historylog[historylog.length - 1].ref === hist.ref) return;
+        if (historylog.length >= 2 && historylog[historylog.length - 2].ref === hist.ref) return;
+        if (historylog.length >= 3 && historylog[historylog.length - 3].ref === hist.ref) return;
+        historylog.push(hist);
+        if (localStorage)
+            localStorage.setItem('historyLog', JSON.stringify(historylog))
+        refreshHistoryBox();
     }
+
+    function refreshHistoryBox() {
+        try {
+            historylog = JSON.parse(localStorage.getItem('historyLog'));
+            while(typeof historylog === "string") historylog = JSON.parse(historylog);
+        } catch(e) {}
+        if (historylog && historylog.length > 1) {
+            if ($("#allSideBoxes").length == 0) {
+                var dfnsDiv = $('<div id="symbolSideBox"><h3>History</h3><ul></ul></div>');
+                dfnsDiv.find('h3').click(function() {
+                    var hidden = !$("#symbolSideBox ul").toggle().is(":visible");
+                    createCookie('symboxhid', hidden, 5);
+                });
+                dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
+                dfnsDiv.on({"mouseup": onMouseClick}, "a");
+
+                $('#content').append('<div id="allSideBoxes">');
+                $('#allSideBoxes').append(dfnsDiv);
+                if (readCookie('symboxhid') === "true")
+                    $("#symbolSideBox ul").hide()
+            }
+
+            var html = "";
+            historylog.forEach(function(o) {
+                var name = o.name;
+                if (!name) name = demangleFunctionName(o.ref);
+                html = "<li><a href='"+o.url+"'>"+name+"</a></li>" + html;
+            } );
+
+            var theUl = $('#symbolSideBox ul');
+            theUl.html(html);
+        }
+    }
+    refreshHistoryBox();
+
 
     // Pre-fetch index. The XMLHttpRequest above will take it from browser cache then
     $("head").append('<link rel="prefetch" href="'+root_path + '/fileIndex'+'">');
