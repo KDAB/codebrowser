@@ -1293,6 +1293,7 @@ $(function () {
     }
     refreshHistoryBox(); // create/load
     if (location.hash && location.hash.length >= 0) {
+        // FIXME: Only do when non-numeric, e.g. if it is a real symbol
         console.log(location.hash);
         var hash = location.hash.replace('#','');
         pushHistoryLog( { url: location.origin + location.pathname + "#" + hash, name: hash, ref: hash} );
