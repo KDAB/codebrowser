@@ -39,4 +39,4 @@
 th.highlight { font-weight: bold; }
 th.highlight+td { background-color: #f8f7f6; }
 
-#symbolSideBox { border: 1px solid #ddd; background-color: #eee; }
+.sideBox { border: 1px solid #ddd; background-color: #eee; }

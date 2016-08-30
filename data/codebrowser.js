@@ -1222,9 +1222,9 @@ $(function () {
 /*-------------------------------------------------------------------------------------*/
 
     // The definitions side bar
-    /*var dfns = document.getElementsByClassName('def');
+    var dfns = document.getElementsByClassName('def');
     if (dfns.length) {
-        var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
+        var dfnsDiv = $('<div id="symbolSideBox" class="sideBox"><h3>Definitions</h3><ul></ul></div>');
         dfnsDiv.find('h3').click(function() {
             var hidden = !$("#symbolSideBox ul").toggle().is(":visible");
             createCookie('symboxhid', hidden, 5);
@@ -1242,7 +1242,7 @@ $(function () {
         $('#allSideBoxes').append(dfnsDiv);
         if (readCookie('symboxhid') === "true")
             $("#symbolSideBox ul").hide()
-    }*/
+    }
 
 
     var historylog = [];
@@ -1265,19 +1265,19 @@ $(function () {
             while(typeof historylog === "string") historylog = JSON.parse(historylog);
         } catch(e) {}
         if (historylog && historylog.length > 1) {
-            if ($("#allSideBoxes").length == 0) {
+            if ($("#historySideBox").length==0) {
                 var dfnsDiv = $('<div id="symbolSideBox"><h3>History</h3><ul></ul></div>');
+                var dfnsDiv = $('<div id="historySideBox" class="sideBox"><h3>History</h3><ul></ul></div>');
                 dfnsDiv.find('h3').click(function() {
-                    var hidden = !$("#symbolSideBox ul").toggle().is(":visible");
+                    var hidden = !$("#historySideBox ul").toggle().is(":visible");
                     createCookie('symboxhid', hidden, 5);
                 });
                 dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
                 dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
-                $('#content').append('<div id="allSideBoxes">');
                 $('#allSideBoxes').append(dfnsDiv);
                 if (readCookie('symboxhid') === "true")
-                    $("#symbolSideBox ul").hide()
+                    $("#historySideBox ul").hide()
             }
 
             var html = "";
@@ -1287,7 +1287,7 @@ $(function () {
                 html = "<li><a href='"+o.url+"'>"+name+"</a></li>" + html;
             } );
 
-            var theUl = $('#symbolSideBox ul');
+            var theUl = $('#historySideBox ul');
             theUl.html(html);
         }
     }
