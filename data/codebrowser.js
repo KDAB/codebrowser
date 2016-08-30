@@ -1221,6 +1221,8 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
+    $('#content').append('<div id="allSideBoxes">');
+
     // The definitions side bar
     var dfns = document.getElementsByClassName('def');
     if (dfns.length) {
@@ -1238,7 +1240,6 @@ $(function () {
             html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '" data-ref="'+ dfns[i].id +'">'+dfns[i].textContent +'</a></li>';
         }
         theUl.append(html);
-        $('#content').append('<div id="allSideBoxes">');
         $('#allSideBoxes').append(dfnsDiv);
         if (readCookie('symboxhid') === "true")
             $("#symbolSideBox ul").hide()
