@@ -336,8 +336,8 @@ $(function () {
         setUnderElem: function(elem) {
             var content=$("div#content")
             var docwidth = content.innerWidth()-15;
-            var winheight= $(window).height() - 18;
             var contentTop = $("#content").offset().top;
+            var winheight= $(window).height() - 18 - contentTop;
             var toppos = window.scrollY + contentTop;
             var twidth=this.tooltip.get(0).offsetWidth;
             var theight=this.tooltip.get(0).offsetHeight;
