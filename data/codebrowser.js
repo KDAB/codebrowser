@@ -1265,7 +1265,7 @@ $(function () {
             historylog = JSON.parse(localStorage.getItem('historyLog'));
             while(typeof historylog === "string") historylog = JSON.parse(historylog);
         } catch(e) {}
-        if (historylog && historylog.length > 1) {
+        if (historylog && historylog.length >= 1) {
             if ($("#historySideBox").length==0) {
                 var dfnsDiv = $('<div id="symbolSideBox"><h3>History</h3><ul></ul></div>');
                 var dfnsDiv = $('<div id="historySideBox" class="sideBox"><h3>History</h3><ul></ul></div>');
@@ -1298,6 +1298,8 @@ $(function () {
         var hash = location.hash.replace('#','');
         if (!/^\d+$/.test(hash)) {
             pushHistoryLog( { url: location.origin + location.pathname + "#" + hash, name: hash, ref: hash} );
+        } else {
+            // FIXME: If numeric, we should add the embedding function
         }
     }
 
