@@ -1235,7 +1235,7 @@ $(function () {
         var theUl = dfnsDiv.find('ul');
         var html = "";
         for (var i = 0; i < dfns.length - 1; ++i) {
-            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</a></li>';
+            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '" data-ref="'+ dfns[i].id +'">'+dfns[i].textContent +'</a></li>';
         }
         theUl.append(html);
         $('#content').append('<div id="allSideBoxes">');
