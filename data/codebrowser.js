@@ -1313,8 +1313,13 @@ $(function () {
         // Only do when non-numeric, e.g. if it is a real symbol and not a line number
         var hash = location.hash.replace('#','');
         if (!/^\d+$/.test(hash)) {
-            var title = $(hash).attr('title');
+            var title = $('#'+escape_selector(hash)).attr('title');
+            if (!title || title.length == 0) {
+                title = hash;
+            }
+
             pushHistoryLog( { url: location.origin + location.pathname + "#" + hash, name: title, ref: hash} );
+
         } else {
             // FIXME: If numeric, we should add the embedding function
         }
