@@ -342,11 +342,11 @@ $(function () {
             var toppos = window.scrollY + contentTop;
             var twidth=this.tooltip.get(0).offsetWidth;
             var theight=this.tooltip.get(0).offsetHeight;
-            var tipx=elem.position().left + elem.width()/2 - twidth/2 ;
+            var tipx=elem.offset().left + elem.width()/2 - twidth/2 ;
             tipx += content.scrollLeft();
             if (tipx+twidth>docwidth) tipx = docwidth - twidth - this.gap;
             else if (tipx < 0) tipx = this.gap;
-            var tipy=elem.position().top + elem.height()/2 + this.gap;
+            var tipy=elem.offset().top + elem.height()/2 + this.gap;
             tipy += content.scrollTop();
             tipy=(tipy-toppos+theight>winheight && tipy-theight>toppos) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
             this.elem = elem;
@@ -766,6 +766,13 @@ $(function () {
                 tt.append("<br/>");
                 tt.append($("<span class='type' />").text(type));
             }
+            if (content.length == 0) {
+                // For local elements (we dont have DOM data) or other file data
+                // FIXME: In a later version, we could instead push the tooltip content into the history?
+                content += "<br/>"
+                content += elem.context.pathname;
+            }
+
             tt.append($("<span />").html(content));
             tooltip.ref = ref;
             tt.find(".uses").hide();
@@ -1232,7 +1239,6 @@ $(function () {
             createCookie('symboxhid', hidden, 5);
         });
         dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
-        dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
         var theUl = dfnsDiv.find('ul');
         var html = "";
@@ -1240,7 +1246,14 @@ $(function () {
             html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '" data-ref="'+ dfns[i].id +'">'+dfns[i].textContent +'</a></li>';
         }
         theUl.append(html);
+
         $('#allSideBoxes').append(dfnsDiv);
+
+        var links = $("#symbolSideBox ul li a");
+        links.on({"mouseenter": onMouseEnterRef,
+                    "mouseleave": onMouseLeave
+                    , "click": applyTo(onMouseEnterRef) });
+
         if (readCookie('symboxhid') === "true")
             $("#symbolSideBox ul").hide()
     }
@@ -1267,14 +1280,12 @@ $(function () {
         } catch(e) {}
         if (historylog && historylog.length >= 1) {
             if ($("#historySideBox").length==0) {
-                var dfnsDiv = $('<div id="symbolSideBox"><h3>History</h3><ul></ul></div>');
                 var dfnsDiv = $('<div id="historySideBox" class="sideBox"><h3>History</h3><ul></ul></div>');
                 dfnsDiv.find('h3').click(function() {
                     var hidden = !$("#historySideBox ul").toggle().is(":visible");
                     createCookie('symboxhid', hidden, 5);
                 });
                 dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
-                dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
                 $('#allSideBoxes').append(dfnsDiv);
                 if (readCookie('symboxhid') === "true")
@@ -1285,11 +1296,16 @@ $(function () {
             historylog.forEach(function(o) {
                 var name = o.name;
                 if (!name) name = demangleFunctionName(o.ref);
-                html = "<li><a href='"+o.url+"'>"+name+"</a></li>" + html;
+                html = "<li><a href='"+o.url+"' data-ref='"+ o.ref +"' title='"+name+"'>"+name+"</a></li>" + html;
             } );
 
             var theUl = $('#historySideBox ul');
             theUl.html(html);
+
+            var links = $("#historySideBox ul li a");
+            links.on({"mouseenter": onMouseEnterRef,
+                        "mouseleave": onMouseLeave
+                        , "click": applyTo(onMouseEnterRef) });
         }
     }
     refreshHistoryBox(); // create/load
