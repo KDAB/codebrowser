@@ -453,8 +453,14 @@ $(function () {
         }
 
         var ref = $(this).attr("data-ref")
-        if (ref && ref.match(/^[^0-9].*/))
-            pushHistoryLog( { url: this.href, ref: ref } );
+        if (ref && ref.match(/^[^0-9].*/)) {
+            if (ref.match(/^_M\//)) { // Macro
+                var currentLine = $(this).parents("tr").find("th").text();
+                pushHistoryLog( { url: location.origin + location.pathname + "#" + currentLine, ref: ref } );
+            } else {
+                pushHistoryLog( { url: this.href, ref: ref } );
+            }
+        }
 
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
