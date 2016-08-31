@@ -1283,12 +1283,12 @@ $(function () {
                 var dfnsDiv = $('<div id="historySideBox" class="sideBox"><h3>History</h3><ul></ul></div>');
                 dfnsDiv.find('h3').click(function() {
                     var hidden = !$("#historySideBox ul").toggle().is(":visible");
-                    createCookie('symboxhid', hidden, 5);
+                    createCookie('hisboxhid', hidden, 5);
                 });
                 dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
 
                 $('#allSideBoxes').append(dfnsDiv);
-                if (readCookie('symboxhid') === "true")
+                if (readCookie('hisboxhid') === "true")
                     $("#historySideBox ul").hide()
             }
 
