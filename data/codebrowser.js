@@ -102,6 +102,7 @@ $(function () {
     function demangleFunctionName(mangle) {
         if (! mangle) return mangle;
         if (mangle[0] !== '_') return mangle;
+        if (mangle[1] === 'M' && mangle[2] === '/') return mangle.slice(3);
         if (mangle[1] !== 'Z') return mangle;
         mangle = mangle.slice(2);
         var result;
