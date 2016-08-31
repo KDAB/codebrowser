@@ -1243,7 +1243,7 @@ $(function () {
         var theUl = dfnsDiv.find('ul');
         var html = "";
         for (var i = 0; i < dfns.length - 1; ++i) {
-            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '" data-ref="'+ dfns[i].id +'">'+dfns[i].textContent +'</a></li>';
+            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '" data-ref="'+ dfns[i].id +'">'+escape_html(dfns[i].textContent) +'</a></li>';
         }
         theUl.append(html);
 
@@ -1296,7 +1296,7 @@ $(function () {
             historylog.forEach(function(o) {
                 var name = o.name;
                 if (!name) name = demangleFunctionName(o.ref);
-                html = "<li><a href='"+o.url+"' data-ref='"+ o.ref +"' title='"+name+"'>"+name+"</a></li>" + html;
+                html = "<li><a href='"+o.url+"' data-ref='"+ o.ref +"' title='"+name+"'>"+escape_html(name)+"</a></li>" + html;
             } );
 
             var theUl = $('#historySideBox ul');
