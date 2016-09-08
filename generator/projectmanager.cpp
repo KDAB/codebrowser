@@ -25,6 +25,7 @@
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
+#include <clang/Basic/Version.h>
 
 void ProjectManager::addProject(ProjectInfo info) {
     if (info.source_path.empty())
@@ -69,6 +70,7 @@ bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo* projec
 
 std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::StringRef from)
 {
+#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 5
     if (includeRecoveryCache.empty()) {
         for (const auto &proj : projects) {
             // skip sub project
@@ -125,4 +127,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
         resolved = candidate;
     }
     return resolved;
+#else
+    return {}; // Not supported with clang < 3.4
+#endif
 }

@@ -30,6 +30,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/ADT/StringExtras.h>
+#include <clang/Basic/Version.h>
 
 template<int N>
 static void bufferAppend(llvm::SmallVectorImpl<char> &buffer, const char (&val)[N]) {
@@ -103,7 +104,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
     std::string error;
-    llvm::raw_fd_ostream myfile(real_filename, error, llvm::sys::fs::F_None);
+    llvm::raw_fd_ostream myfile(real_filename.c_str(), error, llvm::sys::fs::F_None);
     if (!error.empty()) {
         std::cerr << "Error generating " << real_filename << " ";
         std::cerr << error<< std::endl;

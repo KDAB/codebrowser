@@ -256,7 +256,8 @@ bool PreprocessorCallback::FileNotFound(llvm::StringRef FileName, llvm::SmallVec
     RecoveryPath.clear();
     RecoveryPath.append(recovery.begin(), recovery.begin() + recovery.size() - FileName.size());
     currentLoc.dump(SM);
-    llvm::errs() << " WARNING: File not found '" << FileName << "'. Recovering using " << RecoveryPath << "\n";
+    llvm::errs() << " WARNING: File not found '" << FileName << "'. Recovering using "
+                 << llvm::StringRef(RecoveryPath.data(), RecoveryPath.size()) << "\n";
 
     return true;
 }

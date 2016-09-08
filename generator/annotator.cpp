@@ -872,7 +872,7 @@ static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D) {
         if (FunctionT) {
             if (auto Ins = FunctionT->getInstantiatedFromMemberTemplate())
                 FunctionT = Ins;
-            D = Function = FunctionT->getAsFunction();
+            D = Function = FunctionT->getTemplatedDecl();
         }
         Template = Function->getInstantiatedFromMemberFunction();
     } else if (VarDecl *Var = dyn_cast<VarDecl>(D)) {
