@@ -532,7 +532,7 @@ $(function () {
                 });
 
                 //var uses = highlighted_items;
-                var uses = $("[data-ref='"+escape_selector(ref)+"']");
+                var uses = $(".code [data-ref='"+escape_selector(ref)+"']");
                 var usesLis ="";
                 var usesCount = 0;
                 uses.each(function() {
