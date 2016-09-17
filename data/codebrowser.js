@@ -773,13 +773,6 @@ $(function () {
                 tt.append("<br/>");
                 tt.append($("<span class='type' />").text(type));
             }
-            if (content.length == 0) {
-                // For local elements (we dont have DOM data) or other file data
-                // FIXME: In a later version, we could instead push the tooltip content into the history?
-                content += "<br/>"
-                content += elem.context.pathname;
-            }
-
             tt.append($("<span />").html(content));
             tooltip.ref = ref;
             tt.find(".uses").hide();
