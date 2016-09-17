@@ -1261,6 +1261,12 @@ $(function () {
 
     var historylog = [];
 
+    var historyKey = (function() {
+        var a = document.createElement('a');
+        a.href = root_path;
+        return "historylog" + a.pathname;
+    })();
+
     function pushHistoryLog(hist) {
         if (!historylog) historylog = [];
         // don't add if recent history already constains this item
@@ -1269,13 +1275,13 @@ $(function () {
         if (historylog.length >= 3 && historylog[historylog.length - 3].ref === hist.ref) return;
         historylog.push(hist);
         if (localStorage)
-            localStorage.setItem('historyLog', JSON.stringify(historylog))
+            localStorage.setItem(historyKey, JSON.stringify(historylog))
         refreshHistoryBox();
     }
 
     function refreshHistoryBox() {
         try {
-            historylog = JSON.parse(localStorage.getItem('historyLog'));
+            historylog = JSON.parse(localStorage.getItem(historyKey));
             while(typeof historylog === "string") historylog = JSON.parse(historylog);
         } catch(e) {}
         if (historylog && historylog.length >= 1) {
