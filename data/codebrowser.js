@@ -1274,6 +1274,8 @@ $(function () {
         if (historylog.length >= 2 && historylog[historylog.length - 2].ref === hist.ref) return;
         if (historylog.length >= 3 && historylog[historylog.length - 3].ref === hist.ref) return;
         historylog.push(hist);
+        if (historylog.length > 100)
+            historylog = historylog.slice(-100);
         if (localStorage)
             localStorage.setItem(historyKey, JSON.stringify(historylog))
         refreshHistoryBox();
