@@ -422,6 +422,7 @@ $(function () {
     var onMouseLeave = function(e) { tooltip.hideAfterDelay(e); }
     var onMouseClick = function(e) {
         if (e.ctrlKey || e.altKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
+        if (!this.href) return true; // not clicking on a link
         var toppos;
         if (this.parentNode.tagName == "TD") {
             // The node is part of the code, find out the context from there.
@@ -465,7 +466,7 @@ $(function () {
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
 
-        if (history && history.pushState && this.href) {
+        if (history && history.pushState) {
             var href = this.href;
             var hashPos = href.indexOf("#");
             if (hashPos >= 0) {
