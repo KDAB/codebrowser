@@ -877,6 +877,7 @@ $(function () {
     code.on({"mouseenter": onMouseEnterArg, "mouseleave": onMouseLeave, "click": applyTo(onMouseEnterArg) },
                   ".refarg");
     code.on({"click":onMouseClick }, "th a")
+    code.click(function() { tooltip.tooltip.hide(); });
 
     tooltip.tooltip.on({"mouseup": onMouseClick}, "a")
 
