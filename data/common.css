@@ -10,16 +10,20 @@ div#header+hr {position:fixed; top:5.2em; left:0; right:0; z-index:2}
 div#header input {-webkit-appearance:searchfield;-moz-appearance:searchfield;appearance:searchfield;}
 div#content { margin-top: 5.3em; }
 
+/* Fixme: We could experiment around with max-height: 90 vh? */
 #allSideBoxes {
 position:fixed; margin-top:1ex; top:5.2em; right:10px; z-index:1;
+max-height:30em;
 }
-#symbolSideBox {
-padding:1ex; border-radius:0.5ex; overflow:clip; font-size:smaller; }
-#symbolSideBox h3 { text-align:center; width:100%; cursor: pointer; cursor: hand; margin: 0;}
-#symbolSideBox ul {
-display:block; overflow:auto; max-width:20em; max-height:30em; list-style:none; margin: 0; padding: 1em;
+.sideBox {
+padding:1ex; border-radius:0.5ex; overflow:hide; font-size:smaller; margin-bottom:1em;
+max-height:100%;
 }
-#symbolSideBox li {
+.sideBox h3 { text-align:center; width:100%; cursor: pointer; cursor: hand; margin: 0;}
+.sideBox ul {
+display:block; overflow:auto; max-width:20em; max-height:20em; list-style:none; margin: 0; padding: 1em;
+}
+.sideBox li {
 list-style-type: none; padding: 0; margin-right: 1ex;
 }
 

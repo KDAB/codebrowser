@@ -102,6 +102,7 @@ $(function () {
     function demangleFunctionName(mangle) {
         if (! mangle) return mangle;
         if (mangle[0] !== '_') return mangle;
+        if (mangle[1] === 'M' && mangle[2] === '/') return mangle.slice(3);
         if (mangle[1] !== 'Z') return mangle;
         mangle = mangle.slice(2);
         var result;
@@ -319,6 +320,7 @@ $(function () {
         focusHideDelay: 700, // time to hide the tooltip after when it was hovered
         hideDelay : this.normalHideDelay,
         gap : 12,
+        elem : null,
 
         init: function() {
             $("div#content").append("<div id='tooltip' style='position:absolute' />");
@@ -341,13 +343,14 @@ $(function () {
             var toppos = window.scrollY + contentTop;
             var twidth=this.tooltip.get(0).offsetWidth;
             var theight=this.tooltip.get(0).offsetHeight;
-            var tipx=elem.position().left + elem.width()/2 - twidth/2 ;
+            var tipx=elem.offset().left + elem.width()/2 - twidth/2 ;
             tipx += content.scrollLeft();
             if (tipx+twidth>docwidth) tipx = docwidth - twidth - this.gap;
             else if (tipx < 0) tipx = this.gap;
-            var tipy=elem.position().top + elem.height()/2 + this.gap;
+            var tipy=elem.offset().top + elem.height()/2 + this.gap;
             tipy += content.scrollTop();
             tipy=(tipy-toppos+theight>winheight && tipy-theight>toppos) ? tipy-theight-(2*this.gap) : tipy //account for bottom edge
+            this.elem = elem;
             this.tooltip.css({left: tipx, top: tipy});
         },
 
@@ -384,6 +387,8 @@ $(function () {
 
     tooltip.init();
 
+/*-------------------------------------------------------------------------------------*/
+
     //highlight the line numbers of the warnings
     $(".warning, .error").each(function() {
         var t = $(this);
@@ -417,11 +422,51 @@ $(function () {
     var onMouseLeave = function(e) { tooltip.hideAfterDelay(e); }
     var onMouseClick = function(e) {
         if (e.ctrlKey || e.altKey || e.button != 0) return true; // don't break ctrl+click,  open in a new tab
+        if (!this.href) return true; // not clicking on a link
+        var toppos;
+        if (this.parentNode.tagName == "TD") {
+            // The node is part of the code, find out the context from there.
+            toppos = $(this).offset().top
+        } else if (tooltip.tooltip.is(":visible") && tooltip.elem) {
+            // If the tooltip is open, use the item from the tooltip
+            toppos = tooltip.elem.offset().top;
+        } else {
+            // else, from the top.
+            var contentTop = $("#content").offset().top;
+            toppos = window.scrollY + contentTop;
+        }
+        var context = undefined;
+        $('.def').each(function() {
+            var t = $(this);
+            if (t.offset().top > toppos + 1) {
+                return false;
+            }
+            context = t;
+        });
+        if (context !== undefined) {
+            if (context.hasClass("decl")) {
+                var c = context[0].title_;
+                if (c === undefined)
+                    c = context.attr("title");
+                var ref = context.attr("data-ref");
+                pushHistoryLog( { url: location.origin + location.pathname + "#" + ref, name: c, ref: ref} );
+            }
+        }
+
+        var ref = $(this).attr("data-ref")
+        if (ref && ref.match(/^[^0-9].*/)) {
+            if (ref.match(/^_M\//)) { // Macro
+                var currentLine = $(this).parents("tr").find("th").text();
+                pushHistoryLog( { url: location.origin + location.pathname + "#" + currentLine, ref: ref } );
+            } else {
+                pushHistoryLog( { url: this.href, ref: ref } );
+            }
+        }
 
         tooltip.tooltip.hide();
         skipHighlightTimerId = setTimeout(function() { skipHighlightTimerId = null }, 600);
 
-        if (history && history.pushState && this.href) {
+        if (history && history.pushState) {
             var href = this.href;
             var hashPos = href.indexOf("#");
             if (hashPos >= 0) {
@@ -434,6 +479,7 @@ $(function () {
                 }
             }
         }
+
         return true;
     }
 
@@ -487,7 +533,7 @@ $(function () {
                 });
 
                 //var uses = highlighted_items;
-                var uses = $("[data-ref='"+escape_selector(ref)+"']");
+                var uses = $(".code [data-ref='"+escape_selector(ref)+"']");
                 var usesLis ="";
                 var usesCount = 0;
                 uses.each(function() {
@@ -1068,7 +1114,7 @@ $(function () {
         var context = undefined;
         $('.def').each(function() {
             var t = $(this);
-            if (t.offset().top > toppos) {
+            if (t.offset().top > toppos + 1) {
                 return false;
             }
             context = t;
@@ -1184,28 +1230,111 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
+    $('#content').append('<div id="allSideBoxes">');
+
     // The definitions side bar
     var dfns = document.getElementsByClassName('def');
     if (dfns.length) {
-        var dfnsDiv = $('<div id="symbolSideBox"><h3>Definitions</h3><ul></ul></div>');
+        var dfnsDiv = $('<div id="symbolSideBox" class="sideBox"><h3>Definitions</h3><ul></ul></div>');
         dfnsDiv.find('h3').click(function() {
             var hidden = !$("#symbolSideBox ul").toggle().is(":visible");
             createCookie('symboxhid', hidden, 5);
         });
         dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
-        dfnsDiv.on({"mouseup": onMouseClick}, "a");
 
         var theUl = dfnsDiv.find('ul');
         var html = "";
         for (var i = 0; i < dfns.length - 1; ++i) {
-            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '">'+dfns[i].textContent +'</li>';
+            html += '<li><a href="#' + dfns[i].id + '" title="'+ dfns[i].title+ '" data-ref="'+ dfns[i].id +'">'+escape_html(dfns[i].textContent) +'</a></li>';
         }
         theUl.append(html);
-        $('#content').append('<div id="allSideBoxes">');
+
         $('#allSideBoxes').append(dfnsDiv);
+
+        var links = $("#symbolSideBox ul li a");
+        links.on({"mouseenter": onMouseEnterRef,
+                    "mouseleave": onMouseLeave
+                    , "click": applyTo(onMouseEnterRef) });
+
         if (readCookie('symboxhid') === "true")
             $("#symbolSideBox ul").hide()
     }
+
+
+    var historylog = [];
+
+    var historyKey = (function() {
+        var a = document.createElement('a');
+        a.href = root_path;
+        return "historylog" + a.pathname;
+    })();
+
+    function pushHistoryLog(hist) {
+        if (!historylog) historylog = [];
+        // don't add if recent history already constains this item
+        if (historylog.length >= 1 && historylog[historylog.length - 1].ref === hist.ref) return;
+        if (historylog.length >= 2 && historylog[historylog.length - 2].ref === hist.ref) return;
+        if (historylog.length >= 3 && historylog[historylog.length - 3].ref === hist.ref) return;
+        historylog.push(hist);
+        if (historylog.length > 100)
+            historylog = historylog.slice(-100);
+        if (localStorage)
+            localStorage.setItem(historyKey, JSON.stringify(historylog))
+        refreshHistoryBox();
+    }
+
+    function refreshHistoryBox() {
+        try {
+            historylog = JSON.parse(localStorage.getItem(historyKey));
+            while(typeof historylog === "string") historylog = JSON.parse(historylog);
+        } catch(e) {}
+        if (historylog && historylog.length >= 1) {
+            if ($("#historySideBox").length==0) {
+                var dfnsDiv = $('<div id="historySideBox" class="sideBox"><h3>History</h3><ul></ul></div>');
+                dfnsDiv.find('h3').click(function() {
+                    var hidden = !$("#historySideBox ul").toggle().is(":visible");
+                    createCookie('hisboxhid', hidden, 5);
+                });
+                dfnsDiv.attr("style", "top:" + document.getElementById('header').clientHeight + "px;");
+
+                $('#allSideBoxes').append(dfnsDiv);
+                if (readCookie('hisboxhid') === "true")
+                    $("#historySideBox ul").hide()
+            }
+
+            var html = "";
+            historylog.forEach(function(o) {
+                var name = o.name;
+                if (!name) name = demangleFunctionName(o.ref);
+                html = "<li><a href='"+o.url+"' data-ref='"+ o.ref +"' title='"+name+"'>"+escape_html(name)+"</a></li>" + html;
+            } );
+
+            var theUl = $('#historySideBox ul');
+            theUl.html(html);
+
+            var links = $("#historySideBox ul li a");
+            links.on({"mouseenter": onMouseEnterRef,
+                        "mouseleave": onMouseLeave
+                        , "click": applyTo(onMouseEnterRef) });
+        }
+    }
+    refreshHistoryBox(); // create/load
+    if (location.hash && location.hash.length >= 0) {
+        // Only do when non-numeric, e.g. if it is a real symbol and not a line number
+        var hash = location.hash.replace('#','');
+        if (!/^\d+$/.test(hash)) {
+            var title = $('#'+escape_selector(hash)).attr('title');
+            if (!title || title.length == 0) {
+                title = hash;
+            }
+
+            pushHistoryLog( { url: location.origin + location.pathname + "#" + hash, name: title, ref: hash} );
+
+        } else {
+            // FIXME: If numeric, we should add the embedding function
+        }
+    }
+
 
     // Pre-fetch index. The XMLHttpRequest above will take it from browser cache then
     $("head").append('<link rel="prefetch" href="'+root_path + '/fileIndex'+'">');

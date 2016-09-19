@@ -69,4 +69,4 @@ $green:     #859900;
 .highlight { background-color: #073642 !important; }
 th.highlight+td { background-color: #073642 !important; }
 
-#symbolSideBox { background-color: #073642 !important; border: 1px solid #073642;}
+.sideBox { background-color: #073642 !important; border: 1px solid #073642;}
