@@ -251,6 +251,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
 #endif
     command.push_back("-isystem");
     command.push_back("/builtins");
+    command.push_back("-Qunused-arguments");
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
 
     // Map the builtins includes
@@ -259,11 +260,6 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
         Inv.mapVirtualFile(f->filename, {f->content , f->size } );
         f++;
     }
-
-    // the BrowserASTConsumer will re-create a new diagnostic consumer,
-    // but we want to ignore all the driver warnings
-    clang::IgnoringDiagConsumer consumer;
-    Inv.setDiagnosticConsumer(&consumer);
     bool result = Inv.run();
     if (!result) {
         std::cerr << "Error: The file was not recognized as source code: " << file.str() <<  std::endl;
