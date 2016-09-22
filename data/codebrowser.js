@@ -550,7 +550,7 @@ $(function () {
                             // Find the context:  Look at up every line from the current one if
                             // there is a .def,  if this definition is a declaration, it is the context
                             var prevLines = t.closest("tr").prevAll();
-                            for (var x = prevLines.length - 1; x >= 0; --x) {
+                            for (var x = 0; x < prevLines.length; ++x) {
                                 var context = $(prevLines[x]).find(".def");
                                 if (!context.length)
                                     continue;
