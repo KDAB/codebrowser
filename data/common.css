@@ -97,5 +97,5 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
     div#content { overflow-x:auto; }
 }
 @media only screen and (max-width: 60em) {
-#symbolSideBox { display: none;}
+#allSideBoxes { display: none;}
 }
