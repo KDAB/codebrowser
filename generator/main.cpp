@@ -218,25 +218,26 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
-    std::for_each(command.begin(), command.end(), [&](std::string &A) {
+    for(std::string &A : command) {
         if (previousIsDashI && !A.empty() && A[0] != '/') {
             A = Directory % "/" % A;
-            return;
+            previousIsDashI = false;
+            continue;
         } else if (A == "-I") {
             previousIsDashI = true;
-            return;
+            continue;
         }
         previousIsDashI = false;
-        if (A.empty()) return;
-                  if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
-                      A = "-I" % Directory % "/" % llvm::StringRef(A).substr(2);
-                      return;
-                  }
-                  if (A[0] == '-' || A[0] == '/') return;
-                  std::string PossiblePath = Directory % "/" % A;
+        if (A.empty()) continue;
+        if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
+            A = "-I" % Directory % "/" % llvm::StringRef(A).substr(2);
+            continue;
+        }
+        if (A[0] == '-' || A[0] == '/') continue;
+        std::string PossiblePath = Directory % "/" % A;
         if (llvm::sys::fs::exists(PossiblePath))
-            A = PossiblePath;
-    } );
+        A = PossiblePath;
+    }
 
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 6
     auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
