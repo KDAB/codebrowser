@@ -1238,7 +1238,10 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
-    $('#content').append('<div id="allSideBoxes">');
+    //$('body').append('<div id="allSideBoxes">');
+    //$('#content').prepend('<div id="allSideBoxes">');
+    //$('body').prepend('<div id="allSideBoxes">');
+    $('#content').before('<div id="allSideBoxes">');
 
     // The definitions side bar
     var dfns = document.getElementsByClassName('def');
