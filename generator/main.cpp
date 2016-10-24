@@ -22,7 +22,7 @@
 
 #include "llvm/Support/CommandLine.h"
 #include "clang/Frontend/FrontendActions.h"
-#include "clang/Tooling/CompilationDatabase.h"
+#include "clang/Tooling/JSONCompilationDatabase.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/AST/ASTContext.h"
 
@@ -49,38 +49,56 @@ namespace cl = llvm::cl;
 
 cl::opt<std::string> BuildPath(
   "b",
-  cl::desc("<build-path>"),
+  cl::value_desc("compile_commands.json"),
+  cl::desc("Path to the compilation database (compile_commands.json) If this argument is not passed, the compilation arguments can be passed on the command line after '--'"),
   cl::Optional);
 
 cl::list<std::string> SourcePaths(
   cl::Positional,
-  cl::desc("(<source0> [... <sourceN>])|<path>"),
+  cl::desc("<sources>* [-- <compile command>]"),
   cl::ZeroOrMore);
 
 cl::opt<std::string> OutputPath(
     "o",
-    cl::desc("<output path>"),
+    cl::value_desc("output path"),
+    cl::desc("Output directory where the generated files will be put"),
     cl::Required);
 
 cl::list<std::string> ProjectPaths(
     "p",
-    cl::desc("<project>:<path>[:<revision>]"),
+    cl::value_desc("<project>:<path>[:<revision>]"),
+    cl::desc("Project specification: The name of the project, the absolute path of the source code, and the revision separated by colons. Example: -p projectname:/path/to/source/code:0.3beta"),
     cl::ZeroOrMore);
 
 
 cl::list<std::string> ExternalProjectPaths(
     "e",
-    cl::desc("<project>:<path>:<url>"),
+    cl::value_desc("<project>:<path>:<url>"),
+    cl::desc("Reference to an external project. Example: -e clang/include/clang:/opt/llvm/include/clang/:https://code.woboq.org/llvm"),
     cl::ZeroOrMore);
 
 cl::opt<std::string> DataPath(
     "d",
-    cl::desc("<data path>"),
+    cl::value_desc("data path"),
+    cl::desc("Data url where all the javascript and css files are found. Can be absolute, or relative to the output directory. Defaults to ../data"),
     cl::Optional);
 
 cl::opt<bool> ProcessAllSources(
     "a",
-    cl::desc("Process all sources in the compilation_database.json (should not have sources then)"));
+    cl::desc("Process all files from the compile_commands.json. If this argument is passed, the list of sources does not need to be passed"));
+
+cl::extrahelp extra(
+
+R"(
+
+EXAMPLES:
+
+Simple generation without compile command or project (compile command specified inline)
+  codebrowser_generator -o ~/public_html/code -d https://code.woboq.org/data $PWD -- -std=c++14 -I/opt/llvm/include
+
+With a project
+  codebrowser_generator -b $PWD/compile_commands.js -a -p codebrowser:$PWD -o ~/public_html/code
+)");
 
 #if 1
 std::string locationToString(clang::SourceLocation loc, clang::SourceManager& sm) {
@@ -306,10 +324,19 @@ int main(int argc, const char **argv) {
     BrowserAction::projectManager = &projectManager;
 
 
-    if (!Compilations) {
+    if (!Compilations && llvm::sys::fs::exists(BuildPath)) {
         std::string ErrorMessage;
-        Compilations = std::unique_ptr<clang::tooling::CompilationDatabase>(
-            clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath, ErrorMessage));
+        if (llvm::sys::fs::is_directory(BuildPath)) {
+            Compilations = std::unique_ptr<clang::tooling::CompilationDatabase>(
+                clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath, ErrorMessage));
+        } else {
+            Compilations = std::unique_ptr<clang::tooling::CompilationDatabase>(
+                clang::tooling::JSONCompilationDatabase::loadFromFile(BuildPath, ErrorMessage
+#if CLANG_VERSION_MAJOR >= 4
+                    , clang::tooling::JSONCommandLineSyntax::AutoDetect
+#endif
+                    ));
+        }
         if (!ErrorMessage.empty()) {
             std::cerr << ErrorMessage << std::endl;
         }
