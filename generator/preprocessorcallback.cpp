@@ -248,7 +248,7 @@ bool PreprocessorCallback::FileNotFound(llvm::StringRef FileName, llvm::SmallVec
     clang::SourceLocation currentLoc = static_cast<clang::Lexer *>(PP.getCurrentLexer())->getSourceLocation();
     auto &SM = annotator.getSourceMgr();
     const clang::FileEntry* entry = SM.getFileEntryForID(SM.getFileID(currentLoc));
-    if (!entry || !entry->getName())
+    if (!entry || llvm::StringRef(entry->getName()).empty())
         return false;
     std::string recovery = annotator.projectManager.includeRecovery(FileName, entry->getName());
     if (recovery.empty() || !llvm::StringRef(recovery).endswith(FileName))

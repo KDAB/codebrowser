@@ -194,8 +194,7 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
     }
 
     const clang::FileEntry* entry = getSourceMgr().getFileEntryForID(id);
-    if (!entry || !entry->getName())
-    {
+    if (!entry || llvm::StringRef(entry->getName()).empty()) {
         cache[id] = {false, {} };
         return {};
     }
@@ -520,7 +519,7 @@ std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
 {
   //this is a bit duplicated with the other pathTo and htmlNameForFile
 
-    if (!To || !To->getName())
+    if (!To || llvm::StringRef(To->getName()).empty())
         return {};
 
     std::string fromFN = htmlNameForFile(From);
