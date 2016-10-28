@@ -328,13 +328,15 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         }
 #endif
         for (const auto &it2 : it.second) {
-            clang::SourceLocation loc = it2.loc;
+            clang::SourceRange loc = it2.loc;
             clang::SourceManager &sm = getSourceMgr();
-            clang::SourceLocation exp = sm.getExpansionLoc(loc);
-            std::string fn = htmlNameForFile(sm.getFileID(exp));
+            clang::SourceLocation expBegin = sm.getExpansionLoc(loc.getBegin());
+            clang::SourceLocation expEnd = sm.getExpansionLoc(loc.getEnd());
+            std::string fn = htmlNameForFile(sm.getFileID(expBegin));
             if (fn.empty())
                 continue;
-            clang::PresumedLoc fixed = sm.getPresumedLoc(exp);
+            clang::PresumedLoc fixedBegin = sm.getPresumedLoc(expBegin);
+            clang::PresumedLoc fixedEnd = sm.getPresumedLoc(expEnd);
             const char *tag = "";
             char usetype = '\0';
             switch(it2.what) {
@@ -375,8 +377,10 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             }
             myfile << "<" << tag << " f='";
             Generator::escapeAttr(myfile, fn);
-            myfile << "' l='"<<  fixed.getLine()  <<"'";
-            if (loc.isMacroID()) myfile << " macro='1'";
+            myfile << "' l='"<<  fixedBegin.getLine()  <<"'";
+            if (fixedBegin.getLine() != fixedEnd.getLine())
+                myfile << " ll='"<<  fixedEnd.getLine()  <<"'";
+            if (loc.getBegin().isMacroID()) myfile << " macro='1'";
             if (!WasInDatabase) myfile << " brk='1'";
             if (usetype) myfile << " u='" << usetype << "'";
             const auto &refType = it2.typeOrContext;
@@ -597,7 +601,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 if (usedContext && typeText.empty() && declType == Use) {
                     typeText = getContextStr(usedContext);
                 }
-                addReference(getReferenceAndTitle(decl).first, range.getBegin(), type, declType, typeText, decl);
+                addReference(getReferenceAndTitle(decl).first, range, type, declType, typeText, decl);
             }
             return;
         }
@@ -643,7 +647,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 typeText = getContextStr(usedContext);
             }
 
-            addReference(ref, range.getBegin(), type, declType, typeText, decl);
+            clang::SourceRange definitionRange = range;
+            if (declType == Definition)
+                definitionRange = decl->getSourceRange();
+            addReference(ref, definitionRange, type, declType, typeText, decl);
 
              if (declType == Definition && ref.find('{') >= ref.size()) {
                  if (clang::FunctionDecl* fun = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
@@ -749,7 +756,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     }
 }
 
-void Annotator::addReference(const std::string &ref, clang::SourceLocation refLoc, TokenType type,
+void Annotator::addReference(const std::string &ref, clang::SourceRange refLoc, TokenType type,
                              DeclType dt, const std::string &typeRef, clang::Decl *decl)
 {
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl

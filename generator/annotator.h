@@ -81,12 +81,12 @@ private:
 
     std::string htmlNameForFile(clang::FileID id); // keep a cache;
 
-    void addReference(const std::string& ref, clang::SourceLocation refLoc, Annotator::TokenType type,
+    void addReference(const std::string& ref, clang::SourceRange refLoc, Annotator::TokenType type,
                       Annotator::DeclType dt, const std::string &typeRef, clang::Decl *decl);
 
     struct Reference {
         DeclType what;
-        clang::SourceLocation loc;
+        clang::SourceRange loc;
         std::string typeOrContext;
     };
     std::map<std::string, std::vector<Reference>> references;
