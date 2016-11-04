@@ -19,5 +19,5 @@
 th.highlight { font-weight: bold; }
 th.highlight+td { background-color: #eee; }
 
-.sideBox { border: 1px solid #ddd; background-color: #eee; }
+.sideBox { /*border: 1px solid #ddd;*//* background-color: #eee; */}
 

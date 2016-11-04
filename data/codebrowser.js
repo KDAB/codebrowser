@@ -1154,7 +1154,7 @@ $(function () {
         if (setStyle.toLowerCase() === title.toLowerCase()) styleOpt += " selected='true'";
         styleOpt += ">" + title + "</option>";
     });
-    $("#header").append("<p id='options'><a class='opt_linenum' href='#'>Toggle line number</a> -  Style: <select class='opt_style'>" + styleOpt + "</select></p>")
+    $("#header").append("<p id='options'><a class='opt_linenum' href='#'>line numbers</a> - <a class='opt_sidebars' href='#'>sidebars</a> -  Style: <select class='opt_style'>" + styleOpt + "</select></p>")
 
     var lineNumberShown = -1;
     $(".opt_linenum").click(function() {
@@ -1169,6 +1169,9 @@ $(function () {
             $(".code th").show();
         lineNumberShown = !lineNumberShown;
         return false;
+    });
+    $(".opt_sidebars").click(function() {
+        $("#allSideBoxes").toggle();
     });
     $(".opt_style").change(function(e) {
         switchStylestyleAndSetCookie(this.options[this.selectedIndex].value);
@@ -1238,10 +1241,8 @@ $(function () {
 
 /*-------------------------------------------------------------------------------------*/
 
-    //$('body').append('<div id="allSideBoxes">');
-    //$('#content').prepend('<div id="allSideBoxes">');
-    //$('body').prepend('<div id="allSideBoxes">');
     $('#content').before('<div id="allSideBoxes">');
+    //$( "#allSideBoxes" ).resizable({ handles: "n, e, s, w" });
 
     // The definitions side bar
     var dfns = document.getElementsByClassName('def');
