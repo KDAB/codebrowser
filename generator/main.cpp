@@ -236,6 +236,8 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
+    bool previousNeedsMacro = false;
+    bool hasNoStdInc = false;
     for(std::string &A : command) {
         if (previousIsDashI && !A.empty() && A[0] != '/') {
             A = Directory % "/" % A;
@@ -244,6 +246,16 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
         } else if (A == "-I") {
             previousIsDashI = true;
             continue;
+        } else if (A == "-nostdinc") {
+          hasNoStdInc = true;
+          continue;
+        } else if (A == "-U" || A == "-D") {
+          previousNeedsMacro = true;
+          continue;
+        }
+        if (previousNeedsMacro) {
+          previousNeedsMacro = false;
+          continue;
         }
         previousIsDashI = false;
         if (A.empty()) continue;
@@ -268,17 +280,21 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     command = clang::tooling::getClangSyntaxOnlyAdjuster()(command, file);
     command = clang::tooling::getClangStripOutputAdjuster()(command, file);
 #endif
-    command.push_back("-isystem");
-    command.push_back("/builtins");
+    if (!hasNoStdInc) {
+      command.push_back("-isystem");
+      command.push_back("/builtins");
+    }
     command.push_back("-Qunused-arguments");
     command.push_back("-Wno-unknown-warning-option");
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
 
-    // Map the builtins includes
-    const EmbeddedFile *f = EmbeddedFiles;
-    while (f->filename) {
-        Inv.mapVirtualFile(f->filename, {f->content , f->size } );
-        f++;
+    if (!hasNoStdInc) {
+      // Map the builtins includes
+      const EmbeddedFile *f = EmbeddedFiles;
+      while (f->filename) {
+          Inv.mapVirtualFile(f->filename, {f->content , f->size } );
+          f++;
+      }
     }
     bool result = Inv.run();
     if (!result) {
