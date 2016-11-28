@@ -236,6 +236,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
+    bool previousNeedsMacro = false;
     bool hasNoStdInc = false;
     for(std::string &A : command) {
         if (previousIsDashI && !A.empty() && A[0] != '/') {
@@ -247,6 +248,13 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
             continue;
         } else if (A == "-nostdinc") {
           hasNoStdInc = true;
+          continue;
+        } else if (A == "-U" || A == "-D") {
+          previousNeedsMacro = true;
+          continue;
+        }
+        if (previousNeedsMacro) {
+          previousNeedsMacro = false;
           continue;
         }
         previousIsDashI = false;
