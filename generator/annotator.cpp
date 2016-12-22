@@ -901,8 +901,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         decl = getSpecializedCursorTemplate(decl);
 
         std::string qualName = decl->getQualifiedNameAsString();
-        if ((llvm::isa<clang::FunctionDecl>(decl) || llvm::isa<clang::VarDecl>(decl))
-                && mangle->shouldMangleDeclName(decl)
+        if (llvm::isa<clang::FunctionDecl>(decl) && mangle->shouldMangleDeclName(decl)
                 //workaround crash in clang while trying to mangle some buitins types
                 && !llvm::StringRef(qualName).startswith("__")) {
             llvm::raw_string_ostream s(cached.first);
