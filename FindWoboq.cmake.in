@@ -1,0 +1,99 @@
+# this "lookup code" uses caching and will only be executed once
+if("${WOBOQ_DATA}" STREQUAL "")
+    # when the carnary variable WOBOQ_DATA is not set we assume that this is
+    # the first run of this script.
+    #
+    # lookup some executables. as this script will be configured by cmake
+    # during configure time, we already know where to look
+    # (CMAKE_INSTALL_PREFIX), and can thus can simplify the search:
+    find_program(WOBOQ_GENERATOR
+        codebrowser_generator
+        PATHS @CMAKE_INSTALL_PREFIX@/bin
+        NO_DEFAULT_PATH
+        "create html")
+    # same for the indexer
+    find_program(WOBOQ_INDEXER
+        codebrowser_indexgenerator
+        PATHS @CMAKE_INSTALL_PREFIX@/bin
+        NO_DEFAULT_PATH
+        "create index")
+    # the static data-files:
+    SET(WOBOQ_DATA  "@CMAKE_INSTALL_PREFIX@/share/woboq/data" CACHE INTERNAL "woboq data")
+    # and this is where we ouput into. this is a fixed location.
+    SET(WOBOQ_OUTDIR "${CMAKE_BINARY_DIR}/woboq" CACHE INTERNAL "woboq outdir")
+    # because of using the cached variable, this message will only appear once,
+    # even when the "find_package()" macro is called multiple times
+    message("-- woboq found in '@CMAKE_INSTALL_PREFIX@', outputting into '${WOBOQ_OUTDIR}'")
+endif()
+
+# the global target to tie everything together. not sure if all the paths are
+# correct, but seems to mostly work.
+#
+# splitting the "data+index" step from the actual "generator" allows to add
+# content from multiple targets (invocations of the generator) into one
+# browsable "database".
+if(NOT TARGET woboq)
+    add_custom_target(woboq
+        COMMAND cp -vr ${WOBOQ_DATA} ${WOBOQ_OUTDIR}
+        COMMAND ${WOBOQ_INDEXER} ${WOBOQ_OUTDIR} -d ../data
+        COMMENT "provide static data and configure index.html"
+        )
+endif()
+
+# a nice convenience target, so that we have a local webserver to test the
+# result.  serves directly from the build-folder:
+if(NOT TARGET woboq-serve)
+    add_custom_target(woboq-serve
+        COMMAND python -m SimpleHTTPServer
+        WORKING_DIRECTORY ${WOBOQ_OUTDIR}
+        COMMENT "serving woboq from '${WOBOQ_OUTDIR}' at http://localhost:8000"
+        DEPENDS woboq
+        )
+endif()
+
+# this internal function executes woboq for _one_ target, into a subdir of
+# WOBOQ_OUTDIR:
+function(_woboqCreateNewGeneratorTarget)
+    set(options )
+    set(multiValueArgs )
+    set(oneValueArgs TARGET)
+    cmake_parse_arguments(_woboq "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+    # create function-local variables:
+    set(trgt ${_woboq_TARGET})
+    # the outdir cannot be overridden from the outside... in theory yes, but
+    # does not play well with the global "woboq" and "woboq-serve" targets
+    set(outdir ${WOBOQ_OUTDIR})
+
+    # this will (?) retrieve where the CMakeLists of this target is located. I
+    # think this is what the second part of the "-p" switch needs...
+    get_property(srcdir TARGET ${trgt} PROPERTY SOURCE_DIR)
+    # this is the "woboq" project name. we could add a version string...
+    set(prjct ${trgt}:${srcdir})
+
+    # the actual, preciuos step: run the generator
+    add_custom_command(OUTPUT ${outdir}/${trgt}
+        COMMAND ${WOBOQ_GENERATOR} -a -b ${CMAKE_BINARY_DIR} -o ${outdir} -p ${prjct}
+        )
+    # wrap this into a proper target
+    add_custom_target(woboq-${trgt} DEPENDS ${outdir}/${trgt})
+    # and add the sub-target to the "global" woboq target
+    add_dependencies(woboq woboq-${trgt})
+
+endfunction()
+
+# the public interface:
+function(CreateBrowsableDocumentation)
+    set(options )
+    # allow calling this function with single argument or a list
+    set(multiValueArgs TARGETS)
+    set(oneValueArgs TARGET)
+    cmake_parse_arguments(_woboq "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+    # and then call the main-function for each target of the list:
+    foreach(trgt ${_woboq_TARGETS} ${_woboq_TARGET})
+        # guard against multiple calls:
+        if(NOT TARGET woboq-${trgt})
+            _woboqCreateNewGeneratorTarget(TARGET ${trgt})
+        endif()
+    endforeach()
+endfunction()

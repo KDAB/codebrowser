@@ -7,6 +7,12 @@ add_definitions(-fno-strict-aliasing)
 add_subdirectory(generator)
 add_subdirectory(indexgenerator)
 
+configure_file(FindWoboq.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/FindWoboq.cmake @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FindWoboq.cmake
+    DESTINATION share/woboq/cmake)
+
 install(DIRECTORY data
     DESTINATION share/woboq
     )
