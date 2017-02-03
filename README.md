@@ -49,8 +49,9 @@ You need:
 
 Example:
 ```bash
-cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
-make
+mkdir -p build && cd build
+cmake .. -DLLVM_CONFIG_EXECUTABLE=llvm-config-3.8 -DCMAKE_INSTALL_PREFIX=$HOME/woboq.install -DCMAKE_BUILD_TYPE=Release
+make -j
 ```
 
 Compiling the generator on OS X
