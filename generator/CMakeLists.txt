@@ -48,3 +48,6 @@ endforeach()
 
 configure_file(embedded_includes.h.in embedded_includes.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+install(TARGETS codebrowser_generator
+    RUNTIME DESTINATION bin)
