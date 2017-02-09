@@ -26,22 +26,27 @@ if("${WOBOQ_DATA}" STREQUAL "")
     message("-- woboq found in '@CMAKE_INSTALL_PREFIX@', outputting into '${WOBOQ_OUTDIR}'")
 endif()
 
-# the global target to tie everything together. not sure if all the paths are
-# correct, but seems to mostly work.
+# the global target to tie everything together by parsing all output into the
+# various index.html -- seems to mostly work.
 #
 # splitting the "data+index" step from the actual "generator" allows to add
 # content from multiple targets (invocations of the generator) into one
-# browsable "database".
+# browsable "database" with one "data" folder in the root of the dir-tree
 if(NOT TARGET woboq)
     add_custom_target(woboq
         COMMAND cp -vr ${WOBOQ_DATA} ${WOBOQ_OUTDIR}
-        COMMAND ${WOBOQ_INDEXER} ${WOBOQ_OUTDIR} -d ../data
+        COMMAND ${WOBOQ_INDEXER} ${WOBOQ_OUTDIR} -d /data
         COMMENT "provide static data and configure index.html"
         )
 endif()
 
-# a nice convenience target, so that we have a local webserver to test the
-# result.  serves directly from the build-folder:
+# also cleanup the woboq-folder when asked to:
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
+    ${WOBOQ_OUTDIR}
+    )
+
+# a nice convenience target, which provides a local webserver to test the
+# result.  serves directly from the output-folder:
 if(NOT TARGET woboq-serve)
     add_custom_target(woboq-serve
         COMMAND python -m SimpleHTTPServer
@@ -69,16 +74,34 @@ function(_woboqCreateNewGeneratorTarget)
     # think this is what the second part of the "-p" switch needs...
     get_property(srcdir TARGET ${trgt} PROPERTY SOURCE_DIR)
     # this is the "woboq" project name. we could add a version string...
-    set(prjct ${trgt}:${srcdir})
+    #
+    # TODO: add current git-sha1 as revision
+    set(srcprjct ${trgt}:${srcdir})
 
-    # the actual, preciuos step: run the generator
+    # add a second "project" for files generated inside
+    # the global build directory. this will pout all generated file into a
+    # parallel page-tree in the served html.
+    get_property(blddir TARGET ${trgt} PROPERTY BINARY_DIR)
+    set(bldprjct ${trgt}-build:${blddir})
+
+    # the actual, precious step: run the generator
     add_custom_command(OUTPUT ${outdir}/${trgt}
-        COMMAND ${WOBOQ_GENERATOR} -a -b ${CMAKE_BINARY_DIR} -o ${outdir} -p ${prjct}
+        # use two projects, one with the source and one with the build. the
+        # second stage (indexgenerator) will figure it out later.
+        COMMAND ${WOBOQ_GENERATOR} -a -b ${CMAKE_BINARY_DIR} -o ${outdir} -p ${srcprjct} -p ${bldprjct}
+        # sadly, this _has_ to depend on trgt, to be sure that any generated
+        # file is present. cmake has no way to specify dependency on single
+        # files from sudirectories. this will at least not build the ALL target
+        DEPENDS ${trgt}
         )
     # wrap this into a proper target
     add_custom_target(woboq-${trgt} DEPENDS ${outdir}/${trgt})
     # and add the sub-target to the "global" woboq target
     add_dependencies(woboq woboq-${trgt})
+
+    # add woboq files to clean target
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
+        ${outdir}/${trgt} ${outdir}/${PROJECT_NAME}-build)
 
 endfunction()
 
