@@ -82,7 +82,7 @@ function(_woboqCreateNewGeneratorTarget)
     # the global build directory. this will pout all generated file into a
     # parallel page-tree in the served html.
     get_property(blddir TARGET ${trgt} PROPERTY BINARY_DIR)
-    set(bldprjct ${trgt}-build:${blddir})
+    set(bldprjct ${trgt}/build:${blddir})
 
     # the actual, precious step: run the generator
     add_custom_command(OUTPUT ${outdir}/${trgt}
