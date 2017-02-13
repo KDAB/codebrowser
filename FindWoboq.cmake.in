@@ -99,6 +99,10 @@ function(_woboqCreateNewGeneratorTarget)
     # and add the sub-target to the "global" woboq target
     add_dependencies(woboq woboq-${trgt})
 
+    install(DIRECTORY ${outdir}/${trgt}
+        DESTINATION share/doc/woboq
+        )
+
     # add woboq files to clean target
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
         ${outdir}/${trgt} ${outdir}/${PROJECT_NAME}-build)
