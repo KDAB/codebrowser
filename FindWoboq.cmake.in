@@ -70,12 +70,10 @@ function(_woboqCreateNewGeneratorTarget)
     # does not play well with the global "woboq" and "woboq-serve" targets
     set(outdir ${WOBOQ_OUTDIR})
 
-    # this will (?) retrieve where the CMakeLists of this target is located. I
-    # think this is what the second part of the "-p" switch needs...
+    # this retrieves where the CMakeLists of this target is located. Will use
+    # this directory as src-dir in the "-p" option for woboq:
     get_property(srcdir TARGET ${trgt} PROPERTY SOURCE_DIR)
-    # this is the "woboq" project name. we could add a version string...
-    #
-    # TODO: add current git-sha1 as revision
+    # this is the "woboq" project name TODO: add current git-sha1 as revision?
     set(srcprjct ${trgt}:${srcdir})
 
     # add a second "project" for files generated inside
