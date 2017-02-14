@@ -86,6 +86,8 @@ function(_woboqCreateNewGeneratorTarget)
 
     # the actual, precious step: run the generator
     add_custom_command(OUTPUT ${outdir}/${trgt}
+        # take care to have a clean output location:
+        COMMAND rm -rf ${outdir}/${trgt}
         # use two projects, one with the source and one with the build. the
         # second stage (indexgenerator) will figure it out later.
         COMMAND ${WOBOQ_GENERATOR} -a -b ${CMAKE_BINARY_DIR} -o ${outdir} -p ${srcprjct} -p ${bldprjct}
@@ -105,7 +107,7 @@ function(_woboqCreateNewGeneratorTarget)
 
     # add woboq files to clean target
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-        ${outdir}/${trgt} ${outdir}/${PROJECT_NAME}-build)
+        ${outdir}/${trgt})
 
 endfunction()
 
