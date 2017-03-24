@@ -88,7 +88,7 @@ function(_woboqCreateNewGeneratorTarget)
         COMMAND rm -rf ${outdir}/${trgt}
         # use two projects, one with the source and one with the build. the
         # second stage (indexgenerator) will figure it out later.
-        COMMAND ${WOBOQ_GENERATOR} -a -b ${CMAKE_BINARY_DIR} -o ${outdir} -p ${srcprjct} -p ${bldprjct}
+        COMMAND ${WOBOQ_GENERATOR} -d /data -a -b ${CMAKE_BINARY_DIR} -o ${outdir} -p ${srcprjct} -p ${bldprjct}
         # sadly, this _has_ to depend on trgt, to be sure that any generated
         # file is present. cmake has no way to specify dependency on single
         # files from sudirectories. this will at least not build the ALL target
