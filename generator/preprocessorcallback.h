@@ -54,7 +54,11 @@ public:
 
     void MacroDefined(const clang::Token &MacroNameTok, const clang::MacroDirective *MD) override;
 
-    void MacroUndefined(const clang::Token &MacroNameTok, MyMacroDefinition MD) override;
+    void MacroUndefined(const clang::Token &MacroNameTok, MyMacroDefinition MD
+#if CLANG_VERSION_MAJOR >= 5
+       , const clang::MacroDirective *
+#endif
+        ) override;
 
     bool FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath) override;
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,

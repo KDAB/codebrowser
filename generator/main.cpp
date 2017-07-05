@@ -127,6 +127,7 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer {
         switch(DiagLevel) {
             case clang::DiagnosticsEngine::Fatal:
                 std::cerr << "FATAL ";
+                LLVM_FALLTHROUGH;
             case clang::DiagnosticsEngine::Error:
                 std::cerr << "Error: " << locationToString(Info.getLocation(), annotator.getSourceMgr())
                             << ": " << diag.c_str() << std::endl;
@@ -304,8 +305,17 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
 }
 
 int main(int argc, const char **argv) {
+    std::string ErrorMessage;
     std::unique_ptr<clang::tooling::CompilationDatabase> Compilations(
-        clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv));
+        clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv
+#if CLANG_VERSION_MAJOR >= 5
+       , ErrorMessage
+#endif
+        ));
+    if (!ErrorMessage.empty()) {
+        std::cerr << ErrorMessage << std::endl;
+        ErrorMessage = {};
+    }
 
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
@@ -341,7 +351,6 @@ int main(int argc, const char **argv) {
 
 
     if (!Compilations && llvm::sys::fs::exists(BuildPath)) {
-        std::string ErrorMessage;
         if (llvm::sys::fs::is_directory(BuildPath)) {
             Compilations = std::unique_ptr<clang::tooling::CompilationDatabase>(
                 clang::tooling::CompilationDatabase::loadFromDirectory(BuildPath, ErrorMessage));

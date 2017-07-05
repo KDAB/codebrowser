@@ -188,7 +188,11 @@ void PreprocessorCallback::MacroDefined(const clang::Token& MacroNameTok, const 
     annotator.generator(FID).addTag("dfn", "class=\"macro\" id=\""% ref %"\" data-ref=\"" % ref % "\"", sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
-void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, PreprocessorCallback::MyMacroDefinition MD)
+void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, PreprocessorCallback::MyMacroDefinition MD
+#if CLANG_VERSION_MAJOR >= 5
+       , const clang::MacroDirective *
+#endif
+            )
 {
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())

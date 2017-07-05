@@ -31,3 +31,7 @@ template<typename T> struct MaybeUnique {
 };
 template<typename T> MaybeUnique<T> maybe_unique(T* val) { return {val}; }
 
+#ifndef LLVM_FALLTHROUGH
+#define LLVM_FALLTHROUGH
+#endif
+

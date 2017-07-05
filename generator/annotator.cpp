@@ -50,6 +50,7 @@
 
 #include "stringbuilder.h"
 #include "projectmanager.h"
+#include "compat.h"
 
 namespace
 {
@@ -1091,14 +1092,14 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
                 // Chop off the u part of u8 prefix
                 ++TokOffs;
                 --TokLen;
-                // FALL THROUGH to chop the 8
+                LLVM_FALLTHROUGH;
             case tok::wide_string_literal:
             case tok::utf16_string_literal:
             case tok::utf32_string_literal:
                 // Chop off the L, u, U or 8 prefix
                 ++TokOffs;
                 --TokLen;
-                // FALL THROUGH.
+                LLVM_FALLTHROUGH;
             case tok::string_literal:
                 // FIXME: Exclude the optional ud-suffix from the highlighted range.
                 generator.addTag("q", {}, TokOffs, TokLen);
@@ -1109,6 +1110,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
             case tok::utf32_char_constant:
                 ++TokOffs;
                 --TokLen;
+                LLVM_FALLTHROUGH;
             case tok::char_constant:
                 generator.addTag("kbd", {}, TokOffs, TokLen);
                 break;
