@@ -85,6 +85,7 @@ Using the generator
 ===================
 
 Step 1: Generate the compile_commands.json (see chapter "Compilation Database" below) for your project
+-------------------------------------------------------------------------------------------------------
 
 The code browser is built around the clang tooling infrastructure that uses compile_commands.json
 http://clang.llvm.org/docs/JSONCompilationDatabase.html
@@ -94,6 +95,7 @@ If your build system is cmake, just pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON to c
 For other build systems (e.g. qmake, make) you can use scripts/fake_compiler.sh as compiler (see comments in that file)
 
 Step 2: Create code HTML using codebrowser_generator
+------------------------------------------------------------
 
 Before generating, make sure the output directory is empty or does not contains
 stale files from a previous generation.
@@ -101,12 +103,15 @@ stale files from a previous generation.
 Call the codebrowser_generator. See later for argument specification
 
 Step 3: Generate the directory index HTML files using codebrowser_indexgenerator
+------------------------------------------------------------------------------------------
 
 By running the codebrowser_indexgenerator with the output directory as an argument
 
 Step 4: Copy the data/ directory one level above the generated html
+---------------------------------------------------------------------------
 
 Step 5: Open it in a browser or upload it to your webserver
+------------------------------------------------------------
 
 Note: By default, browsers do not allow AJAX on `file://` for security reasons. 
 You need to upload the output directory on a web server, or serve your files with a local apache or nginx server. 
