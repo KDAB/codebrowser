@@ -40,6 +40,15 @@ directory. In that case they will also share references and use searches will
 work between them.
 
 
+Install via RPM/DEB
+===================
+
+Please look at https://woboq.com/codebrowser-download.html
+
+Install via homebrew
+====================
+Please look at https://woboq.com/codebrowser-download.html
+
 
 Compiling the generator on Linux
 ================================
@@ -53,7 +62,7 @@ cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Re
 make
 ```
 
-Compiling the generator on OS X
+Compiling the generator on macOS
 ==============================================
 
 Install XCode and then the command line tools:
@@ -200,7 +209,7 @@ If you find a bug or incompatibility, please file a github issue:
 https://github.com/woboq/woboq_codebrowser/issues
 
 
-Licence information:
+Licence information
 ====================
 Licensees holding valid commercial licenses provided by Woboq may use
 this software in accordance with the terms contained in a written agreement
@@ -210,6 +219,7 @@ For further information see https://woboq.com/codebrowser.html
 Alternatively, this work may be used under a Creative Commons
 Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
 http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US
+
 This license does not allow you to use the code browser to assist the
 development of your commercial software. If you intent to do so, consider
 purchasing a commercial licence.
