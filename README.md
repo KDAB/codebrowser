@@ -90,9 +90,7 @@ Step 1: Generate the compile_commands.json (see chapter "Compilation Database" b
 The code browser is built around the clang tooling infrastructure that uses compile_commands.json
 http://clang.llvm.org/docs/JSONCompilationDatabase.html
 
-If your build system is cmake, just pass -DCMAKE_EXPORT_COMPILE_COMMANDS=ON to cmake to generate the script.
-
-For other build systems (e.g. qmake, make) you can use scripts/fake_compiler.sh as compiler (see comments in that file)
+See the section "Compilation Database (compile_commands.json)" below.
 
 Step 2: Create code HTML using codebrowser_generator
 ------------------------------------------------------------
@@ -198,10 +196,13 @@ To generate the compile_commands.json:
 These are fake compilers that append the compiler invocation to the json file and forward to the real compiler.
 Your real compiler is overriden using the CC/CXX environment variables
 Make sure to have the json file properly terminated.
+* If you use ninja, you can use ninja -t compdb
+* If you use qbs, you can use qbs generate --generator clangdb
 * There is also a project called Build EAR (Bear) that achieves a similar thing as our fake compilers
 but is using LD_PRELOAD to inject itself into the build process to catch how the compiler is invoked.
 https://github.com/rizsotto/Bear
 
+There is also some further information on https://sarcasm.github.io/notes/dev/compilation-database.html#clang
 
 
 Getting help
