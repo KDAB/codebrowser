@@ -697,6 +697,12 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         clas += " def";
     }
 
+    if (llvm::isa<clang::FunctionDecl>(decl)) {
+        clas += " fn";
+    } else if (llvm::isa<clang::FieldDecl>(decl)) {
+        clas += " field";
+    }
+
 //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
     clang::SourceLocation B = range.getBegin();
     clang::SourceLocation E = isVirtualLocation ? B : range.getEnd();

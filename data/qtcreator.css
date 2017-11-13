@@ -12,8 +12,13 @@
 .code var, .code u, .code .macro { color: #000080;  text-decoration: none; font-style:normal }
 
 .code .type, .code .typedef, .code .namespace, .code .enum  { color: #800080}
-.code .member, .code .lbl { color: #860d0d }
+.code .field, .code .member, .code .lbl { color: #860d0d }
 .code .virtual { font-style: italic }
+.code .local { color: #092e64 }
+.code .lbl { color: #800000 }
+.code .global { color: #ce5c00 } /* FIXME */
+.code .fn { color: #00677c }
+
 
 .highlight { background-color: #eee; border-radius:3px; border: 1px solid #B4B4B4; margin:-1px}
 th.highlight { font-weight: bold; }
