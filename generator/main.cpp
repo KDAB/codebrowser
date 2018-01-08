@@ -362,7 +362,7 @@ int main(int argc, const char **argv) {
 #endif
                     ));
         }
-        if (!ErrorMessage.empty()) {
+        if (!Compilations && !ErrorMessage.empty()) {
             std::cerr << ErrorMessage << std::endl;
         }
     }
