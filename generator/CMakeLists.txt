@@ -32,6 +32,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
 # Embed the clang header into the binary:
 exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --version      OUTPUT_VARIABLE LLVM_VERSION )
 string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
+string(REGEX REPLACE "git.*$" "" LLVM_VERSION "${LLVM_VERSION}")
 if(NOT CLANG_BUILTIN_HEADERS_DIR)
     set(CLANG_BUILTIN_HEADERS_DIR "${LLVM_BIN_DIR}/../lib/clang/${LLVM_VERSION}/include")
 endif()
