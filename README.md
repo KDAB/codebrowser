@@ -9,6 +9,8 @@ Main page: https://woboq.com/codebrowser.html
 
 The announcement blog: https://woboq.com/blog/codebrowser-introduction.html
 
+[![Build Status](https://travis-ci.org/woboq/woboq_codebrowser.svg?branch=master)](https://travis-ci.org/woboq/woboq_codebrowser)
+
 Introduction and Design
 =======================
 
