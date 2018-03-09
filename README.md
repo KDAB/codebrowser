@@ -124,14 +124,15 @@ Let's be meta in this example and try to generate the HTML files for the code br
 Assuming you are in the cloned directory:
 
 ```bash
-OUTPUTDIRECTORY=~/public_html/codebrowser
-DATADIRECTORY=$OUTPUTDIRECTORY/../data
-BUILDIRECTORY=$PWD
+OUTPUT_DIRECTORY=~/public_html/codebrowser
+DATA_DIRECTORY=$OUTPUTDIRECTORY/../data
+BUILD_DIRECTORY=$PWD
+SOURCE_DIRECTORY=$PWD
 VERSION=`git describe --always --tags`
 cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-./generator/codebrowser_generator -b $BUILDIRECTORY -a -o $OUTPUTDIRECTORY -p codebrowser:$BUILDIRECTORY:$VERSION
-./indexgenerator/codebrowser_indexgenerator $OUTPUTDIRECTORY
-cp -rv ./data $DATADIRECTORY
+./generator/codebrowser_generator -b $BUILD_DIRECTORY -a -o $OUTPUT_DIRECTORY -p codebrowser:$SOURCE_DIRECTORY:$VERSION
+./indexgenerator/codebrowser_indexgenerator $OUTPUT_DIRECTORY
+cp -rv ./data $DATA_DIRECTORY
 ```
 
 You can adjust the variables and try similar commands to generate other projects.
