@@ -32,7 +32,7 @@ list-style-type: none; padding: 0; margin-right: 1ex;
 table.code{ table-layout:fixed; width: 100% } /* This improves performence.  The idea is that the second column just overflows */
 .code th { width:6.5ex; padding-right:1ex; background-color:#eeeeee ;
             text-align:right; color:black; font-weight:normal;
-            -moz-user-select: none; }
+            -moz-user-select: none; user-select: none; }
 .code td { padding-left: 1ex; white-space: pre }
 
 #footer { font-size: smaller; margin:1ex; color: #333; text-align: right }
