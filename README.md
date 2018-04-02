@@ -125,7 +125,7 @@ Assuming you are in the cloned directory:
 
 ```bash
 OUTPUT_DIRECTORY=~/public_html/codebrowser
-DATA_DIRECTORY=$OUTPUTDIRECTORY/../data
+DATA_DIRECTORY=$OUTPUT_DIRECTORY/../data
 BUILD_DIRECTORY=$PWD
 SOURCE_DIRECTORY=$PWD
 VERSION=`git describe --always --tags`
