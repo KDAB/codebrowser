@@ -60,7 +60,7 @@ You need:
 
 Example:
 ```bash
-cmake . -DLLVM_CONFIG_EXECUTABLE=/opt/llvm/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
+cmake . -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
@@ -79,7 +79,7 @@ brew install llvm --with-clang --rtti
 
 Then compile the generator:
 ```bash
-cmake . -DLLVM_CONFIG_EXECUTABLE=/usr/local/Cellar/llvm/<your_llvm_version>/bin/llvm-config -DCMAKE_BUILD_TYPE=Release
+cmake . -DCMAKE_PREFIX_PATH=/usr/local/Cellar/llvm/<your_llvm_version> -DCMAKE_BUILD_TYPE=Release
 make
 ```
 

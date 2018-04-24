@@ -1,14 +1,9 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 project(codebrowser_indexgenerator)
-
 add_executable(codebrowser_indexgenerator indexer.cpp)
-
-target_link_libraries(codebrowser_indexgenerator)
-
 install(TARGETS codebrowser_indexgenerator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ADD_DEFINITIONS("-std=c++11")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
+set (CMAKE_CXX_STANDARD 11)
 
 IF (APPLE)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")

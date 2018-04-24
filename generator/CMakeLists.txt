@@ -1,13 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 project(codebrowser_generator)
-
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules)
-
-Find_Package(LLVM REQUIRED)
-#include_directories(${LLVM_INCLUDE_DIR})
-link_directories( ${LLVM_LIB_DIR} )
-
-
 
 Find_Package(Clang REQUIRED)
 Find_Package(LLVM REQUIRED CONFIG)
@@ -20,24 +12,28 @@ add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp g
 
 # Link against LLVM libraries
 llvm_map_components_to_libnames(llvm_libs support core option bitReader mcParser profileData)
-target_link_libraries(codebrowser_generator ${llvm_libs} ${CLANG_LIBS} ${llvm_libs} )
 
-target_include_directories(codebrowser_generator PRIVATE ${LLVM_INCLUDE_DIRS})
-target_compile_definitions(codebrowser_generator PRIVATE ${LLVM_DEFINITIONS})
-
+target_link_libraries(codebrowser_generator
+  clangFrontend
+  clangParse
+  clangSema
+  clangAST
+  clangBasic
+  clangLex
+  clangTooling
+  ${llvm_libs}
+  )
 
 install(TARGETS codebrowser_generator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+target_include_directories(codebrowser_generator PUBLIC ${CLANG_INCLUDE_DIRS})
 
-ADD_DEFINITIONS("-std=c++11")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_COMPILE_FLAGS} -std=c++11 -g")
+set (CMAKE_CXX_STANDARD 11)
 
 if (NOT APPLE)
     #  Don't link with libs that overlaps our options
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed" )
 endif()
-
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
-
 
 # Embed the clang header into the binary:
 string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
@@ -64,4 +60,4 @@ foreach(BUILTIN_HEADER ${BUILTINS_HEADERS})
 endforeach()
 
 configure_file(embedded_includes.h.in embedded_includes.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(codebrowser_generator PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
