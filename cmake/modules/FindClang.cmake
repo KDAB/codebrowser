@@ -1,10 +1,10 @@
 # Detect CLANG
-if (NOT LLVM_INCLUDE_DIR OR NOT LLVM_LIB_DIR)
+if (NOT LLVM_INCLUDE_DIR OR NOT LLVM_LIBRARY_DIR)
    message(FATAL_ERROR "No LLVM and Clang support requires LLVM")
-else (NOT LLVM_INCLUDE_DIR OR NOT LLVM_LIB_DIR)
+else (NOT LLVM_INCLUDE_DIR OR NOT LLVM_LIBRARY_DIR)
 
 MACRO(FIND_AND_ADD_CLANG_LIB _libname_)
-find_library(CLANG_${_libname_}_LIB ${_libname_} ${LLVM_LIB_DIR} ${CLANG_LIB_DIR})
+find_library(CLANG_${_libname_}_LIB ${_libname_} ${LLVM_LIBRARY_DIR} ${CLANG_LIB_DIR})
 if (CLANG_${_libname_}_LIB)
    set(CLANG_LIBS ${CLANG_LIBS} ${CLANG_${_libname_}_LIB})
 endif(CLANG_${_libname_}_LIB)
@@ -58,4 +58,4 @@ else(CLANG_FOUND)
   endif(CLANG_FIND_REQUIRED)
 endif(CLANG_FOUND)
 
-endif (NOT LLVM_INCLUDE_DIR OR NOT LLVM_LIB_DIR)
+endif (NOT LLVM_INCLUDE_DIR OR NOT LLVM_LIBRARY_DIR)

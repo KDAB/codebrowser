@@ -8,17 +8,27 @@ Find_Package(LLVM REQUIRED)
 link_directories( ${LLVM_LIB_DIR} )
 
 
+
 Find_Package(Clang REQUIRED)
-include_directories(${CLANG_INCLUDE_DIRS})
+Find_Package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp generator.cpp preprocessorcallback.cpp
                filesystem.cpp qtsupport.cpp commenthandler.cpp)
 
-target_link_libraries(codebrowser_generator ${CLANG_LIBS} ${LLVM_LIBS_CORE} ${LLVM_LDFLAGS})
+# Link against LLVM libraries
+llvm_map_components_to_libnames(llvm_libs support core option bitReader mcParser profileData)
+target_link_libraries(codebrowser_generator ${llvm_libs} ${CLANG_LIBS} ${llvm_libs} )
+
+target_include_directories(codebrowser_generator PRIVATE ${LLVM_INCLUDE_DIRS})
+target_compile_definitions(codebrowser_generator PRIVATE ${LLVM_DEFINITIONS})
+
 
 install(TARGETS codebrowser_generator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ADD_DEFINITIONS("-std=c++11") 
+ADD_DEFINITIONS("-std=c++11")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_COMPILE_FLAGS} -std=c++11 -g")
 
 if (NOT APPLE)
@@ -30,11 +40,10 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
 
 
 # Embed the clang header into the binary:
-exec_program(${LLVM_CONFIG_EXECUTABLE} ARGS --version      OUTPUT_VARIABLE LLVM_VERSION )
 string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
 string(REGEX REPLACE "git.*$" "" LLVM_VERSION "${LLVM_VERSION}")
 if(NOT CLANG_BUILTIN_HEADERS_DIR)
-    set(CLANG_BUILTIN_HEADERS_DIR "${LLVM_BIN_DIR}/../lib/clang/${LLVM_VERSION}/include")
+    set(CLANG_BUILTIN_HEADERS_DIR "${LLVM_BINARY_DIR}/lib/clang/${LLVM_VERSION}/include")
 endif()
 file(GLOB BUILTINS_HEADERS "${CLANG_BUILTIN_HEADERS_DIR}/*.h")
 if(NOT BUILTINS_HEADERS)
