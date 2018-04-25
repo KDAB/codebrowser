@@ -7,15 +7,10 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 Find_Package(Clang REQUIRED CONFIG HINTS "${LLVM_INSTALL_PREFIX}/lib/cmake/clang")
 message(STATUS "Found Clang in ${CLANG_INSTALL_PREFIX}")
 
-
-
 add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp generator.cpp preprocessorcallback.cpp
                filesystem.cpp qtsupport.cpp commenthandler.cpp)
 
-# Link against LLVM libraries
-llvm_map_components_to_libnames(llvm_libs support core option bitReader mcParser profileData)
-
-target_link_libraries(codebrowser_generator
+target_link_libraries(codebrowser_generator PRIVATE
   clangFrontend
   clangParse
   clangSema
@@ -23,8 +18,13 @@ target_link_libraries(codebrowser_generator
   clangBasic
   clangLex
   clangTooling
-  ${llvm_libs}
-  )
+)
+
+if(TARGET LLVM)
+  target_link_libraries(codebrowser_generator PRIVATE LLVM)
+else()
+  llvm_config(codebrowser_generator core)
+endif()
 
 install(TARGETS codebrowser_generator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 target_include_directories(codebrowser_generator PUBLIC ${CLANG_INCLUDE_DIRS})
