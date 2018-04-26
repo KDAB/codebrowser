@@ -26,7 +26,7 @@ else()
   # We cannot use llvm_config() here because in some versions it uses PRIVATE when calling target_link_libraries
   # and in some it doesn't. If our calls of target_link_libraries don't do it the same way, we get a
   # fatal error.
-  llvm_map_components_to_libnames(llvm_libs core)
+  llvm_map_components_to_libnames(llvm_libs core support)
   target_link_libraries(codebrowser_generator PRIVATE ${llvm_libs})
 endif()
 
