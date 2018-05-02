@@ -412,10 +412,24 @@ $(function () {
     if (/^\d+$/.test(anchor_id)) {
         highlighted_items = $("#" + anchor_id);
         highlighted_items.addClass("highlight")
+        scrollToAnchor(anchor_id, false);
+    } else if (/^\d+-\d+$/.test(anchor_id)) {
+        var m = anchor_id.match(/^(\d+)-(\d+)$/);
+        var a = parseInt(m[1]);
+        var b = parseInt(m[2]);
+        if (a && b && a <= b) {
+            var select = "#" + a;
+            for (var x = a + 1; x <= b; ++x) {
+                select += ",#" + x;
+            }
+        }
+        highlighted_items = $(select);
+        highlighted_items.addClass("highlight")
+        scrollToAnchor("" + a, false);
     } else if (anchor_id != "") {
         highlight_items(anchor_id);
+        scrollToAnchor(anchor_id, false);
     }
-    scrollToAnchor(anchor_id, false);
 
 /*-------------------------------------------------------------------------------------*/
     var skipHighlightTimerId = null;
