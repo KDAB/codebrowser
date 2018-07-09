@@ -25,16 +25,16 @@ directory will look like this:
 (Assuming the output directory is ~/public_html/mycode)
 
 $OUTPUTDIR/../data/  or ~/public_html/data/
-  is where all javascript and css files are located.
+  is where all javascript and css files are located. Those are static files shipped with the code browser, they are not generated.
 
 $OUTPUTDIR/projectname  or ~/public_html/mycode/projectname
   contains the generated html files for your project
 
 $OUTPUTDIR/refs  or ~/public_html/mycode/refs
-  contains the "database" used for the tooltips
+  contains the generated "database" used for the tooltips
 
 $OUTPUTDIR/include  or ~/public_html/mycode/include
-  contains the generated files for the files in /usr/include
+  contains the generated html files for the files in /usr/include
 
 
 The idea is that you can have several project sharing the same output
@@ -107,7 +107,7 @@ Step 3: Generate the directory index HTML files using codebrowser_indexgenerator
 
 By running the codebrowser_indexgenerator with the output directory as an argument
 
-Step 4: Copy the data/ directory one level above the generated html
+Step 4: Copy the static data/ directory one level above the generated html
 ---------------------------------------------------------------------------
 
 Step 5: Open it in a browser or upload it to your webserver
