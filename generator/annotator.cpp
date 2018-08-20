@@ -667,7 +667,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
         if (visibility == Visibility::Static) {
             if (declType < Use) {
-                commentHandler.decl_offsets.insert({ decl->getLocStart(), {ref, false} });
+                commentHandler.decl_offsets.insert({ decl->getSourceRange().getBegin(), {ref, false} });
             } else switch (+declType) {
                 case Use_Address: tags %= " data-use='a'"; break;
                 case Use_Read: tags %= " data-use='r'"; break;
@@ -778,7 +778,7 @@ void Annotator::addReference(const std::string &ref, clang::SourceRange refLoc, 
             if (offset >= 0) {
                 field_offsets[ref] = offset;
             }
-            clang::FullSourceLoc fulloc(decl->getLocStart(), getSourceMgr());
+            clang::FullSourceLoc fulloc(decl->getSourceRange().getBegin(), getSourceMgr());
             commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
             if (auto parentStruct = llvm::dyn_cast<clang::RecordDecl>(decl->getDeclContext())) {
                 auto parentRef = getReferenceAndTitle(parentStruct).first;

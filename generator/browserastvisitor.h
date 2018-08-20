@@ -148,7 +148,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         auto range = e->getMemberNameInfo().getSourceRange();
         if (range.getBegin().isInvalid()) {
             // implicit conversion operator;
-            range = {e->getLocStart(), clang::SourceLocation{}};
+            range = {e->getSourceRange().getBegin(), clang::SourceLocation{}};
         }
         annotator.registerUse(e->getMemberDecl(), range,
                              isMember(e->getMemberDecl()) ? Annotator::Member : Annotator::Ref,

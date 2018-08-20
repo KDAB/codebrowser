@@ -63,7 +63,12 @@ public:
     bool FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath) override;
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
                             bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
-                            llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported) override;
+                            llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported
+#if CLANG_VERSION_MAJOR >= 7
+                            , clang::SrcMgr::CharacteristicKind
+#endif
+
+    ) override;
 
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 5
     typedef bool ConditionValueKind;  // It's an enum in clang 3.5

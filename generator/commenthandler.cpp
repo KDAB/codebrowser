@@ -193,7 +193,7 @@ struct CommentHandler::CommentVisitor : clang::comments::ConstCommentVisitor<Com
     //void visitParagraphComment(const clang::comments::ParagraphComment *C);
     void visitBlockCommandComment(const clang::comments::BlockCommandComment *C) {
         auto nameRange = C->getCommandNameRange(traits);
-        tag("command", {C->getLocStart(),  nameRange.getEnd().getLocWithOffset(-1)});
+        tag("command", {C->getSourceRange().getBegin(),  nameRange.getEnd().getLocWithOffset(-1)});
         for (unsigned int i = 0; i < C->getNumArgs(); ++i)
             tag("arg", C->getArgRange(i));
         if (C->getCommandName(traits) == "value")
@@ -257,7 +257,7 @@ private:
         auto P = C->getParagraph();
         if (!P)
             return;
-        auto valueStartLoc = P->getLocStart();
+        auto valueStartLoc = P->getSourceRange().getBegin();
         const char *data = annotator.getSourceMgr().getCharacterData(valueStartLoc);
         auto begin = data;
         while(clang::isWhitespace(*begin))
