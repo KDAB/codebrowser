@@ -243,7 +243,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
         auto &sm = annotator.getSourceMgr();
         // Goes two level up in the macro expension:  First level is the # expansion,  Second level is SIGNAL macro
         auto r = sm.getImmediateExpansionRange(methodLiteral->getStrTokenLoc(1));
-#if CLANG_VERSION_MAJOR <= 7
+#if CLANG_VERSION_MAJOR < 7
         range = { sm.getImmediateExpansionRange(r.first).first, sm.getImmediateExpansionRange(r.second).second };
 #else
         range = { sm.getImmediateExpansionRange(r.getBegin()).getBegin(), sm.getImmediateExpansionRange(r.getEnd()).getEnd() };
