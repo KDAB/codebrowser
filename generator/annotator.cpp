@@ -379,7 +379,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             myfile << "<" << tag << " f='";
             Generator::escapeAttr(myfile, fn);
             myfile << "' l='"<<  fixedBegin.getLine()  <<"'";
-            if (fixedBegin.getLine() != fixedEnd.getLine())
+            if (fixedEnd.isValid() && fixedBegin.getLine() != fixedEnd.getLine())
                 myfile << " ll='"<<  fixedEnd.getLine()  <<"'";
             if (loc.getBegin().isMacroID()) myfile << " macro='1'";
             if (!WasInDatabase) myfile << " brk='1'";
