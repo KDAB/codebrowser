@@ -294,7 +294,7 @@ static void handleUrlsInComment(Generator& generator, llvm::StringRef rawString,
             // the URL need to be the first character, or follow a space or one of the character
             continue;
         }
-        if (rawString[pos] == 's') pos++;
+        if (pos < rawString.size() && rawString[pos] == 's') pos++;
         if (!rawString.substr(pos).startswith("://"))
             continue;
         pos+=3;
