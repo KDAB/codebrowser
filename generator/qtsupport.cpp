@@ -46,6 +46,8 @@ static llvm::SmallVector<clang::CXXMethodDecl *, 10> lookUpCandidates(const clan
             break;
 
         for (auto mi = classIt->method_begin(); mi != classIt->method_end(); ++mi) {
+            if (!(*mi)->getIdentifier())
+                continue;
             if ((*mi)->getName() == methodName)
                 candidates.push_back(*mi);
             if (!d_func && (*mi)->getName() == "d_func" && !getResultType(*mi).isNull())
