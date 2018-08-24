@@ -130,6 +130,15 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
            // ConcatInfo.AvoidConcat(PrevPrevTok, PrevTok, Tok)) //FIXME
         // Escape any special characters in the token text.
         expansion += PP.getSpelling(tok);
+
+        if (expansion.size() >= 30 * 1000) {
+            // Don't let the macro expansion grow too large.
+            expansion += "...";
+            while(tok.isNot(clang::tok::eof))
+                PP.LexUnexpandedToken(tok);
+            break;
+        }
+
         PP.Lex(tok);
     }
 
