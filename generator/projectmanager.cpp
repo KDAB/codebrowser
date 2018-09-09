@@ -46,8 +46,9 @@ ProjectInfo* ProjectManager::projectForFile(llvm::StringRef filename)
 
     for (auto &it : projects) {
         const std::string &source_path = it.source_path;
-        if (source_path.size() < match_length)
+        if (source_path.size() < match_length) {
             continue;
+        }
         if (filename.startswith(source_path)) {
             result = &it;
             match_length = source_path.size();

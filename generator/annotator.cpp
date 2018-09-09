@@ -328,7 +328,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         std::error_code error_code;
         llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::F_Append);
         if (error_code) {
-            std::cerr << error_code.message() << std::endl;
+            std::cerr << "Error writing ref file " << filename << ": " << error_code.message() << std::endl;
             continue;
         }
 #endif
@@ -478,7 +478,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                 std::error_code error_code;
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::F_Append);
                 if (error_code) {
-                    std::cerr << error_code.message() << std::endl;
+                    std::cerr << "Error writing index file " << funcIndexFN << ": " << error_code.message() << std::endl;
                     continue;
                 }
 #endif
@@ -918,7 +918,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
 
         std::string qualName = decl->getQualifiedNameAsString();
         if (llvm::isa<clang::FunctionDecl>(decl) && mangle->shouldMangleDeclName(decl)
-                //workaround crash in clang while trying to mangle some buitins types
+                //workaround crash in clang while trying to mangle some builtin types
                 && !llvm::StringRef(qualName).startswith("__")) {
             llvm::raw_string_ostream s(cached.first);
             if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
@@ -942,7 +942,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         cached.second = Generator::escapeAttr(qualName, buffer);
 
         if (cached.first.size() > 170) {
-            // If the name is too big, turncate it and add the hash at the end.
+            // If the name is too big, truncate it and add the hash at the end.
             auto hash = std::hash<std::string>()(cached.first) & 0x00ffffff;
             cached.first.resize(150);
             buffer.clear();
