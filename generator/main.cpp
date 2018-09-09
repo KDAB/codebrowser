@@ -281,10 +281,17 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     command = clang::tooling::getClangSyntaxOnlyAdjuster()(command, file);
     command = clang::tooling::getClangStripOutputAdjuster()(command, file);
 #endif
+
     if (!hasNoStdInc) {
+#ifndef _WIN32
       command.push_back("-isystem");
+#else
+      command.push_back("-I");
+#endif
+
       command.push_back("/builtins");
     }
+
     command.push_back("-Qunused-arguments");
     command.push_back("-Wno-unknown-warning-option");
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
