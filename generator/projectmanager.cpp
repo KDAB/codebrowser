@@ -97,7 +97,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
     auto range = includeRecoveryCache.equal_range(includeFileName);
     for (auto it = range.first; it != range.second; ++it) {
         llvm::StringRef candidate(it->second);
-        uint suf_len = 0;
+        unsigned int suf_len = 0;
         while (suf_len < std::min(candidate.size(), includeName.size())) {
             if(candidate[candidate.size()-suf_len-1] != includeName[candidate.size()-suf_len-1])
                 break;
@@ -109,7 +109,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
             continue;
 
         // after that, order by similarity with the from url
-        uint pref_len = 0;
+        unsigned int pref_len = 0;
         while (pref_len < std::min(candidate.size(), from.size())) {
             if(candidate[pref_len] != from[pref_len])
                 break;

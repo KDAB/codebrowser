@@ -189,7 +189,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
 
     const char *c = begin;
-    uint line = 1;
+    unsigned int line = 1;
     const char *bufferStart = c;
 
     auto tags_it = tags.cbegin();

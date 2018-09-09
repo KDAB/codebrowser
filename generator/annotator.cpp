@@ -844,7 +844,7 @@ void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, s
     clang::SourceLocation B = range.getBegin();
     clang::SourceLocation E = range.getEnd();
 
-    uint pos = sm.getFileOffset(B);
+    unsigned int pos = sm.getFileOffset(B);
     int len = sm.getFileOffset(E) - pos;
 
     // Include the whole end token in the range.
