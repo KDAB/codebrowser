@@ -27,10 +27,20 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
+#include <iostream>
+
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/stat.h>
-
-#include <iostream>
+#else
+#include <windows.h> // MAX_PATH
+#include <filesystem>
+#if __cplusplus < 201703L
+namespace std {
+namespace filesystem = std::experimental::filesystem::v1;
+}
+#endif
+#endif
 
 // ATTENTION: Keep in sync with ECMAScript function of the same name in common.js
 void replace_invalid_filename_chars(std::string &str)
@@ -42,14 +52,24 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
     std::string p = path.str();
 #ifdef PATH_MAX
     int path_max = PATH_MAX;
+#elif defined(MAX_PATH)
+    unsigned int path_max = MAX_PATH;
 #else
     int path_max = pathconf(p.c_str(), _PC_PATH_MAX);
     if (path_max <= 0)
         path_max = 4096;
 #endif
     result.resize(path_max);
-    realpath(p.c_str(), result.data());
+
+#ifndef _WIN32
+     realpath(p.c_str(), result.data());
+#else
+    auto canonical = std::filesystem::canonical(p.c_str());
+    strcpy(result.data(), canonical.string().c_str());
+#endif
+
     result.resize(strlen(result.data()));
+
     return {};
 }
 
@@ -59,11 +79,18 @@ static std::error_code create_directory(const llvm::Twine& path)
     using namespace llvm;
     SmallString<128> path_storage;
     StringRef p = path.toNullTerminatedStringRef(path_storage);
+
+#ifndef _WIN32
     if (::mkdir(p.begin(), 0755) == -1) {
         if (errno != static_cast<int>(std::errc::file_exists))
             return {errno, std::system_category()};
     }
     return {};
+#else
+    std::error_code ec;
+    std::filesystem::create_directories(p.begin(), ec);
+    return ec;
+#endif
 }
 
 std::error_code create_directories(const llvm::Twine& path)
