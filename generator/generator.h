@@ -81,6 +81,16 @@ public:
                   const std::set<std::string> &interestingDefitions);
 
     static llvm::StringRef escapeAttr(llvm::StringRef, llvm::SmallVectorImpl<char> &buffer);
+
+    /**
+     * This function takes a reference name that was already processed by `escapeAttr` and
+     * replaces additional chars which are not allowed in filenames on all platforms.
+     *
+     * @param s already escaped ref
+     * @param buffer
+     * @return
+     */
+    static llvm::StringRef escapeAttrForFilename(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer);
     static void escapeAttr(llvm::raw_ostream& os, llvm::StringRef s);
 
     struct EscapeAttr { llvm::StringRef value; };

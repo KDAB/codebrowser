@@ -312,7 +312,11 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
         if (it.first == "main")
             continue;
-        std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
+
+        auto refFilename = it.first;
+        replace_invalid_filename_chars(refFilename);
+
+        std::string filename = projectManager.outputPrefix % "/refs/" % refFilename;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
         std::string error;
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
@@ -729,6 +733,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     llvm::SmallString<64> escapedRefBuffer;
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\"";
+
+    // Do some additional escaping for filenames (e.g., ':' is not valid on Windows)
+    llvm::SmallString<64> refFilenameBuffer;
+    auto refFilename = Generator::escapeAttrForFilename(escapedRef, refFilenameBuffer);
+    tags %= " data-ref-filename=\"" % refFilename % "\"";
 
     if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;

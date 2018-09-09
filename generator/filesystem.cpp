@@ -32,6 +32,11 @@
 
 #include <iostream>
 
+// ATTENTION: Keep in sync with ECMAScript function of the same name in common.js
+void replace_invalid_filename_chars(std::string &str)
+{
+    std::replace(str.begin(), str.end(), ':', '_');
+}
 
 std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {
     std::string p = path.str();

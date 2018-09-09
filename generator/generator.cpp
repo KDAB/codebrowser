@@ -74,6 +74,21 @@ void Generator::escapeAttr(llvm::raw_ostream &os, llvm::StringRef s)
 
 }
 
+// ATTENTION: Keep in sync with `replace_invalid_filename_chars` functions in filesystem.cpp and common.js
+llvm::StringRef Generator::escapeAttrForFilename(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
+{
+    buffer.clear();
+    unsigned len = s.size();
+    for (unsigned i = 0 ; i < len; ++i) {
+        char c = s[i];
+        switch (c) {
+            default: buffer.push_back(c); break;
+            case ':': bufferAppend(buffer, "_"); break;
+        }
+    }
+    return llvm::StringRef(buffer.begin(), buffer.size());
+}
+
 void Generator::Tag::open(llvm::raw_ostream &myfile) const
 {
     myfile << "<" << name;
@@ -152,8 +167,10 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
         }
         myfile << "};";
     }
+
     myfile << "</script>\n"
-              "<script src='" << dataPath << "/codebrowser.js'></script>\n";
+              "<script src='" << dataPath << "/common.js'></script>\n";
+    myfile << "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
     myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse the source code of </span>";
     // FIXME: If interestingDefitions has only 1 class, add it to the h1

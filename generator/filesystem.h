@@ -38,3 +38,5 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
 std::error_code create_directories(const llvm::Twine &path);
 
 std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path);
+
+void replace_invalid_filename_chars(std::string &str);

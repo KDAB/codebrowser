@@ -62,7 +62,7 @@ $(function() {
                 window.location = root_path + '/' +  searchTerms[val].file + ".html";
             } else if (type == "ref") {
                 var ref = searchTerms[val].ref;
-                var url = root_path + "/refs/" + ref;
+                var url = root_path + "/refs/" +  replace_invalid_filename_chars(ref);
                 $.get(url, function(data) {
                     var res = $("<data>"+data+"</data>");
                     var def =  res.find("def");
