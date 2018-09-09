@@ -33,7 +33,7 @@
 #include <clang/Sema/Sema.h>
 #include <clang/Sema/Lookup.h>
 #include <clang/Basic/SourceManager.h>
-
+#include <cctype>
 #include <iostream>
 
 clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &Sema, bool isFunction) {
