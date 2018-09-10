@@ -35,11 +35,15 @@ target_include_directories(codebrowser_generator PUBLIC ${CLANG_INCLUDE_DIRS})
 
 set (CMAKE_CXX_STANDARD 11)
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT MSVC)
     #  Don't link with libs that overlaps our options
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed" )
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed" )
 endif()
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+if(NOT MSVC)
+    # Flags not supported by MSVC
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+endif()
 
 # Embed the clang header into the binary:
 string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
