@@ -42,6 +42,19 @@ namespace filesystem = std::experimental::filesystem::v1;
 #endif
 #endif
 
+void make_forward_slashes(char *str)
+{
+    char *c = strchr(str, '\\');
+    while (c) {
+        *c = '/';
+        c = strchr(c + 1, '\\');
+    }
+}
+void make_forward_slashes(std::string &str)
+{
+    std::replace(str.begin(), str.end(), '\\', '/');
+}
+
 // ATTENTION: Keep in sync with ECMAScript function of the same name in common.js
 void replace_invalid_filename_chars(std::string &str)
 {
@@ -66,6 +79,9 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
 #else
     auto canonical = std::filesystem::canonical(p.c_str());
     strcpy(result.data(), canonical.string().c_str());
+
+    // Make sure we use forward slashes to make sure folder detection works as expected everywhere
+    make_forward_slashes(result.data());
 #endif
 
     result.resize(strlen(result.data()));
