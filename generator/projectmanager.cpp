@@ -22,10 +22,20 @@
 #include "projectmanager.h"
 #include "filesystem.h"
 #include "stringbuilder.h"
+
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 #include <clang/Basic/Version.h>
+
+ProjectManager::ProjectManager(std::string outputPrefix, std::string _dataPath)
+        : projects(systemProjects())
+        , outputPrefix(std::move(outputPrefix))
+        , dataPath(std::move(_dataPath))
+{
+    if (dataPath.empty())
+        dataPath = "../data";
+}
 
 void ProjectManager::addProject(ProjectInfo info) {
     if (info.source_path.empty())
