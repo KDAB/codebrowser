@@ -41,9 +41,11 @@ if (NOT APPLE AND NOT MSVC)
 endif()
 
 if(NOT MSVC)
-    # Flags not supported by MSVC
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
-endif()
+# Flags not supported by MSVC
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+# TODO: Split up files and insert them row by row because
+# MSVC only accepts strings of 2^16 bytes length (~65kb)
 
 # Embed the clang header into the binary:
 string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
@@ -68,6 +70,7 @@ foreach(BUILTIN_HEADER ${BUILTINS_HEADERS})
         set(EMBEDDED_DATA "${EMBEDDED_DATA} { \"${FN}\" , \"${BINARY_DATA}\" } , \n")
     endif()
 endforeach()
+endif()
 
 configure_file(embedded_includes.h.in embedded_includes.h)
 target_include_directories(codebrowser_generator PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
