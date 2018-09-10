@@ -928,6 +928,21 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
             } else {
                 mangle->mangleName(decl, s);
             }
+
+#ifdef _WIN32
+            s.flush();
+
+            const char* mangledName = cached.first.data();
+            if (mangledName[0] == 1) {
+                if(mangledName[1] == '_' || mangledName[1] == '?') {
+                    if(mangledName[2] == '?') {
+                        cached.first = cached.first.substr(3);
+                    } else {
+                        cached.first = cached.first.substr(2);
+                    }
+                }
+            }
+#endif
         } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
             cached.first = getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
         } else {
