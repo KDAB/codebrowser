@@ -34,12 +34,6 @@
 #include <sys/stat.h>
 #else
 #include <windows.h> // MAX_PATH
-#include <filesystem>
-#if __cplusplus < 201703L
-namespace std {
-namespace filesystem = std::experimental::filesystem::v1;
-}
-#endif
 #endif
 
 void make_forward_slashes(char *str)
@@ -72,14 +66,16 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
     if (path_max <= 0)
         path_max = 4096;
 #endif
+
     result.resize(path_max);
 
-#ifndef _WIN32
-     realpath(p.c_str(), result.data());
+#if CLANG_VERSION_MAJOR>=5
+    llvm::sys::fs::real_path(path, result);
 #else
-    auto canonical = std::filesystem::canonical(p.c_str());
-    strcpy(result.data(), canonical.string().c_str());
+    realpath(p.c_str(), result.data());
+#endif
 
+#ifdef _WIN32
     // Make sure we use forward slashes to make sure folder detection works as expected everywhere
     make_forward_slashes(result.data());
 #endif
@@ -89,6 +85,17 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
     return {};
 }
 
+#if (CLANG_VERSION_MAJOR>=3 && CLANG_VERSION_MINOR>=8) || CLANG_VERSION_MAJOR>3
+std::error_code create_directories(const llvm::Twine& path)
+{
+    using namespace llvm::sys::fs;
+    auto defaultPerms = perms::all_all
+            & ~perms::group_write
+            & ~perms::others_write;
+
+    return llvm::sys::fs::create_directories(path, true, defaultPerms);
+}
+#else
 /* Based on the one from Support/Unix/PathV2 but with different default rights */
 static std::error_code create_directory(const llvm::Twine& path)
 {
@@ -96,17 +103,11 @@ static std::error_code create_directory(const llvm::Twine& path)
     SmallString<128> path_storage;
     StringRef p = path.toNullTerminatedStringRef(path_storage);
 
-#ifndef _WIN32
     if (::mkdir(p.begin(), 0755) == -1) {
         if (errno != static_cast<int>(std::errc::file_exists))
             return {errno, std::system_category()};
     }
     return {};
-#else
-    std::error_code ec;
-    std::filesystem::create_directories(p.begin(), ec);
-    return ec;
-#endif
 }
 
 std::error_code create_directories(const llvm::Twine& path)
@@ -136,7 +137,7 @@ std::error_code create_directories(const llvm::Twine& path)
 
     return create_directory(p);
 }
-
+#endif
 
 /**
  * https://svn.boost.org/trac/boost/ticket/1976#comment:2
