@@ -57,6 +57,9 @@ void replace_invalid_filename_chars(std::string &str)
 
 std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {
     std::string p = path.str();
+#if CLANG_VERSION_MAJOR>=5
+    llvm::sys::fs::real_path(path, result);
+#else
 #ifdef PATH_MAX
     int path_max = PATH_MAX;
 #elif defined(MAX_PATH)
@@ -68,19 +71,15 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
 #endif
 
     result.resize(path_max);
-
-#if CLANG_VERSION_MAJOR>=5
-    llvm::sys::fs::real_path(path, result);
-#else
     realpath(p.c_str(), result.data());
+
+    result.resize(strlen(result.data()));
 #endif
 
 #ifdef _WIN32
     // Make sure we use forward slashes to make sure folder detection works as expected everywhere
     make_forward_slashes(result.data());
 #endif
-
-    result.resize(strlen(result.data()));
 
     return {};
 }
