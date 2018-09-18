@@ -130,7 +130,7 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
               "<link rel=\"stylesheet\" href=\"" << data_path << "/indexstyle.css\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery.min.js\"></script>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << data_path << "/jquery/jquery-ui.min.js\"></script>\n";
-    myfile << "<script>var path = '"<< path <<"'; var root_path = '"<< rel <<"'; var project='"<< project <<"'; </script>\n"
+    myfile << "<script>var path = '"<< path <<"'; var root_path = '"<< rel <<"'; var project='"<< project <<"'; var ecma_script_api_version = 2;</script>\n"
               "<script src='" << data_path << "/indexscript.js'></script>\n"
               "</head>\n<body>\n";
     myfile << "<div id='header'><div id='toprightlogo'><a href='https://code.woboq.org'></a></div>\n";

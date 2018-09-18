@@ -1,6 +1,6 @@
 /****************************************************************************
- * Copyright (C) 2013 Woboq UG (haftungsbeschraenkt)
- * Olivier Goffart <contact at woboq.com>
+ * Copyright (C) 2018 Woboq GmbH
+ * Dominik Schmidt <dev at dominik-schmidt.de>
  * https://woboq.com/codebrowser.html
  *
  * This file is part of the Woboq Code Browser.
@@ -19,26 +19,26 @@
  * purchasing a commercial licence.
  ****************************************************************************/
 
-#pragma once
+#include "projectmanager.h"
 
-#include <llvm/ADT/SmallVector.h>
-#include <llvm/ADT/SmallString.h>
-#include <llvm/Support/FileSystem.h>
+#include <sstream>
 
-#include <system_error>
+std::vector<ProjectInfo> ProjectManager::systemProjects()
+{
+    std::vector<ProjectInfo> projects;
 
-namespace llvm {
-class Twine;
+    std::istringstream stream("@SYSTEM_INCLUDE_DIRS@");
+    std::string current;
+    std::string name;
+
+    while (std::getline(stream, current, ';')) {
+        if(name.empty()) {
+            name = current;
+        } else {
+            projects.emplace_back(name, current, ProjectInfo::Internal);
+            name.clear();
+        }
+    }
+
+    return projects;
 }
-
-/* Is declared in llvm::sys::fs,  but not implemented */
-std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result);
-
-/* The one in llvm::sys::fs do not create the directory with the right peromissions */
-std::error_code create_directories(const llvm::Twine &path);
-
-std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path);
-
-void make_forward_slashes(char *str);
-void make_forward_slashes(std::string &str);
-void replace_invalid_filename_chars(std::string &str);

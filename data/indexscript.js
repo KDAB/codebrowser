@@ -21,6 +21,14 @@
 
 
 $(function() {
+    // ATTENTION: Keep in sync with C++ function of the same name in filesystem.cpp and `Generator::escapeAttrForFilename`
+    var replace_invalid_filename_chars = function (str) {
+        if(window.ecma_script_api_version && window.ecma_script_api_version >= 2) {
+            return str.replace(new RegExp(':', 'g'), '.');
+        }
+
+        return str;
+    }
 
     // remove trailing slash
     root_path = root_path.replace(/\/$/, "");
@@ -62,7 +70,7 @@ $(function() {
                 window.location = root_path + '/' +  searchTerms[val].file + ".html";
             } else if (type == "ref") {
                 var ref = searchTerms[val].ref;
-                var url = root_path + "/refs/" + ref;
+                var url = root_path + "/refs/" +  replace_invalid_filename_chars(ref);
                 $.get(url, function(data) {
                     var res = $("<data>"+data+"</data>");
                     var def =  res.find("def");

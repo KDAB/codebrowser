@@ -105,7 +105,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
                 }
             }
             typeTextStream << annotator.getTypeRef(getResultType(d)) << " " << d->getQualifiedNameAsString() << "(";
-            for (uint i = 0; i < d->getNumParams(); i++) {
+            for (unsigned int i = 0; i < d->getNumParams(); i++) {
                 if (i!=0) typeTextStream << ", ";
                 clang::ParmVarDecl* PVD = d->getParamDecl(i);
                 typeTextStream << annotator.getTypeRef(PVD->getType()) << " " << PVD->getName();
@@ -278,7 +278,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             // Don't handle CXXOperatorCallExpr because it is obvious for operator=  += and so on.
             // And also because of the wierd rules regarding the member operators and their number
             // of arguments
-            for (uint i = 0; decl && i < e->getNumArgs() && i < decl->getNumParams() ; ++i) {
+            for (unsigned int i = 0; decl && i < e->getNumArgs() && i < decl->getNumParams() ; ++i) {
                 auto t = decl->getParamDecl(i)->getType();
                 if (t->isLValueReferenceType() && !t.getNonReferenceType().isConstQualified()) {
                     annotator.annotateSourceRange(e->getArg(i)->getSourceRange(), "span", "class='refarg'");
@@ -434,7 +434,7 @@ private:
                     return Annotator::Use_Call;
                 auto decl = call->getDirectCallee();
                 if (!decl) return Annotator::Use;
-                for (uint i = 0; i < call->getNumArgs(); ++i) {
+                for (unsigned int i = 0; i < call->getNumArgs(); ++i) {
                     if (call->getArg(i) != previous)
                         continue;
                     if (llvm::isa<clang::CXXOperatorCallExpr>(call)
@@ -455,7 +455,7 @@ private:
             }
             if (auto call = llvm::dyn_cast<clang::CXXConstructExpr>(expr)) {
                 auto decl = call->getConstructor();
-                for (uint i = 0; i < call->getNumArgs(); ++i) {
+                for (unsigned int i = 0; i < call->getNumArgs(); ++i) {
                     if (!decl || decl->getNumParams() <= i)
                         break;
                     if (call->getArg(i) != previous)

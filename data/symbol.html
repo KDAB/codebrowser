@@ -3,6 +3,7 @@
 <title>Symbol inspector - Woboq Code Browser</title>
 <script type="text/javascript" src="./jquery/jquery.min.js"></script>
 <script type="text/javascript" src="./jquery/jquery-ui.min.js"></script>
+<script type="text/javascript" src="./common.js"></script>
 
 <link rel="stylesheet" href="kdevelop.css">
 <style>/*<![CDATA[*/
@@ -48,8 +49,18 @@ table#tree tr { margin:0; border:0; padding:0 }
 "use strict";
 
 $(function(){
-
 //BEGIN duplicated from codebrowser.js
+
+window.ecma_script_api_version = 2;
+
+// ATTENTION: Keep in sync with C++ function of the same name in filesystem.cpp and `Generator::escapeAttrForFilename`
+var replace_invalid_filename_chars = function (str) {
+    if(window.ecma_script_api_version && window.ecma_script_api_version >= 2) {
+        return str.replace(new RegExp(':', 'g'), '.');
+    }
+
+    return str;
+}
 
 var escape_selector = function (str) {
     return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}\\])/g,'\\$1')
@@ -157,8 +168,7 @@ function getParameterByName(name) {
         return;
     }
 
-    var url = proj_root_path + "/refs/" + ref;
-
+    var url = proj_root_path + "/refs/" + replace_invalid_filename_chars(ref);
 
     $.get(url, function(data) {
         var type ="", content ="";
@@ -440,7 +450,7 @@ function getParameterByName(name) {
                 window.location = root_path + '/' +  searchTerms[val].file + ".html";
             } else if (type == "ref") {
                 var ref = searchTerms[val].ref;
-                var url = root_path + "/refs/" + ref;
+                var url = root_path + "/refs/" + replace_invalid_filename_chars(ref);
                 $.get(url, function(data) {
                     var res = $("<data>"+data+"</data>");
                     var def =  res.find("def");
@@ -800,7 +810,7 @@ function getParameterByName(name) {
                 changed = true;
                 if (max_depth <= 0 || n.fetched)
                     return;
-                var url = proj_root_path + "/refs/" + c;
+                var url = proj_root_path + "/refs/" + replace_invalid_filename_chars(c);
                 waiting++;
                 n.fetched = true;
                 $.get(url, function(data) {
@@ -866,7 +876,7 @@ function getParameterByName(name) {
             $("#layout").html("<h3>Class layout</h3><table border='1'>"
                 +"<tr><th>Offset</th><th>Type</th><th>Member</th></tr>"+html+"</table>");
             var getUrl = function(ref, callback) {
-                var url = proj_root_path + "/refs/" + ref;
+                var url = proj_root_path + "/refs/" + replace_invalid_filename_chars(ref);
                 $.get(url, function(data) {
                     var res = $("<data>"+data+"</data>");
                     var def =  res.find("dec[f],def[f]");

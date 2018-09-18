@@ -50,19 +50,12 @@ struct ProjectInfo {
         :   name(std::move(name)), source_path(std::move(source_path)), revision(std::move(rev))  {}
 };
 
-
 struct ProjectManager {
-    explicit ProjectManager(std::string outputPrefix, std::string _dataPath)
-            : outputPrefix(std::move(outputPrefix)) , dataPath(std::move(_dataPath))
-    {
-        if (dataPath.empty())
-            dataPath = "../data";
-    }
+    explicit ProjectManager(std::string outputPrefix, std::string _dataPath);
 
     void addProject(ProjectInfo info);
 
-    std::vector<ProjectInfo> projects =
-        { {"include", "/usr/include/", ProjectInfo::Internal } };
+    std::vector<ProjectInfo> projects;
 
     std::string outputPrefix;
     std::string dataPath;
@@ -77,5 +70,7 @@ struct ProjectManager {
     std::string includeRecovery(llvm::StringRef includeName, llvm::StringRef from);
 
 private:
+    static std::vector<ProjectInfo> systemProjects();
+
     std::unordered_multimap<std::string, std::string> includeRecoveryCache;
 };

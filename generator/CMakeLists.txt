@@ -8,7 +8,9 @@ Find_Package(Clang REQUIRED CONFIG HINTS "${LLVM_INSTALL_PREFIX}/lib/cmake/clang
 message(STATUS "Found Clang in ${CLANG_INSTALL_PREFIX}")
 
 add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp generator.cpp preprocessorcallback.cpp
-               filesystem.cpp qtsupport.cpp commenthandler.cpp)
+               filesystem.cpp qtsupport.cpp commenthandler.cpp ${CMAKE_CURRENT_BINARY_DIR}/projectmanager_systemprojects.cpp)
+
+target_include_directories(codebrowser_generator PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
 target_link_libraries(codebrowser_generator PRIVATE
   clangFrontend
@@ -35,11 +37,30 @@ target_include_directories(codebrowser_generator PUBLIC ${CLANG_INCLUDE_DIRS})
 
 set (CMAKE_CXX_STANDARD 11)
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT MSVC)
     #  Don't link with libs that overlaps our options
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed" )
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--as-needed" )
 endif()
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+
+# System include dirs
+if(WIN32)
+    message(STATUS "Adding the following dirs as system projects")
+    foreach(dir $ENV{INCLUDE})
+        list(APPEND SYSTEM_INCLUDE_DIRS "include;${dir}")
+    endforeach()
+else()
+    list(APPEND SYSTEM_INCLUDE_DIRS "include;/usr/include/")
+endif()
+string(REPLACE "\\" "/" SYSTEM_INCLUDE_DIRS "${SYSTEM_INCLUDE_DIRS}")
+configure_file(projectmanager_systemprojects.cpp.in projectmanager_systemprojects.cpp)
+
+if(NOT MSVC)
+# Flags not supported by MSVC
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+# TODO: Split up files and insert them row by row because
+# MSVC only accepts strings of 2^16 bytes length (~65kb)
 
 # Embed the clang header into the binary:
 string(REPLACE "svn" "" LLVM_VERSION "${LLVM_VERSION}")
@@ -64,6 +85,7 @@ foreach(BUILTIN_HEADER ${BUILTINS_HEADERS})
         set(EMBEDDED_DATA "${EMBEDDED_DATA} { \"${FN}\" , \"${BINARY_DATA}\" } , \n")
     endif()
 endforeach()
+endif()
 
 configure_file(embedded_includes.h.in embedded_includes.h)
 target_include_directories(codebrowser_generator PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

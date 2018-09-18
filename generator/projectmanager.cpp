@@ -22,10 +22,23 @@
 #include "projectmanager.h"
 #include "filesystem.h"
 #include "stringbuilder.h"
+
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 #include <clang/Basic/Version.h>
+
+ProjectManager::ProjectManager(std::string outputPrefix, std::string _dataPath)
+        : outputPrefix(std::move(outputPrefix))
+        , dataPath(std::move(_dataPath))
+{
+    if (dataPath.empty())
+        dataPath = "../data";
+
+    for(auto&& info : systemProjects()) {
+        addProject(info);
+    }
+}
 
 void ProjectManager::addProject(ProjectInfo info) {
     if (info.source_path.empty())
@@ -46,8 +59,9 @@ ProjectInfo* ProjectManager::projectForFile(llvm::StringRef filename)
 
     for (auto &it : projects) {
         const std::string &source_path = it.source_path;
-        if (source_path.size() < match_length)
+        if (source_path.size() < match_length) {
             continue;
+        }
         if (filename.startswith(source_path)) {
             result = &it;
             match_length = source_path.size();
@@ -97,7 +111,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
     auto range = includeRecoveryCache.equal_range(includeFileName);
     for (auto it = range.first; it != range.second; ++it) {
         llvm::StringRef candidate(it->second);
-        uint suf_len = 0;
+        unsigned int suf_len = 0;
         while (suf_len < std::min(candidate.size(), includeName.size())) {
             if(candidate[candidate.size()-suf_len-1] != includeName[candidate.size()-suf_len-1])
                 break;
@@ -109,7 +123,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
             continue;
 
         // after that, order by similarity with the from url
-        uint pref_len = 0;
+        unsigned int pref_len = 0;
         while (pref_len < std::min(candidate.size(), from.size())) {
             if(candidate[pref_len] != from[pref_len])
                 break;

@@ -74,6 +74,21 @@ void Generator::escapeAttr(llvm::raw_ostream &os, llvm::StringRef s)
 
 }
 
+// ATTENTION: Keep in sync with `replace_invalid_filename_chars` functions in filesystem.cpp and in .js files
+llvm::StringRef Generator::escapeAttrForFilename(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
+{
+    buffer.clear();
+    unsigned len = s.size();
+    for (unsigned i = 0 ; i < len; ++i) {
+        char c = s[i];
+        switch (c) {
+            default: buffer.push_back(c); break;
+            case ':': bufferAppend(buffer, "."); break;
+        }
+    }
+    return llvm::StringRef(buffer.begin(), buffer.size());
+}
+
 void Generator::Tag::open(llvm::raw_ostream &myfile) const
 {
     myfile << "<" << name;
@@ -141,7 +156,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "<link rel=\"alternate stylesheet\" href=\"" << dataPath << "/kdevelop.css\" title=\"KDevelop\"/>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery.min.js\"></script>\n";
     myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery-ui.min.js\"></script>\n";
-    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"'; var data_path = '"<< dataPath <<"';";
+    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"'; var data_path = '"<< dataPath <<"'; var ecma_script_api_version = 2;";
     if (!projects.empty()) {
         myfile << "var projects = {";
         bool first = true;
@@ -152,8 +167,8 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
         }
         myfile << "};";
     }
-    myfile << "</script>\n"
-              "<script src='" << dataPath << "/codebrowser.js'></script>\n";
+    myfile << "</script>\n";
+    myfile << "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
     myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse the source code of </span>";
     // FIXME: If interestingDefitions has only 1 class, add it to the h1
@@ -189,7 +204,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
 
     const char *c = begin;
-    uint line = 1;
+    unsigned int line = 1;
     const char *bufferStart = c;
 
     auto tags_it = tags.cbegin();

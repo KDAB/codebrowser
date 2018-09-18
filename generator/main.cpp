@@ -281,10 +281,17 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     command = clang::tooling::getClangSyntaxOnlyAdjuster()(command, file);
     command = clang::tooling::getClangStripOutputAdjuster()(command, file);
 #endif
+
     if (!hasNoStdInc) {
+#ifndef _WIN32
       command.push_back("-isystem");
+#else
+      command.push_back("-I");
+#endif
+
       command.push_back("/builtins");
     }
+
     command.push_back("-Qunused-arguments");
     command.push_back("-Wno-unknown-warning-option");
     clang::tooling::ToolInvocation Inv(command, new BrowserAction(WasInDatabase), FM);
@@ -318,6 +325,10 @@ int main(int argc, const char **argv) {
     }
 
     llvm::cl::ParseCommandLineOptions(argc, argv);
+
+#ifdef _WIN32
+    make_forward_slashes(OutputPath._Get_data()._Myptr());
+#endif
 
     ProjectManager projectManager(OutputPath, DataPath);
     for(std::string &s : ProjectPaths) {
@@ -442,13 +453,14 @@ int main(int argc, const char **argv) {
 
         llvm::SmallString<256> filename;
         canonicalize(file, filename);
+
         if (auto project = projectManager.projectForFile(filename)) {
             if (!projectManager.shouldProcess(filename, project)) {
-                std::cerr << "Skipping already processed " << filename.c_str() << std::endl;
+                std::cerr << "Sources: Skipping already processed " << filename.c_str() << std::endl;
                 continue;
             }
         } else {
-            std::cerr << "Skipping file not included by any project " << filename.c_str() << std::endl;
+            std::cerr << "Sources: Skipping file not included by any project " << filename.c_str() << std::endl;
             continue;
         }
 
@@ -475,13 +487,14 @@ int main(int argc, const char **argv) {
     for (const auto &it : NotInDB) {
         std::string file = clang::tooling::getAbsolutePath(it);
         Progress++;
+
         if (auto project = projectManager.projectForFile(file)) {
             if (!projectManager.shouldProcess(file, project)) {
-                std::cerr << "Skipping already processed " << file.c_str() << std::endl;
+                std::cerr << "NotInDB: Skipping already processed " << file.c_str() << std::endl;
                 continue;
             }
         } else {
-            std::cerr << "Skipping file not included by any project " << file.c_str() << std::endl;
+            std::cerr << "NotInDB: Skipping file not included by any project " << file.c_str() << std::endl;
             continue;
         }
 

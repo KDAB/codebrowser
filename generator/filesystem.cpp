@@ -27,33 +27,81 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
-#include <unistd.h>
-#include <sys/stat.h>
-
 #include <iostream>
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <sys/stat.h>
+#else
+#include <windows.h> // MAX_PATH
+#endif
+
+void make_forward_slashes(char *str)
+{
+    char *c = strchr(str, '\\');
+    while (c) {
+        *c = '/';
+        c = strchr(c + 1, '\\');
+    }
+}
+void make_forward_slashes(std::string &str)
+{
+    std::replace(str.begin(), str.end(), '\\', '/');
+}
+
+// ATTENTION: Keep in sync with ECMAScript function of the same name in .js files and `escapeAttrForFilename` generator.cpp
+void replace_invalid_filename_chars(std::string &str)
+{
+    std::replace(str.begin(), str.end(), ':', '.');
+}
 
 std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {
     std::string p = path.str();
+#if CLANG_VERSION_MAJOR>=5
+    llvm::sys::fs::real_path(path, result);
+#else
 #ifdef PATH_MAX
     int path_max = PATH_MAX;
+#elif defined(MAX_PATH)
+    unsigned int path_max = MAX_PATH;
 #else
     int path_max = pathconf(p.c_str(), _PC_PATH_MAX);
     if (path_max <= 0)
         path_max = 4096;
 #endif
+
     result.resize(path_max);
     realpath(p.c_str(), result.data());
+
     result.resize(strlen(result.data()));
+#endif
+
+#ifdef _WIN32
+    // Make sure we use forward slashes to make sure folder detection works as expected everywhere
+    make_forward_slashes(result.data());
+#endif
+
     return {};
 }
 
+#if (CLANG_VERSION_MAJOR>=3 && CLANG_VERSION_MINOR>=8) || CLANG_VERSION_MAJOR>3
+std::error_code create_directories(const llvm::Twine& path)
+{
+    using namespace llvm::sys::fs;
+    auto defaultPerms = perms::all_all
+            & ~perms::group_write
+            & ~perms::others_write;
+
+    return llvm::sys::fs::create_directories(path, true, defaultPerms);
+}
+#else
 /* Based on the one from Support/Unix/PathV2 but with different default rights */
 static std::error_code create_directory(const llvm::Twine& path)
 {
     using namespace llvm;
     SmallString<128> path_storage;
     StringRef p = path.toNullTerminatedStringRef(path_storage);
+
     if (::mkdir(p.begin(), 0755) == -1) {
         if (errno != static_cast<int>(std::errc::file_exists))
             return {errno, std::system_category()};
@@ -88,7 +136,7 @@ std::error_code create_directories(const llvm::Twine& path)
 
     return create_directory(p);
 }
-
+#endif
 
 /**
  * https://svn.boost.org/trac/boost/ticket/1976#comment:2

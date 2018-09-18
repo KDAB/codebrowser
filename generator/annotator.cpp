@@ -312,7 +312,11 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
         if (it.first == "main")
             continue;
-        std::string filename = projectManager.outputPrefix % "/refs/" % it.first;
+
+        auto refFilename = it.first;
+        replace_invalid_filename_chars(refFilename);
+
+        std::string filename = projectManager.outputPrefix % "/refs/" % refFilename;
 #if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
         std::string error;
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
@@ -324,7 +328,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         std::error_code error_code;
         llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::F_Append);
         if (error_code) {
-            std::cerr << error_code.message() << std::endl;
+            std::cerr << "Error writing ref file " << filename << ": " << error_code.message() << std::endl;
             continue;
         }
 #endif
@@ -474,7 +478,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                 std::error_code error_code;
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::F_Append);
                 if (error_code) {
-                    std::cerr << error_code.message() << std::endl;
+                    std::cerr << "Error writing index file " << funcIndexFN << ": " << error_code.message() << std::endl;
                     continue;
                 }
 #endif
@@ -730,6 +734,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\"";
 
+    // Do some additional escaping for filenames (e.g., ':' is not valid on Windows)
+    llvm::SmallString<64> refFilenameBuffer;
+    auto refFilename = Generator::escapeAttrForFilename(escapedRef, refFilenameBuffer);
+    tags %= " data-ref-filename=\"" % refFilename % "\"";
+
     if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
         std::string link;
         clang::SourceLocation loc = canonDecl->getLocation();
@@ -844,7 +853,7 @@ void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, s
     clang::SourceLocation B = range.getBegin();
     clang::SourceLocation E = range.getEnd();
 
-    uint pos = sm.getFileOffset(B);
+    unsigned int pos = sm.getFileOffset(B);
     int len = sm.getFileOffset(E) - pos;
 
     // Include the whole end token in the range.
@@ -909,7 +918,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
 
         std::string qualName = decl->getQualifiedNameAsString();
         if (llvm::isa<clang::FunctionDecl>(decl) && mangle->shouldMangleDeclName(decl)
-                //workaround crash in clang while trying to mangle some buitins types
+                //workaround crash in clang while trying to mangle some builtin types
                 && !llvm::StringRef(qualName).startswith("__")) {
             llvm::raw_string_ostream s(cached.first);
             if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
@@ -919,6 +928,21 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
             } else {
                 mangle->mangleName(decl, s);
             }
+
+#ifdef _WIN32
+            s.flush();
+
+            const char* mangledName = cached.first.data();
+            if (mangledName[0] == 1) {
+                if(mangledName[1] == '_' || mangledName[1] == '?') {
+                    if(mangledName[2] == '?') {
+                        cached.first = cached.first.substr(3);
+                    } else {
+                        cached.first = cached.first.substr(2);
+                    }
+                }
+            }
+#endif
         } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
             cached.first = getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
         } else {
@@ -933,7 +957,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         cached.second = Generator::escapeAttr(qualName, buffer);
 
         if (cached.first.size() > 170) {
-            // If the name is too big, turncate it and add the hash at the end.
+            // If the name is too big, truncate it and add the hash at the end.
             auto hash = std::hash<std::string>()(cached.first) & 0x00ffffff;
             cached.first.resize(150);
             buffer.clear();
