@@ -29,12 +29,15 @@
 #include <clang/Basic/Version.h>
 
 ProjectManager::ProjectManager(std::string outputPrefix, std::string _dataPath)
-        : projects(systemProjects())
-        , outputPrefix(std::move(outputPrefix))
+        : outputPrefix(std::move(outputPrefix))
         , dataPath(std::move(_dataPath))
 {
     if (dataPath.empty())
         dataPath = "../data";
+
+    for(auto&& info : systemProjects()) {
+        addProject(info);
+    }
 }
 
 void ProjectManager::addProject(ProjectInfo info) {
