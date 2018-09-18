@@ -49,10 +49,10 @@ void make_forward_slashes(std::string &str)
     std::replace(str.begin(), str.end(), '\\', '/');
 }
 
-// ATTENTION: Keep in sync with ECMAScript function of the same name in common.js
+// ATTENTION: Keep in sync with ECMAScript function of the same name in .js files and `escapeAttrForFilename` generator.cpp
 void replace_invalid_filename_chars(std::string &str)
 {
-    std::replace(str.begin(), str.end(), ':', '_');
+    std::replace(str.begin(), str.end(), ':', '.');
 }
 
 std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {

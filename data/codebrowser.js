@@ -81,6 +81,15 @@ $(function () {
     var start = new Date().getTime();
     var elapsed;
 
+    // ATTENTION: Keep in sync with C++ function of the same name in filesystem.cpp and `Generator::escapeAttrForFilename`
+    var replace_invalid_filename_chars = function (str) {
+        if(window.ecma_script_api_version && window.ecma_script_api_version >= 2) {
+            return str.replace(new RegExp(':', 'g'), '.');
+        }
+
+        return str;
+    }
+
     var escape_selector = function (str) {
         return str.replace(/([ #;&,.+*~\':"!^$[\]()=<>|\/@{}\\])/g,'\\$1')
     }
