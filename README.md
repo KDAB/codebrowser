@@ -51,6 +51,16 @@ Install via homebrew
 ====================
 Please look at https://woboq.com/codebrowser-download.html
 
+Install via Arch User Repository (AUR)
+======================================
+
+Execute these commands in Arch Linux:
+```bash
+git clone https://aur.archlinux.org/woboq_codebrowser-git.git
+cd woboq_codebrowser-git
+makepkg -si
+```
+
 
 Compiling the generator on Linux
 ================================
