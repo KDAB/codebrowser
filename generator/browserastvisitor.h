@@ -33,7 +33,7 @@
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Basic/Version.h>
-
+#include <llvm/Support/SaveAndRestore.h>
 
 #include <iostream>
 #include <deque>
@@ -43,6 +43,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
     Annotator &annotator;
     clang::NamedDecl *currentContext = nullptr;
     int recursionCount = 0; // Used to avoid a stack overflow
+    bool isNestedNameSpecifier = false;
 
     struct : std::deque<clang::Expr *>  {
         clang::Expr *topExpr = 0;
@@ -192,7 +193,8 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
 
    bool VisitTagTypeLoc(clang::TagTypeLoc TL) {
        clang::SourceRange range = TL.getSourceRange();
-       annotator.registerUse(TL.getDecl(), range.getBegin(), Annotator::Type, currentContext);
+       annotator.registerUse(TL.getDecl(), range.getBegin(), Annotator::Type, currentContext,
+           isNestedNameSpecifier ? Annotator::Use_NestedName : Annotator::Use);
        return true;
    }
 
@@ -225,6 +227,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
                 return true; //skip prefixes
             default: break;
         }
+        llvm::SaveAndRestore<bool> nns(isNestedNameSpecifier, true);
         return Base::TraverseNestedNameSpecifierLoc(NNS);
     }
     bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl *d) {

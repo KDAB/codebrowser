@@ -64,7 +64,7 @@ namespace std {
 
 class Annotator {
 public:
-    enum DeclType { Declaration, Definition, Use, Use_Read, Use_Write, Use_Address, Use_Call, Use_MemberAccess, Override, Inherit };
+    enum DeclType { Declaration, Definition, Use, Use_Read, Use_Write, Use_Address, Use_Call, Use_MemberAccess, Use_NestedName, Override, Inherit };
     enum TokenType { Ref, Member, Type, Decl, Call, Namespace, Typedef, Enum, EnumDecl, Label };
 private:
     enum class Visibility {

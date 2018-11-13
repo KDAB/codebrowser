@@ -346,6 +346,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             char usetype = '\0';
             switch(it2.what) {
                 case Use:
+                case Use_NestedName:
                     tag = "use";
                     break;
                 case Use_Address:
@@ -603,7 +604,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             || sm.getFileID(spel2) != FID) {
 
             if (visibility == Visibility::Global) {
-                if (usedContext && typeText.empty() && declType == Use) {
+                if (usedContext && typeText.empty() && declType >= Use) {
                     typeText = getContextStr(usedContext);
                 }
                 addReference(getReferenceAndTitle(decl).first, range, type, declType, typeText, decl);
@@ -776,7 +777,7 @@ void Annotator::addReference(const std::string &ref, clang::SourceRange refLoc, 
                              DeclType dt, const std::string &typeRef, clang::Decl *decl)
 {
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
-        || ((type == Type || type == Enum) && dt == Definition)) {
+        || (type == Type && dt != Use_NestedName && dt != Declaration) || (type == Enum && dt == Definition)) {
         ssize_t size = getDeclSize(decl);
         if (size >= 0) {
             structure_sizes[ref] = size;
