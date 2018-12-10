@@ -316,7 +316,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
             clang::NamespaceDecl::classof(d) || clang::TemplateDecl::classof(d)) {
             currentContext = llvm::dyn_cast<clang::NamedDecl>(d);
         }
-        if (auto v = llvm::dyn_cast_or_null<clang::VarDecl>(d)) {
+        if (auto v = llvm::dyn_cast<clang::VarDecl>(d)) {
             if (v->getInit() && !expr_stack.topExpr) {
                 expr_stack.topExpr = v->getInit();
                 auto t = v->getType();
