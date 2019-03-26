@@ -30,7 +30,7 @@
 
 #include "../global.h"
 
-const char *data_url = nullptr;
+const char *data_url = "../data";
 
 std::map<std::string, std::string, std::greater<std::string> > project_map;
 
@@ -92,7 +92,8 @@ void gererateRecursisively(FolderInfo *folder, const std::string &root, const st
     }
     std::cerr << "Generating " << filename << std::endl;
 
-    std::string data_path = data_url ? std::string(data_url) : (rel + "../data");
+    std::string data_path = data_url[0] == '.' ? (rel + data_url) : std::string(data_url);
+
 
     size_t pos = root.rfind('/', root.size()-2);
     std::string project = pos < root.size() ? root.substr(pos+1) : root;
