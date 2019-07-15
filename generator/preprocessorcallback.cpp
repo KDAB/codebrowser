@@ -105,7 +105,9 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     PP.setPragmasEnabled(false);
     seenPragma = false;
 
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 9
+#if CLANG_VERSION_MAJOR == 9
+    PP.EnterTokenStream(tokens, /*DisableMacroExpansion=*/false, /*IsReinject=*/false);
+#elif CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 9
     PP.EnterTokenStream(tokens, /*DisableMacroExpansion=*/false);
 #else
     PP.EnterTokenStream(tokens.data(), tokens.size(), false, false);
