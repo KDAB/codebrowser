@@ -20,6 +20,7 @@ target_link_libraries(codebrowser_generator PRIVATE
   clangBasic
   clangLex
   clangTooling
+  clangSerialization
 )
 
 if(TARGET LLVM)
