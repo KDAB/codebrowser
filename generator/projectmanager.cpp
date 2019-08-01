@@ -40,16 +40,19 @@ ProjectManager::ProjectManager(std::string outputPrefix, std::string _dataPath)
     }
 }
 
-void ProjectManager::addProject(ProjectInfo info) {
+bool ProjectManager::addProject(ProjectInfo info) {
     if (info.source_path.empty())
-        return;
+        return false;
     llvm::SmallString<256> filename;
     canonicalize(info.source_path, filename);
+    if (filename.empty())
+        return false;
     if (filename[filename.size()-1] != '/')
         filename += '/';
     info.source_path = filename.c_str();
 
     projects.push_back( std::move(info) );
+    return true;
 }
 
 ProjectInfo* ProjectManager::projectForFile(llvm::StringRef filename)

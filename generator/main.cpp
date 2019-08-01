@@ -340,7 +340,9 @@ int main(int argc, const char **argv) {
         auto secondColonPos = s.find(':', colonPos+1);
         ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
             secondColonPos < s.size() ? s.substr(secondColonPos + 1) : std::string() };
-        projectManager.addProject(std::move(info));
+        if (!projectManager.addProject(std::move(info))) {
+            std::cerr << "invalid project directory for : " << s << std::endl;
+        }
     }
     for(std::string &s : ExternalProjectPaths) {
         auto colonPos = s.find(':');
@@ -355,8 +357,10 @@ int main(int argc, const char **argv) {
         }
         ProjectInfo info { s.substr(0, colonPos), s.substr(colonPos+1, secondColonPos - colonPos -1),
             ProjectInfo::External };
-            info.external_root_url = s.substr(secondColonPos + 1);
-        projectManager.addProject(std::move(info));
+        info.external_root_url = s.substr(secondColonPos + 1);
+        if (!projectManager.addProject(std::move(info))) {
+            std::cerr << "invalid project directory for : " << s << std::endl;
+        }
     }
     BrowserAction::projectManager = &projectManager;
 

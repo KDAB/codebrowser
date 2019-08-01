@@ -53,7 +53,7 @@ struct ProjectInfo {
 struct ProjectManager {
     explicit ProjectManager(std::string outputPrefix, std::string _dataPath);
 
-    void addProject(ProjectInfo info);
+    bool addProject(ProjectInfo info);
 
     std::vector<ProjectInfo> projects;
 
