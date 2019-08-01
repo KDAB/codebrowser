@@ -412,4 +412,21 @@ int testLong() {
 
 }
 
+namespace issue_81 {
 
+// declaration of the template
+template<class T> struct container {
+    container(T t) {}
+    template<class Iter> container(Iter beg, Iter end){};
+};
+// additional deduction guide
+template<class Iter>
+container(Iter b, Iter e) -> container<typename std::iterator_traits<Iter>::value_type>;
+// uses
+
+int main(){
+    container c(7); // OK: deduces T=int using an implicitly-generated guide
+    std::vector<double> v = { /* ... */};
+    auto d = container(v.begin(), v.end()); // OK: deduces T=double
+}
+}

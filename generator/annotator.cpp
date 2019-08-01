@@ -142,6 +142,11 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     if (llvm::isa<clang::LabelDecl>(decl))
         return Visibility::Local;
 
+#if CLANG_VERSION_MAJOR >= 5
+    if (llvm::isa<clang::CXXDeductionGuideDecl>(decl))
+        return Visibility::Static; // Because it is not referenced in the AST anyway (FIXME)
+#endif
+
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
 
@@ -918,7 +923,12 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         decl = getSpecializedCursorTemplate(decl);
 
         std::string qualName = decl->getQualifiedNameAsString();
-        if (llvm::isa<clang::FunctionDecl>(decl) && mangle->shouldMangleDeclName(decl)
+        if (llvm::isa<clang::FunctionDecl>(decl)
+#if CLANG_VERSION_MAJOR >= 5
+                // We can't mangle a deduction guide (also there is no need since it is not referenced)
+                && !llvm::isa<clang::CXXDeductionGuideDecl>(decl)
+#endif
+                && mangle->shouldMangleDeclName(decl)
                 //workaround crash in clang while trying to mangle some builtin types
                 && !llvm::StringRef(qualName).startswith("__")) {
             llvm::raw_string_ostream s(cached.first);
