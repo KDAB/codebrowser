@@ -116,12 +116,12 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
         llvm::StringRef candidate(it->second);
         unsigned int suf_len = 0;
         while (suf_len < std::min(candidate.size(), includeName.size())) {
-            if(candidate[candidate.size()-suf_len-1] != includeName[candidate.size()-suf_len-1])
+            if(candidate[candidate.size()-suf_len-1] != includeName[includeName.size()-suf_len-1])
                 break;
             suf_len++;
         }
         //Each paths part that are similar from the expected name are weighted 1000 points f
-        int w = includeName.substr(candidate.size()-suf_len).count('/') * 1000;
+        int w = includeName.substr(includeName.size()-suf_len).count('/') * 1000;
         if (w + 1000 < weight)
             continue;
 
