@@ -67,11 +67,11 @@ Compiling the generator on Linux
 
 You need:
  - The clang libraries version 3.4 or later
-
+ 
+You may want to `sudo apt install llvm-7 clang-7 libclang-7-dev` on Ubuntu if you ran into error like that clang says it cannot find "ClangConfig.cmake". More details in [issues#74](https://github.com/woboq/woboq_codebrowser/issues/74) .
+ 
 Example:
 ```bash
-# You may want to `sudo apt install llvm-7 clang-7 libclang-7-dev` 
-#+if you ran into error like that clang says it cannot find "ClangConfig.cmake".
 cmake . -DCMAKE_BUILD_TYPE=Release
 make
 ```
