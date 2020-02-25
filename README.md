@@ -70,6 +70,8 @@ You need:
 
 Example:
 ```bash
+# You may want to `sudo apt install llvm-7 clang-7 libclang-7-dev` 
+#+if you ran into error like that clang says it cannot find "ClangConfig.cmake".
 cmake . -DCMAKE_BUILD_TYPE=Release
 make
 ```
