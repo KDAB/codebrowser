@@ -9,19 +9,23 @@ message(STATUS "Found Clang in ${CLANG_INSTALL_PREFIX}")
 
 add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp generator.cpp preprocessorcallback.cpp
                filesystem.cpp qtsupport.cpp commenthandler.cpp ${CMAKE_CURRENT_BINARY_DIR}/projectmanager_systemprojects.cpp)
-
 target_include_directories(codebrowser_generator PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
-target_link_libraries(codebrowser_generator PRIVATE
-  clangFrontend
-  clangParse
-  clangSema
-  clangAST
-  clangBasic
-  clangLex
-  clangTooling
-  clangSerialization
-)
+if (${LLVM_VERSION} VERSION_GREATER_EQUAL "10.0.0")
+    target_link_libraries(codebrowser_generator PRIVATE clang-cpp)
+else()
+
+    target_link_libraries(codebrowser_generator PRIVATE
+        clangFrontend
+        clangParse
+        clangSema
+        clangAST
+        clangBasic
+        clangLex
+        clangTooling
+        clangSerialization
+    )
+endif()
 
 if(TARGET LLVM)
   target_link_libraries(codebrowser_generator PRIVATE LLVM)
@@ -35,8 +39,8 @@ endif()
 
 install(TARGETS codebrowser_generator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 target_include_directories(codebrowser_generator PUBLIC ${CLANG_INCLUDE_DIRS})
+set_property(TARGET codebrowser_generator PROPERTY CXX_STANDARD 14)
 
-set (CMAKE_CXX_STANDARD 11)
 
 if (NOT APPLE AND NOT MSVC)
     #  Don't link with libs that overlaps our options
