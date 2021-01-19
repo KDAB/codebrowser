@@ -24,6 +24,7 @@
 #include <clang/Lex/Token.h>
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/Preprocessor.h>
+#include <clang/Basic/FileManager.h>
 #include <clang/Basic/Version.h>
 #include <llvm/ADT/Twine.h>
 #include "stringbuilder.h"
