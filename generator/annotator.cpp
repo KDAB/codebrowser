@@ -933,9 +933,17 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
                 && !llvm::StringRef(qualName).startswith("__")) {
             llvm::raw_string_ostream s(cached.first);
             if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
+#if CLANG_VERSION_MAJOR >= 11
+                mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete), s);
+#else
                 mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete, s);
+#endif
             } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
+#if CLANG_VERSION_MAJOR >= 11
+                mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete), s);
+#else
                 mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete, s);
+#endif
             } else {
                 mangle->mangleName(decl, s);
             }
@@ -965,7 +973,7 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
             std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
         }
         llvm::SmallString<64> buffer;
-        cached.second = Generator::escapeAttr(qualName, buffer);
+        cached.second = std::string(Generator::escapeAttr(qualName, buffer));
 
         if (cached.first.size() > 170) {
             // If the name is too big, truncate it and add the hash at the end.

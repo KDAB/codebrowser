@@ -111,7 +111,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
     llvm::StringRef includeFileName = llvm::sys::path::filename(includeName);
     std::string resolved;
     int weight = -1000;
-    auto range = includeRecoveryCache.equal_range(includeFileName);
+    auto range = includeRecoveryCache.equal_range(std::string(includeFileName));
     for (auto it = range.first; it != range.second; ++it) {
         llvm::StringRef candidate(it->second);
         unsigned int suf_len = 0;
@@ -141,7 +141,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
             continue;
 
         weight = w;
-        resolved = candidate;
+        resolved = std::string(candidate);
     }
     return resolved;
 #else

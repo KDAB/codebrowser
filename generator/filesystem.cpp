@@ -159,7 +159,7 @@ std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path) {
     using namespace llvm;
     if (sys::path::has_root_path(path)){
         if (sys::path::root_path(path) != sys::path::root_path(base)) {
-            return path;
+            return std::string(path);
         } else {
             return naive_uncomplete(sys::path::relative_path(base), sys::path::relative_path(path));
         }
@@ -167,7 +167,7 @@ std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path) {
         if (sys::path::has_root_path(base)) {
             std::cerr << "naive_uncomplete(" << base.str() << "," << path.str()
                       << "): cannot uncomplete a path relative path from a rooted base" << std::endl;
-            return path;
+            return std::string(path);
         } else {
             auto path_it = sys::path::begin(path);
             auto path_it_end = sys::path::end(path);
@@ -182,7 +182,7 @@ std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path) {
                 sys::path::append(result, "..");
             }
             sys::path::append(result, path_it, path_it_end);
-            return result.str();
+            return std::string(result.str());
         }
     }
 }
