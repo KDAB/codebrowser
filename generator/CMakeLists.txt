@@ -11,10 +11,7 @@ add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp g
                filesystem.cpp qtsupport.cpp commenthandler.cpp ${CMAKE_CURRENT_BINARY_DIR}/projectmanager_systemprojects.cpp)
 target_include_directories(codebrowser_generator PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
-if (${LLVM_VERSION} VERSION_GREATER_EQUAL "10.0.0")
-    target_link_libraries(codebrowser_generator PRIVATE clang-cpp)
-else()
-
+if (${LLVM_VERSION} VERSION_LESS "10.0.0")
     target_link_libraries(codebrowser_generator PRIVATE
         clangFrontend
         clangParse
@@ -25,6 +22,8 @@ else()
         clangTooling
         clangSerialization
     )
+else()
+    target_link_libraries(codebrowser_generator PRIVATE clang-cpp)
 endif()
 
 if(TARGET LLVM)
