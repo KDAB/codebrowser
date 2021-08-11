@@ -296,12 +296,23 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
 
         // Emit the HTML.
+#if CLANG_VERSION_MAJOR >= 12
+        const llvm::StringRef Buf = getSourceMgr().getBufferData(FID);
+        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
+                   Buf.begin(), Buf.end(), footer,
+                   WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
+                                        "It may have many parsing errors.",
+                   interestingDefinitionsInFile[FID]);
+
+#else
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
         g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
                    Buf->getBufferStart(), Buf->getBufferEnd(), footer,
                    WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
                                         "It may have many parsing errors.",
                    interestingDefinitionsInFile[FID]);
+
+#endif
 
         if (projectinfo.type == ProjectInfo::Normal)
             fileIndex << fn << '\n';
@@ -1038,8 +1049,16 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
 
     const clang::Preprocessor &PP = Sema.getPreprocessor();
     const clang::SourceManager &SM = getSourceMgr();
+#if CLANG_VERSION_MAJOR >= 12
+    const llvm::Optional<llvm::MemoryBufferRef> FromFile = SM.getBufferOrNone(FID);
+    if (!FromFile.hasValue()) {
+        return;
+    }
+    Lexer L(FID, FromFile.getValue(), SM, getLangOpts());
+#else
     const llvm::MemoryBuffer *FromFile = SM.getBuffer(FID);
     Lexer L(FID, FromFile, SM, getLangOpts());
+#endif
     const char *BufferStart = FromFile->getBufferStart();
     const char *BufferEnd = FromFile->getBufferEnd();
 

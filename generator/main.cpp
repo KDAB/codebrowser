@@ -233,7 +233,8 @@ std::set<std::string> BrowserAction::processed;
 ProjectManager *BrowserAction::projectManager = nullptr;
 
 static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Directory,
-                           llvm::StringRef file, clang::FileManager *FM, DatabaseType WasInDatabase) {
+                           llvm::StringRef file, clang::FileManager *FM,
+                           DatabaseType WasInDatabase) {
     // This code change all the paths to be absolute paths
     //  FIXME:  it is a bit fragile.
     bool previousIsDashI = false;
@@ -296,6 +297,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     command.push_back("-Wno-unknown-warning-option");
     clang::tooling::ToolInvocation Inv(command, maybe_unique(new BrowserAction(WasInDatabase)), FM);
 
+#if CLANG_VERSION_MAJOR <= 10
     if (!hasNoStdInc) {
       // Map the builtins includes
       const EmbeddedFile *f = EmbeddedFiles;
@@ -304,6 +306,8 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
           f++;
       }
     }
+#endif
+
     bool result = Inv.run();
     if (!result) {
         std::cerr << "Error: The file was not recognized as source code: " << file.str() <<  std::endl;
@@ -442,8 +446,22 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
-    clang::FileManager FM({"."});
+    llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> VFS(new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
+    clang::FileManager FM({"."}, VFS);
     FM.Retain();
+
+    // Map virtual files
+    {
+        auto InMemoryFS = llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem>(new llvm::vfs::InMemoryFileSystem);
+        VFS->pushOverlay(InMemoryFS);
+        // Map the builtins includes
+        const EmbeddedFile *f = EmbeddedFiles;
+        while (f->filename) {
+            InMemoryFS->addFile(f->filename, 0, llvm::MemoryBuffer::getMemBufferCopy(f->content));
+            f++;
+        }
+    }
+
     int Progress = 0;
 
     std::vector<std::string> NotInDB;

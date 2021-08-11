@@ -47,7 +47,14 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
 #else
     auto FID = PP.getSourceManager().createFileID(std::move(Buf));
 #endif
+
+
+#if CLANG_VERSION_MAJOR >= 12
+    auto MemBufRef = Buf2->getMemBufferRef();
+    clang::Lexer Lex(FID, MemBufRef, PP.getSourceManager(), PP.getLangOpts());
+#else
     clang::Lexer Lex(FID, Buf2, PP.getSourceManager(), PP.getLangOpts());
+#endif
 
     auto TuDecl = Sema.getASTContext().getTranslationUnitDecl();
     clang::CXXScopeSpec SS;
