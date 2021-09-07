@@ -1,4 +1,5 @@
-This is the generator for the woboq code browser.
+This is the generator for code browser, formerly created and maintained by Woboq, 
+KDAB wants to thank Woboq to have made available such a great tool to the community in the first place. 
 
 See https://code.woboq.org for an example.
 
