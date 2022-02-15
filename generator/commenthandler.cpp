@@ -103,8 +103,13 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                         if (!Next.is(clang::tok::eof) && !Next.is(clang::tok::l_paren))
                             return nullptr;
                         auto Result = T2->lookup(II);
+#if CLANG_VERSION_MAJOR >= 13
+                        if (Result.isSingleResult())
+                            return nullptr;
+#else
                         if (Result.size() != 1)
                             return nullptr;
+#endif
                         auto D = Result.front();
                         if (isFunction && (llvm::isa<clang::RecordDecl>(D)
                                     || llvm::isa<clang::ClassTemplateDecl>(D))) {

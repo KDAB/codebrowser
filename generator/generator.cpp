@@ -127,7 +127,11 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     }
 #else
     std::error_code error_code;
+#if CLANG_VERSION_MAJOR >= 13
+    llvm::raw_fd_ostream myfile(real_filename, error_code, llvm::sys::fs::OF_None);
+#else
     llvm::raw_fd_ostream myfile(real_filename, error_code, llvm::sys::fs::F_None);
+#endif
     if (error_code) {
         std::cerr << "Error generating " << real_filename << " ";
         std::cerr << error_code.message() << std::endl;

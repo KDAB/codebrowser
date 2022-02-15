@@ -129,7 +129,11 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor> {
         return true;
     }
     bool VisitEnumConstantDecl(clang::EnumConstantDecl *d) {
+#if CLANG_VERSION_MAJOR >= 13
+        annotator.registerReference(d, d->getLocation(), Annotator::EnumDecl, Annotator::Declaration, llvm::toString(d->getInitVal(), 10));
+#else
         annotator.registerReference(d, d->getLocation(), Annotator::EnumDecl, Annotator::Declaration, d->getInitVal().toString(10));
+#endif
         return true;
     }
     bool VisitVarDecl(clang::VarDecl *d) {

@@ -342,7 +342,11 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         }
 #else
         std::error_code error_code;
+#if CLANG_VERSION_MAJOR >= 13
+        llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::OF_Append);
+#else
         llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::F_Append);
+#endif
         if (error_code) {
             std::cerr << "Error writing ref file " << filename << ": " << error_code.message() << std::endl;
             continue;
@@ -493,7 +497,12 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                 }
 #else
                 std::error_code error_code;
+#if CLANG_VERSION_MAJOR >= 13
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::OF_Append);
+#else
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::F_Append);
+#endif
+
                 if (error_code) {
                     std::cerr << "Error writing index file " << funcIndexFN << ": " << error_code.message() << std::endl;
                     continue;
