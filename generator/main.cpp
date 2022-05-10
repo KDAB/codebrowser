@@ -248,7 +248,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
         } else if (A == "-I") {
             previousIsDashI = true;
             continue;
-        } else if (A == "-nostdinc") {
+        } else if (A == "-nostdinc" || A == "-nostdinc++") {
           hasNoStdInc = true;
           continue;
         } else if (A == "-U" || A == "-D") {
