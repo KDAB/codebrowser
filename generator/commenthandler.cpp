@@ -275,8 +275,13 @@ private:
         while(clang::isWhitespace(*begin))
             begin++;
         auto end = begin;
+#if CLANG_VERSION_MAJOR >= 14
+        while(clang::isAsciiIdentifierContinue(*end))
+            end++;
+#else
         while(clang::isIdentifierBody(*end))
             end++;
+#endif
         llvm::StringRef value(begin, end-begin);
 
         auto it = std::find_if(ED->enumerator_begin(), ED->enumerator_end(),
