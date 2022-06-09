@@ -25,16 +25,16 @@ The files reference themselves using relative path. The layout in the output
 directory will look like this:
 (Assuming the output directory is ~/public_html/mycode)
 
-$OUTPUTDIR/../data/  or ~/public_html/data/
+`$OUTPUTDIR/../data/` or `~/public_html/data/`
   is where all javascript and css files are located. Those are static files shipped with the code browser, they are not generated.
 
-$OUTPUTDIR/projectname  or ~/public_html/mycode/projectname
+`$OUTPUTDIR/projectname` or `~/public_html/mycode/projectname`
   contains the generated html files for your project
 
-$OUTPUTDIR/refs  or ~/public_html/mycode/refs
+`$OUTPUTDIR/refs` or `~/public_html/mycode/refs`
   contains the generated "database" used for the tooltips
 
-$OUTPUTDIR/include  or ~/public_html/mycode/include
+`$OUTPUTDIR/include` or `~/public_html/mycode/include`
   contains the generated html files for the files in /usr/include
 
 
