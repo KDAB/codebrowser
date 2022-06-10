@@ -104,7 +104,7 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                             return nullptr;
                         auto Result = T2->lookup(II);
 #if CLANG_VERSION_MAJOR >= 13
-                        if (Result.isSingleResult())
+                        if (Result.empty() || Result.isSingleResult())
                             return nullptr;
 #else
                         if (Result.size() != 1)
