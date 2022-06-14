@@ -98,4 +98,12 @@ p.warnmsg { color: #a00; padding: 0 1ex; margin: 0.3ex 0; }
 }
 @media only screen and (max-width: 60em) {
 #allSideBoxes { display: none;}
+.inlayHint {
+  font-size: smaller;
+  border-radius: 3px;
+  border: 1px solid #d9d9d9;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+/Edge */
+  user-select: none; /* Standard */
 }

@@ -70,3 +70,6 @@ $green:     #859900;
 th.highlight+td { background-color: #073642 !important; }
 
 .sideBox { background-color: #073642 !important; border: 1px solid #073642;}
+.inlayHint {
+  border: 1px solid #839496;
+}

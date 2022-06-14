@@ -334,11 +334,15 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
             // And also because of the wierd rules regarding the member operators and their number
             // of arguments
             for (unsigned int i = 0; decl && i < e->getNumArgs() && i < decl->getNumParams(); ++i) {
-                auto t = decl->getParamDecl(i)->getType();
+                auto paramDecl = decl->getParamDecl(i);
+                auto t = paramDecl->getType();
+                auto arg = e->getArg(i);
+                std::string prefix = annotator.getParamNameForArg(e, paramDecl, arg);
                 if (t->isLValueReferenceType() && !t.getNonReferenceType().isConstQualified()) {
                     annotator.annotateSourceRange(e->getArg(i)->getSourceRange(), "span",
                                                   "class='refarg'");
                 }
+                annotator.addInlayHint(e->getArg(i)->getBeginLoc(), prefix);
             }
         }
 
@@ -348,6 +352,19 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
         return true;
     }
 
+    bool VisitInitListExpr(clang::InitListExpr *Syn)
+    {
+        if (!Syn->isSyntacticForm())
+            return false;
+        if (Syn->isIdiomaticZeroInitializer(annotator.getLangOpts()))
+            return false;
+        llvm::DenseMap<clang::SourceLocation, std::string> designators =
+            annotator.getDesignatorInlayHints(Syn);
+        for (const auto &d : designators) {
+            annotator.addInlayHint(d.getFirst(), d.getSecond());
+        }
+        return true;
+    }
 
     bool VisitGotoStmt(clang::GotoStmt *stm)
     {
@@ -543,8 +560,7 @@ private:
         return Annotator::Use;
     }
 
-
-    bool isMember(clang::NamedDecl *d)
+    bool isMember(clang::NamedDecl *d) const
     {
         if (!currentContext)
             return false;

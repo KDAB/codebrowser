@@ -233,6 +233,8 @@ public:
     void reportDiagnostic(clang::SourceRange range, const std::string &msg,
                           const std::string &clas);
 
+    void addInlayHint(clang::SourceLocation range, std::string inlayHint);
+
     bool shouldProcess(clang::FileID);
     Generator &generator(clang::FileID fid)
     {
@@ -249,4 +251,14 @@ public:
     std::string getVisibleRef(clang::NamedDecl *Decl);
 
     std::string externalProjectForFile(clang::FileID fid);
+
+    /**
+     * Returns the param name in function decl for the arg @p arg
+     * Will be empty if arg->name == paramDecl->name
+     */
+    std::string getParamNameForArg(clang::CallExpr *callExpr, clang::ParmVarDecl *paramDecl,
+                                   clang::Expr *arg);
+
+    llvm::DenseMap<clang::SourceLocation, std::string>
+    getDesignatorInlayHints(clang::InitListExpr *Syn);
 };

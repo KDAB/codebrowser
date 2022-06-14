@@ -44,6 +44,7 @@ class Generator
         std::string attributes;
         int pos;
         int len;
+        std::string innerHtml;
         bool operator<(const Tag &other) const
         {
             // This is the order of the opening tag. Order first by position, then by length
@@ -66,12 +67,13 @@ class Generator
     std::map<std::string, std::string> projects;
 
 public:
-    void addTag(std::string name, std::string attributes, int pos, int len)
+    void addTag(std::string name, std::string attributes, int pos, int len,
+                std::string innerHtml = {})
     {
         if (len < 0) {
             return;
         }
-        Tag t = { std::move(name), std::move(attributes), pos, len };
+        Tag t = { std::move(name), std::move(attributes), pos, len, std::move(innerHtml) };
         auto it = tags.find(t);
         if (it != tags.end() && *it == t)
             return; // Hapens in macro for example

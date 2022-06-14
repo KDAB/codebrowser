@@ -97,10 +97,15 @@ void Generator::Tag::open(llvm::raw_ostream &myfile) const
 
     if (len) {
         myfile << ">";
+        if (!innerHtml.empty())
+            myfile << innerHtml;
     } else {
         // Unfortunately, html5 won't allow <a /> or <span /> tags, they need to be explicitly closed
         //    myfile << "/>";
-        myfile << "></" << name << ">";
+        if (!innerHtml.empty())
+            myfile << ">" << innerHtml << "</" << name << ">";
+        else
+            myfile << "></" << name << ">";
     }
 }
 

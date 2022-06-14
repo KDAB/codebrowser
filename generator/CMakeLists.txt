@@ -10,7 +10,8 @@ Find_Package(Clang REQUIRED CONFIG HINTS "${LLVM_INSTALL_PREFIX}/lib/cmake/clang
 message(STATUS "Found Clang in ${CLANG_INSTALL_PREFIX}")
 
 add_executable(codebrowser_generator main.cpp projectmanager.cpp annotator.cpp generator.cpp preprocessorcallback.cpp
-               filesystem.cpp qtsupport.cpp commenthandler.cpp ${CMAKE_CURRENT_BINARY_DIR}/projectmanager_systemprojects.cpp)
+               filesystem.cpp qtsupport.cpp commenthandler.cpp ${CMAKE_CURRENT_BINARY_DIR}/projectmanager_systemprojects.cpp
+               inlayhintannotator.cpp)
 target_include_directories(codebrowser_generator PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
 if (${LLVM_VERSION} VERSION_LESS "10.0.0")

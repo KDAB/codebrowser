@@ -49,6 +49,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "compat.h"
+#include "inlayhintannotator.h"
 #include "projectmanager.h"
 #include "stringbuilder.h"
 
@@ -934,8 +935,7 @@ void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refL
     }
 }
 
-void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag,
-                                    std::string attributes)
+void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, std::string attributes)
 {
     clang::SourceManager &sm = getSourceMgr();
     if (!range.getBegin().isFileID()) {
@@ -950,7 +950,6 @@ void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag,
     }
     if (!shouldProcess(FID))
         return;
-
 
     clang::SourceLocation B = range.getBegin();
     clang::SourceLocation E = range.getEnd();
@@ -970,6 +969,15 @@ void Annotator::reportDiagnostic(clang::SourceRange range, const std::string &ms
     llvm::SmallString<64> buffer;
     annotateSourceRange(
         range, "span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"");
+}
+
+void Annotator::addInlayHint(clang::SourceLocation loc, std::string inlayHint)
+{
+    clang::FileID FID = getSourceMgr().getFileID(loc);
+    if (inlayHint.empty() || !shouldProcess(FID))
+        return;
+    unsigned int pos = getSourceMgr().getFileOffset(loc);
+    generator(FID).addTag("span", "class='inlayHint'", pos, 0, std::move(inlayHint));
 }
 
 // basically loosely inspired from clang_getSpecializedCursorTemplate
@@ -1316,4 +1324,17 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
 
         L.LexFromRawLexer(Tok);
     }
+}
+
+std::string Annotator::getParamNameForArg(clang::CallExpr *callExpr, clang::ParmVarDecl *paramDecl,
+                                          clang::Expr *arg)
+{
+    return InlayHintsAnnotatorHelper(this).getParamNameInlayHint(callExpr, paramDecl, arg);
+}
+
+llvm::DenseMap<clang::SourceLocation, std::string>
+Annotator::getDesignatorInlayHints(clang::InitListExpr *Syn)
+{
+    InlayHintsAnnotatorHelper helper(this);
+    return helper.getDesignatorInlayHints(Syn);
 }
