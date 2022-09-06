@@ -257,9 +257,16 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
-void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok,
-                                              llvm::StringRef FileName, bool IsAngled,
-                                              clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
+void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc,
+                                              const clang::Token& IncludeTok,
+                                              llvm::StringRef FileName,
+                                              bool IsAngled,
+                                              clang::CharSourceRange FilenameRange,
+#if CLANG_VERSION_MAJOR >= 15
+                                              llvm::Optional<clang::FileEntryRef> File,
+#else
+                                              const clang::FileEntry* File,
+#endif
                                               llvm::StringRef SearchPath, llvm::StringRef RelativePath,
                                               const clang::Module* Imported
 #if CLANG_VERSION_MAJOR >= 7
@@ -274,7 +281,11 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
     if (!annotator.shouldProcess(FID))
         return;
 
+#if CLANG_VERSION_MAJOR >= 15
+    std::string link = annotator.pathTo(FID, File.value());
+#else
     std::string link = annotator.pathTo(FID, File);
+#endif
     if (link.empty())
       return;
 
