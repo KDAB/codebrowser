@@ -257,31 +257,16 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
-bool PreprocessorCallback::FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath)
-{
-    if (!recoverIncludePath)
-        return false;
-    clang::SourceLocation currentLoc = static_cast<clang::Lexer *>(PP.getCurrentLexer())->getSourceLocation();
-    auto &SM = annotator.getSourceMgr();
-    const clang::FileEntry* entry = SM.getFileEntryForID(SM.getFileID(currentLoc));
-    if (!entry || llvm::StringRef(entry->getName()).empty())
-        return false;
-    std::string recovery = annotator.projectManager.includeRecovery(FileName, entry->getName());
-    if (recovery.empty() || !llvm::StringRef(recovery).endswith(FileName))
-        return false;
-    RecoveryPath.clear();
-    RecoveryPath.append(recovery.begin(), recovery.begin() + recovery.size() - FileName.size());
-    currentLoc.dump(SM);
-    llvm::errs() << " WARNING: File not found '" << FileName << "'. Recovering using "
-                 << llvm::StringRef(RecoveryPath.data(), RecoveryPath.size()) << "\n";
-
-    return true;
-}
-
-
-void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok,
-                                              llvm::StringRef FileName, bool IsAngled,
-                                              clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
+void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc,
+                                              const clang::Token& IncludeTok,
+                                              llvm::StringRef FileName,
+                                              bool IsAngled,
+                                              clang::CharSourceRange FilenameRange,
+#if CLANG_VERSION_MAJOR >= 15
+                                              llvm::Optional<clang::FileEntryRef> File,
+#else
+                                              const clang::FileEntry* File,
+#endif
                                               llvm::StringRef SearchPath, llvm::StringRef RelativePath,
                                               const clang::Module* Imported
 #if CLANG_VERSION_MAJOR >= 7
@@ -296,7 +281,11 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc, con
     if (!annotator.shouldProcess(FID))
         return;
 
+#if CLANG_VERSION_MAJOR >= 15
+    std::string link = annotator.pathTo(FID, File.value());
+#else
     std::string link = annotator.pathTo(FID, File);
+#endif
     if (link.empty())
       return;
 

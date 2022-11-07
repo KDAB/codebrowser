@@ -25,6 +25,9 @@
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Basic/Version.h>
 #include <clang/AST/Decl.h>
+#if CLANG_VERSION_MAJOR >= 15
+#include <llvm/ADT/Optional.h>
+#endif
 
 namespace clang {
 class Preprocessor;
@@ -60,10 +63,19 @@ public:
 #endif
         ) override;
 
-    bool FileNotFound(llvm::StringRef FileName, llvm::SmallVectorImpl<char> &RecoveryPath) override;
-    void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token& IncludeTok, llvm::StringRef FileName,
-                            bool IsAngled, clang::CharSourceRange FilenameRange, const clang::FileEntry* File,
-                            llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module* Imported
+    void InclusionDirective(clang::SourceLocation HashLoc,
+                            const clang::Token& IncludeTok,
+                            llvm::StringRef FileName,
+                            bool IsAngled,
+                            clang::CharSourceRange FilenameRange,
+#if CLANG_VERSION_MAJOR >= 15
+                            llvm::Optional<clang::FileEntryRef> File,
+#else
+                            const clang::FileEntry* File,
+#endif
+                            llvm::StringRef SearchPath,
+                            llvm::StringRef RelativePath,
+                            const clang::Module* Imported
 #if CLANG_VERSION_MAJOR >= 7
                             , clang::SrcMgr::CharacteristicKind
 #endif
