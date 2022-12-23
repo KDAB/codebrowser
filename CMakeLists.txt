@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
+project(codebrowser LANGUAGES CXX)
 
 include(GNUInstallDirs)
 set (CMAKE_CXX_STANDARD 11)
