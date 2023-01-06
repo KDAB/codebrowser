@@ -446,10 +446,15 @@ int main(int argc, const char **argv) {
         return EXIT_FAILURE;
     }
 
+#if CLANG_VERSION_MAJOR >= 12
     llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> VFS(new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
     clang::FileManager FM({"."}, VFS);
+#else
+    clang::FileManager FM({"."});
+#endif
     FM.Retain();
 
+#if CLANG_VERSION_MAJOR >= 12
     // Map virtual files
     {
         auto InMemoryFS = llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem>(new llvm::vfs::InMemoryFileSystem);
@@ -461,6 +466,7 @@ int main(int argc, const char **argv) {
             f++;
         }
     }
+#endif
 
     int Progress = 0;
 
