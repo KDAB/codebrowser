@@ -22,16 +22,16 @@
 #include "filesystem.h"
 
 #include <clang/Basic/Version.h>
-#include <llvm/ADT/Twine.h>
 #include <llvm/ADT/SmallString.h>
+#include <llvm/ADT/Twine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
 #include <iostream>
 
 #ifndef _WIN32
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #else
 #include <windows.h> // MAX_PATH
 #endif
@@ -49,15 +49,17 @@ void make_forward_slashes(std::string &str)
     std::replace(str.begin(), str.end(), '\\', '/');
 }
 
-// ATTENTION: Keep in sync with ECMAScript function of the same name in .js files and `escapeAttrForFilename` generator.cpp
+// ATTENTION: Keep in sync with ECMAScript function of the same name in .js files and
+// `escapeAttrForFilename` generator.cpp
 void replace_invalid_filename_chars(std::string &str)
 {
     std::replace(str.begin(), str.end(), ':', '.');
 }
 
-std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result) {
+std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result)
+{
     std::string p = path.str();
-#if CLANG_VERSION_MAJOR>=5
+#if CLANG_VERSION_MAJOR >= 5
     llvm::sys::fs::real_path(path, result);
 #else
 #ifdef PATH_MAX
@@ -84,19 +86,17 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
     return {};
 }
 
-#if (CLANG_VERSION_MAJOR>=3 && CLANG_VERSION_MINOR>=8) || CLANG_VERSION_MAJOR>3
-std::error_code create_directories(const llvm::Twine& path)
+#if (CLANG_VERSION_MAJOR >= 3 && CLANG_VERSION_MINOR >= 8) || CLANG_VERSION_MAJOR > 3
+std::error_code create_directories(const llvm::Twine &path)
 {
     using namespace llvm::sys::fs;
-    auto defaultPerms = perms::all_all
-            & ~perms::group_write
-            & ~perms::others_write;
+    auto defaultPerms = perms::all_all & ~perms::group_write & ~perms::others_write;
 
     return llvm::sys::fs::create_directories(path, true, defaultPerms);
 }
 #else
 /* Based on the one from Support/Unix/PathV2 but with different default rights */
-static std::error_code create_directory(const llvm::Twine& path)
+static std::error_code create_directory(const llvm::Twine &path)
 {
     using namespace llvm;
     SmallString<128> path_storage;
@@ -104,12 +104,12 @@ static std::error_code create_directory(const llvm::Twine& path)
 
     if (::mkdir(p.begin(), 0755) == -1) {
         if (errno != static_cast<int>(std::errc::file_exists))
-            return {errno, std::system_category()};
+            return { errno, std::system_category() };
     }
     return {};
 }
 
-std::error_code create_directories(const llvm::Twine& path)
+std::error_code create_directories(const llvm::Twine &path)
 {
     using namespace llvm;
     using namespace llvm::sys;
@@ -118,9 +118,9 @@ std::error_code create_directories(const llvm::Twine& path)
     StringRef parent = path::parent_path(p);
     if (!parent.empty()) {
         bool parent_exists;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
         if (auto ec = fs::exists(parent, parent_exists)) {
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=4
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
             return std::error_code(ec.value(), std::system_category());
 #else
             return ec;
@@ -131,7 +131,8 @@ std::error_code create_directories(const llvm::Twine& path)
 #endif
 
         if (!parent_exists)
-            if (auto ec = create_directories(parent)) return ec;
+            if (auto ec = create_directories(parent))
+                return ec;
     }
 
     return create_directory(p);
@@ -155,9 +156,10 @@ std::error_code create_directories(const llvm::Twine& path)
  *   write to output, ../ times the number of remaining elements in base
  *   write to output, the remaining elements in path
  */
-std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path) {
+std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path)
+{
     using namespace llvm;
-    if (sys::path::has_root_path(path)){
+    if (sys::path::has_root_path(path)) {
         if (sys::path::root_path(path) != sys::path::root_path(base)) {
             return std::string(path);
         } else {
@@ -166,18 +168,21 @@ std::string naive_uncomplete(llvm::StringRef base, llvm::StringRef path) {
     } else {
         if (sys::path::has_root_path(base)) {
             std::cerr << "naive_uncomplete(" << base.str() << "," << path.str()
-                      << "): cannot uncomplete a path relative path from a rooted base" << std::endl;
+                      << "): cannot uncomplete a path relative path from a rooted base"
+                      << std::endl;
             return std::string(path);
         } else {
             auto path_it = sys::path::begin(path);
             auto path_it_end = sys::path::end(path);
             auto base_it = sys::path::begin(base);
             auto base_it_end = sys::path::end(base);
-            while ( path_it != path_it_end && base_it != base_it_end ) {
-                if (*path_it != *base_it) break;
-                ++path_it; ++base_it;
+            while (path_it != path_it_end && base_it != base_it_end) {
+                if (*path_it != *base_it)
+                    break;
+                ++path_it;
+                ++base_it;
             }
-            llvm::SmallString<128>  result;
+            llvm::SmallString<128> result;
             for (; base_it != base_it_end; ++base_it) {
                 sys::path::append(result, "..");
             }

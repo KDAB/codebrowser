@@ -23,34 +23,48 @@
 
 #include <llvm/ADT/StringRef.h>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
-struct ProjectInfo {
+struct ProjectInfo
+{
     std::string name;
     std::string source_path;
-//    std::string description;
-//    std::string version_info;
-//    std::string repo_url; //may contains tags;
+    //    std::string description;
+    //    std::string version_info;
+    //    std::string repo_url; //may contains tags;
     std::string revision;
 
     std::string external_root_url;
 
-    //TODO
-    std::string fileRepoUrl(const std::string &file) const { return {}; }
-    enum Type { Normal,
-                Internal, //includes and stuffs
-                External, //links to external projects somewhere else, do not generate refs or anything,
-                          // and link to a different ref source
+    // TODO
+    std::string fileRepoUrl(const std::string &file) const
+    {
+        return {};
+    }
+    enum Type {
+        Normal,
+        Internal, // includes and stuffs
+        External, // links to external projects somewhere else, do not generate refs or anything,
+                  //  and link to a different ref source
     } type = Normal;
 
     ProjectInfo(std::string name, std::string source_path, Type t = Normal)
-        :   name(std::move(name)), source_path(std::move(source_path)), type(t)  {}
+        : name(std::move(name))
+        , source_path(std::move(source_path))
+        , type(t)
+    {
+    }
     ProjectInfo(std::string name, std::string source_path, std::string rev)
-        :   name(std::move(name)), source_path(std::move(source_path)), revision(std::move(rev))  {}
+        : name(std::move(name))
+        , source_path(std::move(source_path))
+        , revision(std::move(rev))
+    {
+    }
 };
 
-struct ProjectManager {
+struct ProjectManager
+{
     explicit ProjectManager(std::string outputPrefix, std::string _dataPath);
 
     bool addProject(ProjectInfo info);

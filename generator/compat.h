@@ -24,14 +24,26 @@
 #include <memory>
 
 // clang 3.6 uses unique_ptr in many places that was not using it before
-template<typename T> struct MaybeUnique {
+template<typename T>
+struct MaybeUnique
+{
     T *val;
-    operator T*() { return val; }
-    template <typename X> operator std::unique_ptr<X> () && {  return std::unique_ptr<X>(val); }
+    operator T *()
+    {
+        return val;
+    }
+    template<typename X>
+    operator std::unique_ptr<X>() &&
+    {
+        return std::unique_ptr<X>(val);
+    }
 };
-template<typename T> MaybeUnique<T> maybe_unique(T* val) { return {val}; }
+template<typename T>
+MaybeUnique<T> maybe_unique(T *val)
+{
+    return { val };
+}
 
 #ifndef LLVM_FALLTHROUGH
 #define LLVM_FALLTHROUGH
 #endif
-

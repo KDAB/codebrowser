@@ -298,4 +298,3 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     myfile << "<br />Powered by <a href='https://woboq.com'><img alt='Woboq' src='https://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='https://code.woboq.org'>Code Browser</a> "
               CODEBROWSER_VERSION "\n<br/>Generator usage only permitted with license.</p>\n</div></body></html>\n";
 }
-

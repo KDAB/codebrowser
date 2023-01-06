@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include <string>
-#include <map>
 #include <clang/Basic/SourceLocation.h>
+#include <map>
+#include <string>
 
 class Annotator;
 namespace clang {
@@ -33,11 +33,13 @@ class Sema;
 
 class Generator;
 
-class CommentHandler {
+class CommentHandler
+{
     struct CommentVisitor;
-public:
 
-    struct Doc {
+public:
+    struct Doc
+    {
         std::string content;
         clang::SourceLocation loc;
     };
@@ -52,9 +54,8 @@ public:
      * Search for corresponding declaration in the given source location interval
      * @a commentLoc is the position of the comment
      */
-    void handleComment(Annotator &A, Generator& generator, clang::Sema& Sema,
-                       const char* bufferStart, int commentStart, int len,
+    void handleComment(Annotator &A, Generator &generator, clang::Sema &Sema,
+                       const char *bufferStart, int commentStart, int len,
                        clang::SourceLocation searchLocBegin, clang::SourceLocation searchLocEnd,
                        clang::SourceLocation commentLoc);
-
 };

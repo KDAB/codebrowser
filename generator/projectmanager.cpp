@@ -23,39 +23,40 @@
 #include "filesystem.h"
 #include "stringbuilder.h"
 
+#include <clang/Basic/Version.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
-#include <clang/Basic/Version.h>
 
 ProjectManager::ProjectManager(std::string outputPrefix, std::string _dataPath)
-        : outputPrefix(std::move(outputPrefix))
-        , dataPath(std::move(_dataPath))
+    : outputPrefix(std::move(outputPrefix))
+    , dataPath(std::move(_dataPath))
 {
     if (dataPath.empty())
         dataPath = "../data";
 
-    for(auto&& info : systemProjects()) {
+    for (auto &&info : systemProjects()) {
         addProject(info);
     }
 }
 
-bool ProjectManager::addProject(ProjectInfo info) {
+bool ProjectManager::addProject(ProjectInfo info)
+{
     if (info.source_path.empty())
         return false;
     llvm::SmallString<256> filename;
     canonicalize(info.source_path, filename);
     if (filename.empty())
         return false;
-    if (filename[filename.size()-1] != '/')
+    if (filename[filename.size() - 1] != '/')
         filename += '/';
     info.source_path = filename.c_str();
 
-    projects.push_back( std::move(info) );
+    projects.push_back(std::move(info));
     return true;
 }
 
-ProjectInfo* ProjectManager::projectForFile(llvm::StringRef filename)
+ProjectInfo *ProjectManager::projectForFile(llvm::StringRef filename)
 {
     unsigned int match_length = 0;
     ProjectInfo *result = nullptr;
@@ -73,16 +74,17 @@ ProjectInfo* ProjectManager::projectForFile(llvm::StringRef filename)
     return result;
 }
 
-bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo* project)
+bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo *project)
 {
     if (!project)
         return false;
     if (project->type == ProjectInfo::External)
         return false;
 
-    std::string fn = outputPrefix % "/" % project->name % "/" % filename.substr(project->source_path.size()) % ".html";
+    std::string fn = outputPrefix % "/" % project->name % "/"
+        % filename.substr(project->source_path.size()) % ".html";
     return !llvm::sys::fs::exists(fn);
-            // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
+    // || boost::filesystem::last_write_time(p) < entry->getModificationTime();
 }
 
 std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::StringRef from)
@@ -98,13 +100,13 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
 
             std::error_code EC;
             for (llvm::sys::fs::recursive_directory_iterator it(sourcePath, EC), DirEnd;
-                    it != DirEnd && !EC; it.increment(EC)) {
+                 it != DirEnd && !EC; it.increment(EC)) {
                 auto fileName = llvm::sys::path::filename(it->path());
                 if (fileName.startswith(".")) {
                     it.no_push();
                     continue;
                 }
-                includeRecoveryCache.insert({std::string(fileName), it->path()});
+                includeRecoveryCache.insert({ std::string(fileName), it->path() });
             }
         }
     }
@@ -116,19 +118,20 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
         llvm::StringRef candidate(it->second);
         unsigned int suf_len = 0;
         while (suf_len < std::min(candidate.size(), includeName.size())) {
-            if(candidate[candidate.size()-suf_len-1] != includeName[includeName.size()-suf_len-1])
+            if (candidate[candidate.size() - suf_len - 1]
+                != includeName[includeName.size() - suf_len - 1])
                 break;
             suf_len++;
         }
-        //Each paths part that are similar from the expected name are weighted 1000 points f
-        int w = includeName.substr(includeName.size()-suf_len).count('/') * 1000;
+        // Each paths part that are similar from the expected name are weighted 1000 points f
+        int w = includeName.substr(includeName.size() - suf_len).count('/') * 1000;
         if (w + 1000 < weight)
             continue;
 
         // after that, order by similarity with the from url
         unsigned int pref_len = 0;
         while (pref_len < std::min(candidate.size(), from.size())) {
-            if(candidate[pref_len] != from[pref_len])
+            if (candidate[pref_len] != from[pref_len])
                 break;
             pref_len++;
         }

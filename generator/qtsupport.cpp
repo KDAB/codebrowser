@@ -26,17 +26,17 @@
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/ExprCXX.h>
 #include <clang/AST/PrettyPrinter.h>
-#include <clang/Lex/Lexer.h>
 #include <clang/Basic/SourceManager.h>
 #include <clang/Basic/Version.h>
+#include <clang/Lex/Lexer.h>
 #include <llvm/Support/MemoryBuffer.h>
 
 /**
  * Lookup candidates function of name \a methodName within the QObject derivative \a objClass
  * its bases, or its private implementation
  */
-static llvm::SmallVector<clang::CXXMethodDecl *, 10> lookUpCandidates(const clang::CXXRecordDecl* objClass,
-                                                                      llvm::StringRef methodName)
+static llvm::SmallVector<clang::CXXMethodDecl *, 10>
+lookUpCandidates(const clang::CXXRecordDecl *objClass, llvm::StringRef methodName)
 {
     llvm::SmallVector<clang::CXXMethodDecl *, 10> candidates;
     clang::CXXMethodDecl *d_func = nullptr;
@@ -55,8 +55,9 @@ static llvm::SmallVector<clang::CXXMethodDecl *, 10> lookUpCandidates(const clan
         }
 
         // Look in the first base  (because the QObject need to be the first base class)
-        classIt = classIt->getNumBases() == 0 ? nullptr :
-            classIt->bases_begin()->getType()->getAsCXXRecordDecl();
+        classIt = classIt->getNumBases() == 0
+            ? nullptr
+            : classIt->bases_begin()->getType()->getAsCXXRecordDecl();
 
         if (d_func && !classIt && candidates.empty()) {
             classIt = getResultType(d_func)->getPointeeCXXRecordDecl();
@@ -67,24 +68,27 @@ static llvm::SmallVector<clang::CXXMethodDecl *, 10> lookUpCandidates(const clan
 }
 
 /**
- * \a obj is an expression to a type of an QObject (or pointer to) that is the sender or the receiver
- * \a method is an expression like SIGNAL(....)  or SLOT(....)
+ * \a obj is an expression to a type of an QObject (or pointer to) that is the sender or the
+ * receiver \a method is an expression like SIGNAL(....)  or SLOT(....)
  *
  * This function try to find the matching signal or slot declaration, and register its use.
  */
-void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
+void QtSupport::handleSignalOrSlot(clang::Expr *obj, clang::Expr *method)
 {
-    if (!obj || !method) return;
+    if (!obj || !method)
+        return;
     obj = obj->IgnoreImpCasts();
     method = method->IgnoreImpCasts();
     auto objType = obj->getType().getTypePtrOrNull();
-    if (!objType) return;
+    if (!objType)
+        return;
 
-    const clang::CXXRecordDecl* objClass = objType->getPointeeCXXRecordDecl();
+    const clang::CXXRecordDecl *objClass = objType->getPointeeCXXRecordDecl();
     if (!objClass) {
         // It can be a non-pointer if called like:  foo.connect(....);
         objClass = objType->getAsCXXRecordDecl();
-        if (!objClass) return;
+        if (!objClass)
+            return;
     }
 
     const clang::StringLiteral *methodLiteral = clang::dyn_cast<clang::StringLiteral>(method);
@@ -93,13 +97,16 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
         clang::CallExpr *flagLoc = clang::dyn_cast<clang::CallExpr>(method);
 
         if (!flagLoc || flagLoc->getNumArgs() != 1 || !flagLoc->getDirectCallee()
-            || flagLoc->getDirectCallee()->getName() != "qFlagLocation") return;
+            || flagLoc->getDirectCallee()->getName() != "qFlagLocation")
+            return;
 
 
         methodLiteral = clang::dyn_cast<clang::StringLiteral>(flagLoc->getArg(0)->IgnoreImpCasts());
-        if (!methodLiteral) return;
+        if (!methodLiteral)
+            return;
     }
-    if (methodLiteral->getCharByteWidth() != 1) return;
+    if (methodLiteral->getCharByteWidth() != 1)
+        return;
 
 
     auto signature = methodLiteral->getString().trim();
@@ -115,7 +122,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
     if (rParenPos == std::string::npos || rParenPos < lParenPos || lParenPos < 2)
         return;
 
-    llvm::StringRef methodName = signature.slice(1 , lParenPos).trim();
+    llvm::StringRef methodName = signature.slice(1, lParenPos).trim();
 
     // Try to find the method which match this name in the given class or bases.
     auto candidates = lookUpCandidates(objClass, methodName);
@@ -133,17 +140,31 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
         // Find next comma to extract the next argument
         auto searchPos = argPos;
         while (searchPos < signature.size() && signature[searchPos] != ','
-                && signature[searchPos] != ')') {
+               && signature[searchPos] != ')') {
             if (signature[searchPos] == '<') {
                 int depth = 0;
                 int templDepth = 0;
                 searchPos++;
-                while(searchPos < signature.size() && depth >= 0 && templDepth >= 0) {
+                while (searchPos < signature.size() && depth >= 0 && templDepth >= 0) {
                     switch (signature[searchPos]) {
-                        case '(': case '[': case '{': depth++; break;
-                        case ')': case ']': case '}': depth--; break;
-                        case '>': if (depth == 0) templDepth--; break;
-                        case '<': if (depth == 0) templDepth++; break;
+                    case '(':
+                    case '[':
+                    case '{':
+                        depth++;
+                        break;
+                    case ')':
+                    case ']':
+                    case '}':
+                        depth--;
+                        break;
+                    case '>':
+                        if (depth == 0)
+                            templDepth--;
+                        break;
+                    case '<':
+                        if (depth == 0)
+                            templDepth++;
+                        break;
                     }
                     ++searchPos;
                 }
@@ -159,15 +180,15 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
         // Skip the const at the beginning
 
         if (argument.startswith("const ") && argument.endswith("&"))
-            argument = argument.slice(6, argument.size()-1).trim();
+            argument = argument.slice(6, argument.size() - 1).trim();
 
         argPos = searchPos + 1;
 
         if (argument.empty() && signature[searchPos] == ')' && arg == 0)
-            break; //No arguments
+            break; // No arguments
 
 
-        //Now go over the candidates and prune the impossible ones.
+        // Now go over the candidates and prune the impossible ones.
         auto it = candidates.begin();
         while (it != candidates.end()) {
             if ((*it)->getNumParams() < arg + 1) {
@@ -228,10 +249,15 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
 
 
     // Remove candidates that needs more argument
-    candidates.erase(std::remove_if(candidates.begin(), candidates.end(), [=](clang::CXXMethodDecl *it) {
-            return it->getMinRequiredArguments() > arg &&
-                !(it->getNumParams() == arg+1 && it->getParamDecl(arg)->getType().getAsString(policy) == "QPrivateSignal");
-        }), candidates.end());
+    candidates.erase(
+        std::remove_if(candidates.begin(), candidates.end(),
+                       [=](clang::CXXMethodDecl *it) {
+                           return it->getMinRequiredArguments() > arg
+                               && !(it->getNumParams() == arg + 1
+                                    && it->getParamDecl(arg)->getType().getAsString(policy)
+                                        == "QPrivateSignal");
+                       }),
+        candidates.end());
 
     if (candidates.empty())
         return;
@@ -243,49 +269,57 @@ void QtSupport::handleSignalOrSlot(clang::Expr* obj, clang::Expr* method)
     clang::SourceRange range = methodLiteral->getSourceRange();
     if (methodLiteral->getNumConcatenated() >= 2) {
         auto &sm = annotator.getSourceMgr();
-        // Goes two level up in the macro expension:  First level is the # expansion,  Second level is SIGNAL macro
+        // Goes two level up in the macro expension:  First level is the # expansion,  Second level
+        // is SIGNAL macro
         auto r = sm.getImmediateExpansionRange(methodLiteral->getStrTokenLoc(1));
 #if CLANG_VERSION_MAJOR < 7
-        range = { sm.getImmediateExpansionRange(r.first).first, sm.getImmediateExpansionRange(r.second).second };
+        range = { sm.getImmediateExpansionRange(r.first).first,
+                  sm.getImmediateExpansionRange(r.second).second };
 #else
-        range = { sm.getImmediateExpansionRange(r.getBegin()).getBegin(), sm.getImmediateExpansionRange(r.getEnd()).getEnd() };
+        range = { sm.getImmediateExpansionRange(r.getBegin()).getBegin(),
+                  sm.getImmediateExpansionRange(r.getEnd()).getEnd() };
 #endif
 
         // now remove the SIGNAL or SLOT macro from the range.
         auto skip = clang::Lexer::MeasureTokenLength(range.getBegin(), sm, annotator.getLangOpts());
-        range.setBegin(range.getBegin().getLocWithOffset(skip+1));
+        range.setBegin(range.getBegin().getLocWithOffset(skip + 1));
         // remove the ')' while we are on it
         range.setEnd(range.getEnd().getLocWithOffset(-1));
-
     }
 
     annotator.registerUse(used, range, Annotator::Call, currentContext, Annotator::Use_Address);
 }
 
 /**
- * Very similar to handleSignalOrSlot, but does not handle the fact that the string might be in a macro
- * and does the string contains the method name and not the full signature
- * \a obj is an expression to a type of an QObject (or pointer to) that is the sender or the receiver
- * \a method is an expression of type char*
+ * Very similar to handleSignalOrSlot, but does not handle the fact that the string might be in a
+ * macro and does the string contains the method name and not the full signature \a obj is an
+ * expression to a type of an QObject (or pointer to) that is the sender or the receiver \a method
+ * is an expression of type char*
  *
  * TODO: handle overloads
  */
-void QtSupport::handleInvokeMethod(clang::Expr* obj, clang::Expr* method)
+void QtSupport::handleInvokeMethod(clang::Expr *obj, clang::Expr *method)
 {
-    if (!obj || !method) return;
+    if (!obj || !method)
+        return;
     obj = obj->IgnoreImpCasts();
     method = method->IgnoreImpCasts();
     auto objType = obj->getType().getTypePtrOrNull();
-    if (!objType) return;
-    const clang::CXXRecordDecl* objClass = objType->getPointeeCXXRecordDecl();
-    if (!objClass) return;
+    if (!objType)
+        return;
+    const clang::CXXRecordDecl *objClass = objType->getPointeeCXXRecordDecl();
+    if (!objClass)
+        return;
 
     const clang::StringLiteral *methodLiteral = clang::dyn_cast<clang::StringLiteral>(method);
-    if (!methodLiteral) return;
-    if (methodLiteral->getCharByteWidth() != 1) return;
+    if (!methodLiteral)
+        return;
+    if (methodLiteral->getCharByteWidth() != 1)
+        return;
 
     auto methodName = methodLiteral->getString();
-    if (methodName.empty()) return;
+    if (methodName.empty())
+        return;
 
     // Try to find the method which match this name in the given class or bases.
     auto candidates = lookUpCandidates(objClass, methodName);
@@ -298,9 +332,10 @@ void QtSupport::handleInvokeMethod(clang::Expr* obj, clang::Expr* method)
     annotator.registerUse(used, range, Annotator::Call, currentContext, Annotator::Use_Address);
 }
 
-void QtSupport::visitCallExpr(clang::CallExpr* e)
+void QtSupport::visitCallExpr(clang::CallExpr *e)
 {
-    clang::CXXMethodDecl *methodDecl = clang::dyn_cast_or_null<clang::CXXMethodDecl>(e->getCalleeDecl());
+    clang::CXXMethodDecl *methodDecl =
+        clang::dyn_cast_or_null<clang::CXXMethodDecl>(e->getCalleeDecl());
     if (!methodDecl || !methodDecl->getDeclName().isIdentifier() || !methodDecl->getParent())
         return;
     if (!methodDecl->getParent()->getDeclName().isIdentifier())
@@ -312,7 +347,7 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
         return; // only Qt classes
 
     if (parentName == "QObject"
-            && (methodDecl->getName() == "connect" || methodDecl->getName() == "disconnect")) {
+        && (methodDecl->getName() == "connect" || methodDecl->getName() == "disconnect")) {
         // We have a call to QObject::connect or disconnect
         if (methodDecl->isStatic()) {
             if (e->getNumArgs() >= 4) {
@@ -349,16 +384,12 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
             handleSignalOrSlot(e->getArg(2), e->getArg(4));
         }
     }
-    if (methodDecl->getName() == "open" && (
-            parentName == "QFileDialog" ||
-            parentName == "QColorDialog" ||
-            parentName == "QFontDialog" ||
-            parentName == "QMessageBox" ||
-            parentName == "QInputDialog" ||
-            parentName == "QPrintDialog" ||
-            parentName == "QPageSetupDialog" ||
-            parentName == "QPrintPreviewDialog" ||
-            parentName == "QProgressDialog")) {
+    if (methodDecl->getName() == "open"
+        && (parentName == "QFileDialog" || parentName == "QColorDialog"
+            || parentName == "QFontDialog" || parentName == "QMessageBox"
+            || parentName == "QInputDialog" || parentName == "QPrintDialog"
+            || parentName == "QPageSetupDialog" || parentName == "QPrintPreviewDialog"
+            || parentName == "QProgressDialog")) {
         if (e->getNumArgs() == 2) {
             handleSignalOrSlot(e->getArg(0), e->getArg(1));
         }
@@ -389,7 +420,7 @@ void QtSupport::visitCallExpr(clang::CallExpr* e)
     }
 }
 
-void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
+void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr *e)
 {
     clang::CXXConstructorDecl *methodDecl = e->getConstructor();
     if (!methodDecl || !methodDecl->getParent())
@@ -411,4 +442,3 @@ void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr* e)
         }
     }
 }
-

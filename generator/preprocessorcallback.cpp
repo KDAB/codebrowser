@@ -21,18 +21,17 @@
 
 #include "preprocessorcallback.h"
 #include "annotator.h"
-#include <clang/Lex/Token.h>
-#include <clang/Lex/MacroInfo.h>
-#include <clang/Lex/Preprocessor.h>
+#include "projectmanager.h"
+#include "stringbuilder.h"
 #include <clang/Basic/FileManager.h>
 #include <clang/Basic/Version.h>
+#include <clang/Lex/MacroInfo.h>
+#include <clang/Lex/Preprocessor.h>
+#include <clang/Lex/Token.h>
 #include <llvm/ADT/Twine.h>
-#include "stringbuilder.h"
-#include "projectmanager.h"
 
 
-void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
-                                        MyMacroDefinition MD,
+void PreprocessorCallback::MacroExpands(const clang::Token &MacroNameTok, MyMacroDefinition MD,
                                         clang::SourceRange Range, const clang::MacroArgs *)
 {
     if (disabled)
@@ -61,7 +60,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     std::vector<clang::Token> tokens;
     std::string expansion;
 
-    //Lousely based on code from clang::html::HighlightMacros
+    // Lousely based on code from clang::html::HighlightMacros
 
     // Lex all the tokens in raw mode, to avoid entering #includes or expanding
     // macros.
@@ -88,7 +87,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
 
         tokens.push_back(tok);
 
-    } while(!tok.is(clang::tok::eof));
+    } while (!tok.is(clang::tok::eof));
 
     // Temporarily change the diagnostics object so that we ignore any generated
     // diagnostics from this pass.
@@ -116,10 +115,10 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
 
 
     PP.Lex(tok);
-    while(tok.isNot(clang::tok::eof)) {
+    while (tok.isNot(clang::tok::eof)) {
         if (seenPragma) {
             // skip pragma
-            while(tok.isNot(clang::tok::eof) && tok.isNot(clang::tok::eod))
+            while (tok.isNot(clang::tok::eof) && tok.isNot(clang::tok::eod))
                 PP.Lex(tok);
             seenPragma = false;
             PP.Lex(tok);
@@ -130,14 +129,14 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
         // them being implicitly pasted, add a space between them.
         if (tok.hasLeadingSpace())
             expansion += ' ';
-           // ConcatInfo.AvoidConcat(PrevPrevTok, PrevTok, Tok)) //FIXME
+        // ConcatInfo.AvoidConcat(PrevPrevTok, PrevTok, Tok)) //FIXME
         // Escape any special characters in the token text.
         expansion += PP.getSpelling(tok);
 
         if (expansion.size() >= 30 * 1000) {
             // Don't let the macro expansion grow too large.
             expansion += "...";
-            while(tok.isNot(clang::tok::eof))
+            while (tok.isNot(clang::tok::eof))
                 PP.LexUnexpandedToken(tok);
             break;
         }
@@ -159,9 +158,10 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
     if (defFID != FID) {
         link = annotator.pathTo(FID, defFID, &dataProj);
         if (link.empty()) {
-            std::string tag = "class=\"macro\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer)
-                % "\" data-ref=\"" % ref % "\"";
-            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
+            std::string tag = "class=\"macro\" title=\""
+                % Generator::escapeAttr(expansion, expansionBuffer) % "\" data-ref=\"" % ref % "\"";
+            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc),
+                                            MacroNameTok.getLength());
             return;
         }
 
@@ -174,13 +174,15 @@ void PreprocessorCallback::MacroExpands(const clang::Token& MacroNameTok,
         annotator.registerMacro(ref, MacroNameTok.getLocation(), Annotator::Use_Call);
     }
 
-    std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
-        % "\" title=\"" % Generator::escapeAttr(expansion, expansionBuffer)
-        % "\" data-ref=\"" % ref % "\"" % dataProj;
+    std::string tag = "class=\"macro\" href=\"" % link % "#"
+        % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str() % "\" title=\""
+        % Generator::escapeAttr(expansion, expansionBuffer) % "\" data-ref=\"" % ref % "\""
+        % dataProj;
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
-void PreprocessorCallback::MacroDefined(const clang::Token& MacroNameTok, const clang::MacroDirective *MD)
+void PreprocessorCallback::MacroDefined(const clang::Token &MacroNameTok,
+                                        const clang::MacroDirective *MD)
 {
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())
@@ -197,14 +199,18 @@ void PreprocessorCallback::MacroDefined(const clang::Token& MacroNameTok, const 
         annotator.registerMacro(ref, MacroNameTok.getLocation(), Annotator::Declaration);
     }
 
-    annotator.generator(FID).addTag("dfn", "class=\"macro\" id=\""% ref %"\" data-ref=\"" % ref % "\"", sm.getFileOffset(loc), MacroNameTok.getLength());
+    annotator.generator(FID).addTag("dfn",
+                                    "class=\"macro\" id=\"" % ref % "\" data-ref=\"" % ref % "\"",
+                                    sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
-void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, PreprocessorCallback::MyMacroDefinition MD
+void PreprocessorCallback::MacroUndefined(const clang::Token &MacroNameTok,
+                                          PreprocessorCallback::MyMacroDefinition MD
 #if CLANG_VERSION_MAJOR >= 5
-       , const clang::MacroDirective *
+                                          ,
+                                          const clang::MacroDirective *
 #endif
-            )
+)
 {
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())
@@ -239,7 +245,8 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
         }
         if (link.empty()) {
             std::string tag = "class=\"macro\" data-ref=\"" % ref % "\"";
-            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
+            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc),
+                                            MacroNameTok.getLength());
             return;
         }
 
@@ -252,8 +259,9 @@ void PreprocessorCallback::MacroUndefined(const clang::Token& MacroNameTok, Prep
         annotator.registerMacro(ref, MacroNameTok.getLocation(), Annotator::Use_Write);
     }
 
-    std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
-        % "\" data-ref=\"" % ref % "\"" % dataProj;
+    std::string tag = "class=\"macro\" href=\"" % link % "#"
+        % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str() % "\" data-ref=\"" % ref % "\""
+        % dataProj;
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
@@ -265,14 +273,14 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc,
 #if CLANG_VERSION_MAJOR >= 15
                                               llvm::Optional<clang::FileEntryRef> File,
 #else
-                                              const clang::FileEntry* File,
+    const clang::FileEntry *File,
 #endif
-                                              llvm::StringRef SearchPath, llvm::StringRef RelativePath,
-                                              const clang::Module* Imported
+    llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module *Imported
 #if CLANG_VERSION_MAJOR >= 7
-                                              , clang::SrcMgr::CharacteristicKind
+    ,
+    clang::SrcMgr::CharacteristicKind
 #endif
-   )
+)
 {
     if (!HashLoc.isValid() || !HashLoc.isFileID() || !File)
         return;
@@ -287,15 +295,15 @@ void PreprocessorCallback::InclusionDirective(clang::SourceLocation HashLoc,
     std::string link = annotator.pathTo(FID, File);
 #endif
     if (link.empty())
-      return;
+        return;
 
     auto B = sm.getFileOffset(FilenameRange.getBegin());
     auto E = sm.getFileOffset(FilenameRange.getEnd());
 
-    annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E-B);
+    annotator.generator(FID).addTag("a", "href=\"" % link % "\"", B, E - B);
 }
 
-void PreprocessorCallback::Defined(const clang::Token& MacroNameTok, MyMacroDefinition MD,
+void PreprocessorCallback::Defined(const clang::Token &MacroNameTok, MyMacroDefinition MD,
                                    clang::SourceRange Range)
 {
     clang::SourceLocation loc = MacroNameTok.getLocation();
@@ -332,7 +340,8 @@ void PreprocessorCallback::Defined(const clang::Token& MacroNameTok, MyMacroDefi
         }
         if (link.empty()) {
             std::string tag = "class=\"macro\" data-ref=\"" % ref % "\"";
-            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
+            annotator.generator(FID).addTag("span", tag, sm.getFileOffset(loc),
+                                            MacroNameTok.getLength());
             return;
         }
 
@@ -345,8 +354,9 @@ void PreprocessorCallback::Defined(const clang::Token& MacroNameTok, MyMacroDefi
         annotator.registerMacro(ref, MacroNameTok.getLocation(), Annotator::Use_Address);
     }
 
-    std::string tag = "class=\"macro\" href=\"" % link % "#" % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str()
-        % "\" data-ref=\"" % ref % "\"" % dataProj;
+    std::string tag = "class=\"macro\" href=\"" % link % "#"
+        % llvm::Twine(sm.getExpansionLineNumber(defLoc)).str() % "\" data-ref=\"" % ref % "\""
+        % dataProj;
     annotator.generator(FID).addTag("a", tag, sm.getFileOffset(loc), MacroNameTok.getLength());
 }
 
@@ -360,7 +370,7 @@ void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::Source
     if (!annotator.shouldProcess(FID))
         return;
 
-    while(ElifMapping.count(IfLoc)) {
+    while (ElifMapping.count(IfLoc)) {
         IfLoc = Loc;
     }
 
@@ -368,6 +378,7 @@ void PreprocessorCallback::HandlePPCond(clang::SourceLocation Loc, clang::Source
         return;
     }
 
-    annotator.generator(FID).addTag("span", ("data-ppcond=\"" + clang::Twine(SM.getExpansionLineNumber(IfLoc)) + "\"").str(),
-                                    SM.getFileOffset(Loc), clang::Lexer::MeasureTokenLength(Loc, SM, PP.getLangOpts()));
+    annotator.generator(FID).addTag(
+        "span", ("data-ppcond=\"" + clang::Twine(SM.getExpansionLineNumber(IfLoc)) + "\"").str(),
+        SM.getFileOffset(Loc), clang::Lexer::MeasureTokenLength(Loc, SM, PP.getLangOpts()));
 }

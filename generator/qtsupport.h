@@ -35,12 +35,13 @@ class Annotator;
  *
  * Recognize calls to QObject::connect,  QObject::disconnect, QTimer::singleShot
  */
-struct QtSupport {
+struct QtSupport
+{
     Annotator &annotator;
     clang::NamedDecl *currentContext;
 
     void visitCallExpr(clang::CallExpr *e);
-    void visitCXXConstructExpr(clang::CXXConstructExpr* e);
+    void visitCXXConstructExpr(clang::CXXConstructExpr *e);
 
 private:
     void handleSignalOrSlot(clang::Expr *obj, clang::Expr *method);

@@ -20,42 +20,41 @@
  ****************************************************************************/
 
 #include "annotator.h"
-#include "generator.h"
 #include "filesystem.h"
-#include <clang/Basic/SourceManager.h>
-#include <clang/Basic/FileManager.h>
-#include <clang/Basic/Version.h>
-#include <clang/AST/DeclBase.h>
+#include "generator.h"
+#include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
-#include <clang/AST/Mangle.h>
+#include <clang/AST/DeclBase.h>
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/DeclTemplate.h>
+#include <clang/AST/Mangle.h>
 #include <clang/AST/PrettyPrinter.h>
-#include <clang/AST/ASTContext.h>
 #include <clang/AST/RecordLayout.h>
+#include <clang/Basic/FileManager.h>
+#include <clang/Basic/SourceManager.h>
+#include <clang/Basic/Version.h>
 #include <clang/Lex/Lexer.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
 #include <clang/Tooling/Tooling.h>
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 #include <time.h>
 
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
+#include <llvm/Support/raw_ostream.h>
 
-#include "stringbuilder.h"
-#include "projectmanager.h"
 #include "compat.h"
+#include "projectmanager.h"
+#include "stringbuilder.h"
 
-namespace
-{
+namespace {
 
-template <class T>
+template<class T>
 ssize_t getTypeSize(const T &t)
 {
     const clang::ASTContext &ctx = t->getASTContext();
@@ -69,8 +68,8 @@ ssize_t getTypeSize(const T &t)
  * XXX: avoid endless recursion inside
  * clang::ASTContext::getTypeInfo() -> getTypeInfoImpl()
  */
-template <class T>
-bool cxxDeclIndependent(const T* decl)
+template<class T>
+bool cxxDeclIndependent(const T *decl)
 {
     const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
     if (cxx && cxx->isDependentContext()) {
@@ -81,7 +80,7 @@ bool cxxDeclIndependent(const T* decl)
     return true;
 }
 
-ssize_t getDeclSize(const clang::Decl* decl)
+ssize_t getDeclSize(const clang::Decl *decl)
 {
     const clang::CXXRecordDecl *cxx = llvm::dyn_cast<clang::CXXRecordDecl>(decl);
     if (cxx && (cxx = cxx->getDefinition())) {
@@ -99,14 +98,14 @@ ssize_t getDeclSize(const clang::Decl* decl)
     return -1;
 }
 
-ssize_t getFieldOffset(const clang::Decl* decl)
+ssize_t getFieldOffset(const clang::Decl *decl)
 {
-    const clang::FieldDecl* fd = llvm::dyn_cast<clang::FieldDecl>(decl);
+    const clang::FieldDecl *fd = llvm::dyn_cast<clang::FieldDecl>(decl);
     if (!fd || fd->isInvalidDecl()) {
         return -1;
     }
 
-    const clang::RecordDecl* parent = fd->getParent();
+    const clang::RecordDecl *parent = fd->getParent();
     if (!parent || parent->isInvalidDecl() || !cxxDeclIndependent(parent)) {
         return -1;
     }
@@ -118,22 +117,20 @@ ssize_t getFieldOffset(const clang::Decl* decl)
 }
 
 Annotator::~Annotator()
-{ }
+{
+}
 
 Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
 {
-    if (llvm::isa<clang::EnumConstantDecl>(decl)  ||
-        llvm::isa<clang::EnumDecl>(decl)  ||
-        llvm::isa<clang::NamespaceDecl>(decl) ||
-        llvm::isa<clang::NamespaceAliasDecl>(decl) ||
-        llvm::isa<clang::TypedefDecl>(decl) ||
-        llvm::isa<clang::TypedefNameDecl>(decl)) {
+    if (llvm::isa<clang::EnumConstantDecl>(decl) || llvm::isa<clang::EnumDecl>(decl)
+        || llvm::isa<clang::NamespaceDecl>(decl) || llvm::isa<clang::NamespaceAliasDecl>(decl)
+        || llvm::isa<clang::TypedefDecl>(decl) || llvm::isa<clang::TypedefNameDecl>(decl)) {
 
         if (!decl->isDefinedOutsideFunctionOrMethod())
             return Visibility::Local;
         if (decl->isInAnonymousNamespace())
             return Visibility::Static;
-        return Visibility::Global; //FIXME
+        return Visibility::Global; // FIXME
     }
 
     if (llvm::isa<clang::NonTypeTemplateParmDecl>(decl))
@@ -150,31 +147,35 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
 
-    switch (decl->getLinkageInternal())
-    {
-        default:
-        case clang::NoLinkage:
-            return Visibility::Local;
-        case clang::ExternalLinkage:
-            if (decl->getDeclContext()->isRecord()
-                && mainFID == sm.getFileID(sm.getSpellingLoc(llvm::dyn_cast<clang::NamedDecl>(decl->getDeclContext())->getCanonicalDecl()->getSourceRange().getBegin()))) {
-                // private class
-                const clang::CXXMethodDecl* fun = llvm::dyn_cast<clang::CXXMethodDecl>(decl);
-                if (fun && fun->isVirtual())
-                    return Visibility::Global; //because we need to check overrides
-                return Visibility::Static;
-            }
-            if (decl->isInvalidDecl() && llvm::isa<clang::VarDecl>(decl)) {
-                // Avoid polution because of invalid declarations
-                return Visibility::Static;
-            }
+    switch (decl->getLinkageInternal()) {
+    default:
+    case clang::NoLinkage:
+        return Visibility::Local;
+    case clang::ExternalLinkage:
+        if (decl->getDeclContext()->isRecord()
+            && mainFID
+                == sm.getFileID(
+                    sm.getSpellingLoc(llvm::dyn_cast<clang::NamedDecl>(decl->getDeclContext())
+                                          ->getCanonicalDecl()
+                                          ->getSourceRange()
+                                          .getBegin()))) {
+            // private class
+            const clang::CXXMethodDecl *fun = llvm::dyn_cast<clang::CXXMethodDecl>(decl);
+            if (fun && fun->isVirtual())
+                return Visibility::Global; // because we need to check overrides
+            return Visibility::Static;
+        }
+        if (decl->isInvalidDecl() && llvm::isa<clang::VarDecl>(decl)) {
+            // Avoid polution because of invalid declarations
+            return Visibility::Static;
+        }
+        return Visibility::Global;
+    case clang::InternalLinkage:
+        if (mainFID != sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
             return Visibility::Global;
-        case clang::InternalLinkage:
-            if (mainFID != sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
-                return Visibility::Global;
-            return Visibility::Static;
-        case clang::UniqueExternalLinkage:
-            return Visibility::Static;
+        return Visibility::Static;
+    case clang::UniqueExternalLinkage:
+        return Visibility::Static;
     }
 }
 
@@ -199,9 +200,9 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
         }
     }
 
-    const clang::FileEntry* entry = getSourceMgr().getFileEntryForID(id);
+    const clang::FileEntry *entry = getSourceMgr().getFileEntryForID(id);
     if (!entry || llvm::StringRef(entry->getName()).empty()) {
-        cache[id] = {false, {} };
+        cache[id] = { false, {} };
         return {};
     }
     llvm::SmallString<256> filename;
@@ -212,15 +213,16 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
         bool should_process = projectManager.shouldProcess(filename, project);
         project_cache[id] = project;
         std::string fn = project->name % "/" % filename.substr(project->source_path.size());
-        cache[id] = { should_process , fn};
+        cache[id] = { should_process, fn };
         return fn;
     }
 
-    cache[id] = {false, {} };
+    cache[id] = { false, {} };
     return {};
 }
 
-static char normalizeForfnIndex(char c) {
+static char normalizeForfnIndex(char c)
+{
     if (c >= 'A' && c <= 'Z')
         c = c - 'A' + 'a';
     if (c < 'a' || c > 'z')
@@ -228,7 +230,9 @@ static char normalizeForfnIndex(char c) {
     return c;
 }
 
-void Annotator::registerInterestingDefinition(clang::SourceRange sourceRange, clang::NamedDecl *decl) {
+void Annotator::registerInterestingDefinition(clang::SourceRange sourceRange,
+                                              clang::NamedDecl *decl)
+{
     std::string declName = decl->getQualifiedNameAsString();
     clang::FileID fileId = sourceManager->getFileID(sourceRange.getBegin());
     auto &set = interestingDefinitionsInFile[fileId];
@@ -252,7 +256,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
     htmlNameForFile(getSourceMgr().getMainFileID());
 
     std::set<std::string> done;
-    for(auto it : cache) {
+    for (auto it : cache) {
         if (!it.second.first)
             continue;
         const std::string &fn = it.second.second;
@@ -260,9 +264,9 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
         done.insert(fn);
 
-        auto project_it = std::find_if(projectManager.projects.cbegin(), projectManager.projects.cend(),
-                              [&fn](const ProjectInfo &it)
-                              { return llvm::StringRef(fn).startswith(it.name); } );
+        auto project_it = std::find_if(
+            projectManager.projects.cbegin(), projectManager.projects.cend(),
+            [&fn](const ProjectInfo &it) { return llvm::StringRef(fn).startswith(it.name); });
         if (project_it == projectManager.projects.cend()) {
             std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
             continue;
@@ -273,12 +277,13 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         Generator &g = generator(FID);
 
         syntaxHighlight(g, FID, Sema);
-//        clang::html::HighlightMacros(R, FID, PP);
+        //        clang::html::HighlightMacros(R, FID, PP);
 
         std::string footer;
         clang::FileID mainFID = getSourceMgr().getMainFileID();
         if (FID != mainFID) {
-            footer  = "Generated while processing <a href='" %  pathTo(FID, mainFID) % "'>" % htmlNameForFile(mainFID) % "</a><br/>";
+            footer = "Generated while processing <a href='" % pathTo(FID, mainFID) % "'>"
+                % htmlNameForFile(mainFID) % "</a><br/>";
         }
 
         auto now = time(0);
@@ -287,29 +292,31 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         strftime(buf, sizeof(buf), "%Y-%b-%d", tm);
 
         const ProjectInfo &projectinfo = *project_it;
-        footer %= "Generated on <em>" % std::string(buf) % "</em>"
-            % " from project " % projectinfo.name;
+        footer %=
+            "Generated on <em>" % std::string(buf) % "</em>" % " from project " % projectinfo.name;
         if (!projectinfo.revision.empty())
             footer %= " revision <em>" % projectinfo.revision % "</em>";
 
-        /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) << "'>" << filename << "</a>"
-        title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
+            /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) << "'>" <<
+            filename << "</a>" title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
 
-        // Emit the HTML.
+            // Emit the HTML.
 #if CLANG_VERSION_MAJOR >= 12
         const llvm::StringRef Buf = getSourceMgr().getBufferData(FID);
-        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
-                   Buf.begin(), Buf.end(), footer,
-                   WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
-                                        "It may have many parsing errors.",
+        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf.begin(), Buf.end(),
+                   footer,
+                   WasInDatabase ? ""
+                                 : "Warning: That file was not part of the compilation database. "
+                                   "It may have many parsing errors.",
                    interestingDefinitionsInFile[FID]);
 
 #else
         const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn,
-                   Buf->getBufferStart(), Buf->getBufferEnd(), footer,
-                   WasInDatabase ? "" : "Warning: That file was not part of the compilation database. "
-                                        "It may have many parsing errors.",
+        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf->getBufferStart(),
+                   Buf->getBufferEnd(), footer,
+                   WasInDatabase ? ""
+                                 : "Warning: That file was not part of the compilation database. "
+                                   "It may have many parsing errors.",
                    interestingDefinitionsInFile[FID]);
 
 #endif
@@ -320,7 +327,8 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
     // make sure all the docs are in the references
     // (There might not be when the comment is in the .cpp file (for \class))
-    for (auto it : commentHandler.docs) references[it.first];
+    for (auto it : commentHandler.docs)
+        references[it.first];
 
     create_directories(llvm::Twine(projectManager.outputPrefix, "/refs/_M"));
     for (const auto &it : references) {
@@ -333,11 +341,11 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         replace_invalid_filename_chars(refFilename);
 
         std::string filename = projectManager.outputPrefix % "/refs/" % refFilename;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
         std::string error;
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
         if (!error.empty()) {
-            std::cerr << error<< std::endl;
+            std::cerr << error << std::endl;
             continue;
         }
 #else
@@ -348,7 +356,8 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::F_Append);
 #endif
         if (error_code) {
-            std::cerr << "Error writing ref file " << filename << ": " << error_code.message() << std::endl;
+            std::cerr << "Error writing ref file " << filename << ": " << error_code.message()
+                      << std::endl;
             continue;
         }
 #endif
@@ -364,68 +373,71 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             clang::PresumedLoc fixedEnd = sm.getPresumedLoc(expEnd);
             const char *tag = "";
             char usetype = '\0';
-            switch(it2.what) {
-                case Use:
-                case Use_NestedName:
-                    tag = "use";
-                    break;
-                case Use_Address:
-                    tag = "use";
-                    usetype = 'a';
-                    break;
-                case Use_Call:
-                    tag = "use";
-                    usetype = 'c';
-                    break;
-                case Use_Read:
-                    tag = "use";
-                    usetype = 'r';
-                    break;
-                case Use_Write:
-                    tag = "use";
-                    usetype = 'w';
-                    break;
-                case Use_MemberAccess:
-                    tag = "use";
-                    usetype = 'm';
-                    break;
-                case Declaration:
-                    tag = "dec";
-                    break;
-                case Definition:
-                    tag = "def";
-                    break;
-                case Override:
-                    tag = "ovr";
-                    break;
-                case Inherit:
-                    tag = "inh";
+            switch (it2.what) {
+            case Use:
+            case Use_NestedName:
+                tag = "use";
+                break;
+            case Use_Address:
+                tag = "use";
+                usetype = 'a';
+                break;
+            case Use_Call:
+                tag = "use";
+                usetype = 'c';
+                break;
+            case Use_Read:
+                tag = "use";
+                usetype = 'r';
+                break;
+            case Use_Write:
+                tag = "use";
+                usetype = 'w';
+                break;
+            case Use_MemberAccess:
+                tag = "use";
+                usetype = 'm';
+                break;
+            case Declaration:
+                tag = "dec";
+                break;
+            case Definition:
+                tag = "def";
+                break;
+            case Override:
+                tag = "ovr";
+                break;
+            case Inherit:
+                tag = "inh";
             }
             myfile << "<" << tag << " f='";
             Generator::escapeAttr(myfile, fn);
-            myfile << "' l='"<<  fixedBegin.getLine()  <<"'";
+            myfile << "' l='" << fixedBegin.getLine() << "'";
             if (fixedEnd.isValid() && fixedBegin.getLine() != fixedEnd.getLine())
-                myfile << " ll='"<<  fixedEnd.getLine()  <<"'";
-            if (loc.getBegin().isMacroID()) myfile << " macro='1'";
-            if (!WasInDatabase) myfile << " brk='1'";
-            if (usetype) myfile << " u='" << usetype << "'";
+                myfile << " ll='" << fixedEnd.getLine() << "'";
+            if (loc.getBegin().isMacroID())
+                myfile << " macro='1'";
+            if (!WasInDatabase)
+                myfile << " brk='1'";
+            if (usetype)
+                myfile << " u='" << usetype << "'";
             const auto &refType = it2.typeOrContext;
             if (!refType.empty()) {
                 myfile << ((it2.what < Use) ? " type='" : " c='");
                 Generator::escapeAttr(myfile, refType);
-                myfile <<"'";
+                myfile << "'";
             }
-            myfile <<"/>\n";
+            myfile << "/>\n";
         }
         auto itS = structure_sizes.find(it.first);
         if (itS != structure_sizes.end() && itS->second != -1) {
-            myfile << "<size>"<< itS->second <<"</size>\n";
+            myfile << "<size>" << itS->second << "</size>\n";
         }
         auto itF = field_offsets.find(it.first);
         if (itF != field_offsets.end() && itF->second != -1) {
-            myfile << "<offset>"<< itF->second <<"</offset>\n";
+            myfile << "<offset>" << itF->second << "</offset>\n";
         }
-        auto range =  commentHandler.docs.equal_range(it.first);
+        auto range = commentHandler.docs.equal_range(it.first);
         for (auto it2 = range.first; it2 != range.second; ++it2) {
             clang::SourceManager &sm = getSourceMgr();
             clang::SourceLocation exp = sm.getExpansionLoc(it2->second.loc);
@@ -441,18 +453,25 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         if (itU != sub_refs.end()) {
             for (const auto &sub : itU->second) {
                 switch (sub.what) {
-                    case SubRef::Function: myfile << "<fun "; break;
-                    case SubRef::Member: myfile << "<mbr "; break;
-                    case SubRef::Static: myfile << "<smbr "; break;
-                    case SubRef::None: continue; // should not happen
+                case SubRef::Function:
+                    myfile << "<fun ";
+                    break;
+                case SubRef::Member:
+                    myfile << "<mbr ";
+                    break;
+                case SubRef::Static:
+                    myfile << "<smbr ";
+                    break;
+                case SubRef::None:
+                    continue; // should not happen
                 }
                 const auto &r = sub.ref;
-                myfile << "r='" << Generator::EscapeAttr{r} << "'";
+                myfile << "r='" << Generator::EscapeAttr { r } << "'";
                 auto itF = field_offsets.find(r);
                 if (itF != field_offsets.end() && itF->second != -1)
                     myfile << " o='" << itF->second << "'";
                 if (!sub.type.empty())
-                    myfile << " t='" << Generator::EscapeAttr{sub.type} << "'";
+                    myfile << " t='" << Generator::EscapeAttr { sub.type } << "'";
                 myfile << "/>\n";
             }
         }
@@ -460,7 +479,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
     // now the function names
     create_directories(llvm::Twine(projectManager.outputPrefix, "/fnSearch"));
-    for(auto &fnIt : functionIndex) {
+    for (auto &fnIt : functionIndex) {
         auto fnName = fnIt.first;
         if (fnName.size() < 4)
             continue;
@@ -478,19 +497,21 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             count++;
             if (pos < 4)
                 break;
-            pos = fnName.rfind("::", pos-4);
+            pos = fnName.rfind("::", pos - 4);
             if (pos >= fnName.size()) {
                 pos = 0;
             } else {
                 pos += 2; // skip ::
             }
-            char idx[3] = { normalizeForfnIndex(fnName[pos]), normalizeForfnIndex(fnName[pos+1]) , '\0' };
+            char idx[3] = { normalizeForfnIndex(fnName[pos]), normalizeForfnIndex(fnName[pos + 1]),
+                            '\0' };
             llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
             if (saved.find(idxRef) == std::string::npos) {
                 std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
+#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
                 std::string error;
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error, llvm::sys::fs::F_Append);
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error,
+                                                   llvm::sys::fs::F_Append);
                 if (!error.empty()) {
                     std::cerr << error << std::endl;
                     return false;
@@ -498,18 +519,21 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 #else
                 std::error_code error_code;
 #if CLANG_VERSION_MAJOR >= 13
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::OF_Append);
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code,
+                                                   llvm::sys::fs::OF_Append);
 #else
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code, llvm::sys::fs::F_Append);
+                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code,
+                                                   llvm::sys::fs::F_Append);
 #endif
 
                 if (error_code) {
-                    std::cerr << "Error writing index file " << funcIndexFN << ": " << error_code.message() << std::endl;
+                    std::cerr << "Error writing index file " << funcIndexFN << ": "
+                              << error_code.message() << std::endl;
                     continue;
                 }
 #endif
-                funcIndexFile << fnIt.second << '|'<< fnIt.first << '\n';
-                saved.append(idxRef); //include \0;
+                funcIndexFile << fnIt.second << '|' << fnIt.first << '\n';
+                saved.append(idxRef); // include \0;
             }
         }
     }
@@ -519,7 +543,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
 std::string Annotator::pathTo(clang::FileID From, clang::FileID To, std::string *dataProj)
 {
-    std::string &result = pathTo_cache[{From.getHashValue(), To.getHashValue()}];
+    std::string &result = pathTo_cache[{ From.getHashValue(), To.getHashValue() }];
     if (!result.empty()) {
         if (dataProj) {
             auto pr_it = project_cache.find(To);
@@ -535,9 +559,9 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To, std::string 
     std::string fromFN = htmlNameForFile(From);
     std::string toFN = htmlNameForFile(To);
 
-    auto pr_it =  project_cache.find(To);
+    auto pr_it = project_cache.find(To);
     if (pr_it == project_cache.end())
-         return result = {};
+        return result = {};
 
     if (pr_it->second->type == ProjectInfo::External) {
         generator(From).addProject(pr_it->second->name, pr_it->second->external_root_url);
@@ -552,7 +576,7 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To, std::string 
 
 std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
 {
-  //this is a bit duplicated with the other pathTo and htmlNameForFile
+    // this is a bit duplicated with the other pathTo and htmlNameForFile
 
     if (!To || llvm::StringRef(To->getName()).empty())
         return {};
@@ -568,18 +592,23 @@ std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
         return {};
 
     if (project->type == ProjectInfo::External) {
-        return project->external_root_url % "/" % project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html";
+        return project->external_root_url % "/" % project->name % "/"
+            % (filename.c_str() + project->source_path.size()) % ".html";
     }
 
-    return naive_uncomplete(llvm::sys::path::parent_path(fromFN),
-                            std::string(project->name % "/" % (filename.c_str() + project->source_path.size()) % ".html"));
+    return naive_uncomplete(
+        llvm::sys::path::parent_path(fromFN),
+        std::string(project->name % "/" % (filename.c_str() + project->source_path.size())
+                    % ".html"));
 }
 
-static const clang::Decl *getDefinitionDecl(clang::Decl *decl) {
-    if (const clang::RecordDecl* rec = llvm::dyn_cast<clang::RecordDecl>(decl)) {
+static const clang::Decl *getDefinitionDecl(clang::Decl *decl)
+{
+    if (const clang::RecordDecl *rec = llvm::dyn_cast<clang::RecordDecl>(decl)) {
         rec = rec->getDefinition();
-        if (rec) return rec;
-    } else if (const clang::FunctionDecl* fnc = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+        if (rec)
+            return rec;
+    } else if (const clang::FunctionDecl *fnc = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
         if (fnc->hasBody(fnc) && fnc) {
             return fnc;
         }
@@ -587,11 +616,11 @@ static const clang::Decl *getDefinitionDecl(clang::Decl *decl) {
     return decl->getCanonicalDecl();
 }
 
-void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange range, Annotator::TokenType type,
-                                  Annotator::DeclType declType, std::string typeText,
-                                  clang::NamedDecl *usedContext)
+void Annotator::registerReference(clang::NamedDecl *decl, clang::SourceRange range,
+                                  Annotator::TokenType type, Annotator::DeclType declType,
+                                  std::string typeText, clang::NamedDecl *usedContext)
 {
-    //annonymouse namespace, anonymous struct, or unnamed argument.
+    // annonymouse namespace, anonymous struct, or unnamed argument.
     if (decl->getDeclName().isIdentifier() && decl->getName().empty())
         return;
 
@@ -601,9 +630,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     // Interesting definitions
     if (declType == Annotator::Definition && visibility == Visibility::Global) {
-        if (llvm::isa<clang::TagDecl>(decl) || (llvm::isa<clang::FunctionDecl>(decl)
-                && decl->getDeclName().isIdentifier() && decl->getName() == "main")) {
-            if (decl->getDeclContext()->isNamespace() || decl->getDeclContext()->isTranslationUnit()) {
+        if (llvm::isa<clang::TagDecl>(decl)
+            || (llvm::isa<clang::FunctionDecl>(decl) && decl->getDeclName().isIdentifier()
+                && decl->getName() == "main")) {
+            if (decl->getDeclContext()->isNamespace()
+                || decl->getDeclContext()->isTranslationUnit()) {
                 registerInterestingDefinition(range, decl);
             }
         }
@@ -615,29 +646,30 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     if (isVirtualLocation)
         range = range.getBegin();
 
-    if (!range.getBegin().isFileID()) { //macro expension.
+    if (!range.getBegin().isFileID()) { // macro expension.
         clang::SourceLocation expensionloc = sm.getExpansionLoc(range.getBegin());
         clang::FileID FID = sm.getFileID(expensionloc);
-        if (!shouldProcess(FID) || sm.getMacroArgExpandedLocation(range.getBegin()) !=
-                                   sm.getMacroArgExpandedLocation(range.getEnd())) {
+        if (!shouldProcess(FID)
+            || sm.getMacroArgExpandedLocation(range.getBegin())
+                != sm.getMacroArgExpandedLocation(range.getEnd())) {
             return;
         }
 
         clang::SourceLocation spel1 = sm.getSpellingLoc(range.getBegin());
         clang::SourceLocation spel2 = sm.getSpellingLoc(range.getEnd());
-        if (sm.getFileID(spel1) != FID
-            || sm.getFileID(spel2) != FID) {
+        if (sm.getFileID(spel1) != FID || sm.getFileID(spel2) != FID) {
 
             if (visibility == Visibility::Global) {
                 if (usedContext && typeText.empty() && declType >= Use) {
                     typeText = getContextStr(usedContext);
                 }
-                addReference(getReferenceAndTitle(decl).first, range, type, declType, typeText, decl);
+                addReference(getReferenceAndTitle(decl).first, range, type, declType, typeText,
+                             decl);
             }
             return;
         }
 
-        range = {spel1, spel2 };
+        range = { spel1, spel2 };
     }
     clang::FileID FID = sm.getFileID(range.getBegin());
 
@@ -651,15 +683,16 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     std::string clas = computeClas(decl);
     std::string ref;
 
-    const clang::Decl* canonDecl = decl->getCanonicalDecl();
+    const clang::Decl *canonDecl = decl->getCanonicalDecl();
     if (type != Namespace) {
         if (visibility == Visibility::Local) {
             if (!decl->getDeclName().isIdentifier())
-                return; //skip local operators (FIXME)
+                return; // skip local operators (FIXME)
 
             clang::SourceLocation loc = canonDecl->getLocation();
             int &id = localeNumbers[loc.getRawEncoding()];
-            if (id == 0) id = localeNumbers.size();
+            if (id == 0)
+                id = localeNumbers.size();
             llvm::StringRef name = decl->getName();
             ref = (llvm::Twine(id) + name).str();
             if (type != Label) {
@@ -668,7 +701,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 clas %= " local col" % llvm::Twine(id % 10).str();
             }
         } else {
-            auto cached =  getReferenceAndTitle(decl);
+            auto cached = getReferenceAndTitle(decl);
             ref = cached.first;
             tags %= " title='" % cached.second % "'";
         }
@@ -683,11 +716,11 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
                 definitionRange = decl->getSourceRange();
             addReference(ref, definitionRange, type, declType, typeText, decl);
 
-             if (declType == Definition && ref.find('{') >= ref.size()) {
-                 if (clang::FunctionDecl* fun = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
-                     functionIndex.insert({fun->getQualifiedNameAsString(), ref});
-                 }
-             }
+            if (declType == Definition && ref.find('{') >= ref.size()) {
+                if (clang::FunctionDecl *fun = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+                    functionIndex.insert({ fun->getQualifiedNameAsString(), ref });
+                }
+            }
         } else {
             if (!typeText.empty()) {
                 llvm::SmallString<64> buffer;
@@ -697,30 +730,60 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
         if (visibility == Visibility::Static) {
             if (declType < Use) {
-                commentHandler.decl_offsets.insert({ decl->getSourceRange().getBegin(), {ref, false} });
-            } else switch (+declType) {
-                case Use_Address: tags %= " data-use='a'"; break;
-                case Use_Read: tags %= " data-use='r'"; break;
-                case Use_Write: tags %= " data-use='w'"; break;
-                case Use_Call: tags %= " data-use='c'"; break;
-                case Use_MemberAccess: tags %= " data-use='m'"; break;
-            }
+                commentHandler.decl_offsets.insert(
+                    { decl->getSourceRange().getBegin(), { ref, false } });
+            } else
+                switch (+declType) {
+                case Use_Address:
+                    tags %= " data-use='a'";
+                    break;
+                case Use_Read:
+                    tags %= " data-use='r'";
+                    break;
+                case Use_Write:
+                    tags %= " data-use='w'";
+                    break;
+                case Use_Call:
+                    tags %= " data-use='c'";
+                    break;
+                case Use_MemberAccess:
+                    tags %= " data-use='m'";
+                    break;
+                }
 
             clas += " tu";
         }
     }
 
-    switch(type) {
-        case Ref: clas += " ref"; break;
-        case Member: clas += " member"; break;
-        case Type: clas += " type"; break;
-        case Typedef: clas += " typedef"; break;
-        case Decl: clas += " decl"; break;
-        case Call: clas += " call"; break;
-        case Namespace: clas += " namespace"; break;
-        case Enum:  // fall through
-        case EnumDecl: clas += " enum"; break;
-        case Label: clas += " lbl"; break;
+    switch (type) {
+    case Ref:
+        clas += " ref";
+        break;
+    case Member:
+        clas += " member";
+        break;
+    case Type:
+        clas += " type";
+        break;
+    case Typedef:
+        clas += " typedef";
+        break;
+    case Decl:
+        clas += " decl";
+        break;
+    case Call:
+        clas += " call";
+        break;
+    case Namespace:
+        clas += " namespace";
+        break;
+    case Enum: // fall through
+    case EnumDecl:
+        clas += " enum";
+        break;
+    case Label:
+        clas += " lbl";
+        break;
     }
 
     if (declType == Definition && visibility != Visibility::Local) {
@@ -733,7 +796,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
         clas += " field";
     }
 
-//    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
+    //    const llvm::MemoryBuffer *Buf = sm.getBuffer(FID);
     clang::SourceLocation B = range.getBegin();
     clang::SourceLocation E = isVirtualLocation ? B : range.getEnd();
 
@@ -749,7 +812,8 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
 
     canonDecl = getDefinitionDecl(decl);
 
-    if (clas[0] == ' ') clas = clas.substr(1);
+    if (clas[0] == ' ')
+        clas = clas.substr(1);
 
     if (ref.empty()) {
         generator(FID).addTag("span", "class=\"" % clas % "\"", pos, len);
@@ -765,7 +829,7 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
     auto refFilename = Generator::escapeAttrForFilename(escapedRef, refFilenameBuffer);
     tags %= " data-ref-filename=\"" % refFilename % "\"";
 
-    if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition) ) {
+    if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition)) {
         std::string link;
         clang::SourceLocation loc = canonDecl->getLocation();
         clang::FileID declFID = sm.getFileID(sm.getExpansionLoc(loc));
@@ -788,8 +852,10 @@ void Annotator::registerReference(clang::NamedDecl* decl, clang::SourceRange ran
             }
         }
         llvm::SmallString<6> locBuffer;
-        link %= "#" % (loc.isFileID() && !decl->isImplicit() ?
-                escapedRef : llvm::Twine(sm.getExpansionLineNumber(loc)).toStringRef(locBuffer));
+        link %= "#"
+            % (loc.isFileID() && !decl->isImplicit()
+                   ? escapedRef
+                   : llvm::Twine(sm.getExpansionLineNumber(loc)).toStringRef(locBuffer));
         std::string tag = "class=\"" % clas % "\" href=\"" % link % "\"" % tags;
         generator(FID).addTag("a", tag, pos, len);
     } else {
@@ -802,27 +868,31 @@ void Annotator::addReference(const std::string &ref, clang::SourceRange refLoc, 
                              DeclType dt, const std::string &typeRef, clang::Decl *decl)
 {
     if (type == Ref || type == Member || type == Decl || type == Call || type == EnumDecl
-        || (type == Type && dt != Use_NestedName && dt != Declaration) || (type == Enum && dt == Definition)) {
+        || (type == Type && dt != Use_NestedName && dt != Declaration)
+        || (type == Enum && dt == Definition)) {
         ssize_t size = getDeclSize(decl);
         if (size >= 0) {
             structure_sizes[ref] = size;
         }
-        references[ref].push_back( { dt, refLoc, typeRef } );
+        references[ref].push_back({ dt, refLoc, typeRef });
         if (dt < Use) {
             ssize_t offset = getFieldOffset(decl);
             if (offset >= 0) {
                 field_offsets[ref] = offset;
             }
             clang::FullSourceLoc fulloc(decl->getSourceRange().getBegin(), getSourceMgr());
-            commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), {ref, true} });
+            commentHandler.decl_offsets.insert({ fulloc.getSpellingLoc(), { ref, true } });
             if (auto parentStruct = llvm::dyn_cast<clang::RecordDecl>(decl->getDeclContext())) {
                 auto parentRef = getReferenceAndTitle(parentStruct).first;
                 if (!parentRef.empty()) {
                     SubRef sr;
                     sr.ref = ref;
-                    if (decl->isFunctionOrFunctionTemplate()) sr.what = SubRef::Function;
-                    else if (llvm::isa<clang::FieldDecl>(decl)) sr.what = SubRef::Member;
-                    else if (llvm::isa<clang::VarDecl>(decl)) sr.what = SubRef::Static;
+                    if (decl->isFunctionOrFunctionTemplate())
+                        sr.what = SubRef::Function;
+                    else if (llvm::isa<clang::FieldDecl>(decl))
+                        sr.what = SubRef::Member;
+                    else if (llvm::isa<clang::VarDecl>(decl))
+                        sr.what = SubRef::Static;
                     if (sr.what != SubRef::Function)
                         sr.type = typeRef;
                     sub_refs[parentRef].push_back(sr);
@@ -832,7 +902,8 @@ void Annotator::addReference(const std::string &ref, clang::SourceRange refLoc, 
     }
 }
 
-void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overrided, clang::SourceLocation loc)
+void Annotator::registerOverride(clang::NamedDecl *decl, clang::NamedDecl *overrided,
+                                 clang::SourceLocation loc)
 {
     clang::SourceManager &sm = getSourceMgr();
     clang::SourceLocation expensionloc = sm.getExpansionLoc(loc);
@@ -844,27 +915,29 @@ void Annotator::registerOverride(clang::NamedDecl* decl, clang::NamedDecl* overr
 
     auto ovrRef = getReferenceAndTitle(overrided).first;
     auto declRef = getReferenceAndTitle(decl).first;
-    references[ovrRef].push_back( { Override, expensionloc, declRef } );
+    references[ovrRef].push_back({ Override, expensionloc, declRef });
 
     // Register the reversed relation.
     clang::SourceLocation ovrLoc = sm.getExpansionLoc(getDefinitionDecl(overrided)->getLocation());
-    references[declRef].push_back( { Inherit, ovrLoc, ovrRef } );
+    references[declRef].push_back({ Inherit, ovrLoc, ovrRef });
 }
 
-void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refLoc, DeclType declType)
+void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refLoc,
+                              DeclType declType)
 {
-    references[ref].push_back( { declType, refLoc, std::string() } );
+    references[ref].push_back({ declType, refLoc, std::string() });
     if (declType == Annotator::Declaration) {
-        commentHandler.decl_offsets.insert({ refLoc, {ref, true} });
+        commentHandler.decl_offsets.insert({ refLoc, { ref, true } });
     }
 }
 
-void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, std::string attributes)
+void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag,
+                                    std::string attributes)
 {
     clang::SourceManager &sm = getSourceMgr();
     if (!range.getBegin().isFileID()) {
         range = sm.getSpellingLoc(range.getBegin());
-        if(!range.getBegin().isFileID())
+        if (!range.getBegin().isFileID())
             return;
     }
 
@@ -888,35 +961,39 @@ void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, s
     generator(FID).addTag(std::move(tag), std::move(attributes), pos, len);
 }
 
-void Annotator::reportDiagnostic(clang::SourceRange range, const std::string& msg, const std::string &clas)
+void Annotator::reportDiagnostic(clang::SourceRange range, const std::string &msg,
+                                 const std::string &clas)
 {
     llvm::SmallString<64> buffer;
-    annotateSourceRange(range, "span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"");
+    annotateSourceRange(
+        range, "span", "class='" % clas % "' title=\"" % Generator::escapeAttr(msg, buffer) % "\"");
 }
 
-//basically loosely inspired from clang_getSpecializedCursorTemplate
-static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D) {
+// basically loosely inspired from clang_getSpecializedCursorTemplate
+static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D)
+{
     using namespace clang;
     using namespace llvm;
     NamedDecl *Template = 0;
     if (CXXRecordDecl *CXXRecord = dyn_cast<CXXRecordDecl>(D)) {
-        ClassTemplateDecl* CXXRecordT = 0;
-        if (ClassTemplatePartialSpecializationDecl *PartialSpec = dyn_cast<ClassTemplatePartialSpecializationDecl>(CXXRecord))
+        ClassTemplateDecl *CXXRecordT = 0;
+        if (ClassTemplatePartialSpecializationDecl *PartialSpec =
+                dyn_cast<ClassTemplatePartialSpecializationDecl>(CXXRecord))
             CXXRecordT = PartialSpec->getSpecializedTemplate();
-        else if (ClassTemplateSpecializationDecl *ClassSpec = dyn_cast<ClassTemplateSpecializationDecl>(CXXRecord)) {
-            llvm::PointerUnion<ClassTemplateDecl *,
-            ClassTemplatePartialSpecializationDecl *> Result
-            = ClassSpec->getSpecializedTemplateOrPartial();
-                if (Result.is<ClassTemplateDecl *>())
-                    CXXRecordT = Result.get<ClassTemplateDecl *>();
-                else
-                    D = CXXRecord = Result.get<ClassTemplatePartialSpecializationDecl *>();
+        else if (ClassTemplateSpecializationDecl *ClassSpec =
+                     dyn_cast<ClassTemplateSpecializationDecl>(CXXRecord)) {
+            llvm::PointerUnion<ClassTemplateDecl *, ClassTemplatePartialSpecializationDecl *>
+                Result = ClassSpec->getSpecializedTemplateOrPartial();
+            if (Result.is<ClassTemplateDecl *>())
+                CXXRecordT = Result.get<ClassTemplateDecl *>();
+            else
+                D = CXXRecord = Result.get<ClassTemplatePartialSpecializationDecl *>();
         }
         if (CXXRecordT)
             D = CXXRecord = CXXRecordT->getTemplatedDecl();
         Template = CXXRecord->getInstantiatedFromMemberClass();
     } else if (FunctionDecl *Function = dyn_cast<FunctionDecl>(D)) {
-        FunctionTemplateDecl* FunctionT = Function->getPrimaryTemplate();
+        FunctionTemplateDecl *FunctionT = Function->getPrimaryTemplate();
         if (FunctionT) {
             if (auto Ins = FunctionT->getInstantiatedFromMemberTemplate())
                 FunctionT = Ins;
@@ -930,14 +1007,16 @@ static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D) {
         Template = Tmpl->getInstantiatedFromMemberTemplate();
     }
 
-    if (Template) return Template;
-    else return D;
+    if (Template)
+        return Template;
+    else
+        return D;
 }
 
 
-std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::NamedDecl* decl)
+std::pair<std::string, std::string> Annotator::getReferenceAndTitle(clang::NamedDecl *decl)
 {
-    clang::Decl* canonDecl = decl->getCanonicalDecl();
+    clang::Decl *canonDecl = decl->getCanonicalDecl();
     auto &cached = mangle_cache[canonDecl];
     if (cached.first.empty()) {
         decl = getSpecializedCursorTemplate(decl);
@@ -945,24 +1024,30 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
         std::string qualName = decl->getQualifiedNameAsString();
         if (llvm::isa<clang::FunctionDecl>(decl)
 #if CLANG_VERSION_MAJOR >= 5
-                // We can't mangle a deduction guide (also there is no need since it is not referenced)
-                && !llvm::isa<clang::CXXDeductionGuideDecl>(decl)
+            // We can't mangle a deduction guide (also there is no need since it is not referenced)
+            && !llvm::isa<clang::CXXDeductionGuideDecl>(decl)
 #endif
-                && mangle->shouldMangleDeclName(decl)
-                //workaround crash in clang while trying to mangle some builtin types
-                && !llvm::StringRef(qualName).startswith("__")) {
+            && mangle->shouldMangleDeclName(decl)
+            // workaround crash in clang while trying to mangle some builtin types
+            && !llvm::StringRef(qualName).startswith("__")) {
             llvm::raw_string_ostream s(cached.first);
             if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
 #if CLANG_VERSION_MAJOR >= 11
-                mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete), s);
+                mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXDestructorDecl>(decl),
+                                                     clang::Dtor_Complete),
+                                   s);
 #else
-                mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl), clang::Dtor_Complete, s);
+                mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl),
+                                      clang::Dtor_Complete, s);
 #endif
             } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
 #if CLANG_VERSION_MAJOR >= 11
-                mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete), s);
+                mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXConstructorDecl>(decl),
+                                                     clang::Ctor_Complete),
+                                   s);
 #else
-                mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl), clang::Ctor_Complete, s);
+                mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl),
+                                      clang::Ctor_Complete, s);
 #endif
             } else {
                 mangle->mangleName(decl, s);
@@ -971,10 +1056,10 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
 #ifdef _WIN32
             s.flush();
 
-            const char* mangledName = cached.first.data();
+            const char *mangledName = cached.first.data();
             if (mangledName[0] == 1) {
-                if(mangledName[1] == '_' || mangledName[1] == '?') {
-                    if(mangledName[2] == '?') {
+                if (mangledName[1] == '_' || mangledName[1] == '?') {
+                    if (mangledName[2] == '?') {
                         cached.first = cached.first.substr(3);
                     } else {
                         cached.first = cached.first.substr(2);
@@ -983,14 +1068,15 @@ std::pair< std::string, std::string > Annotator::getReferenceAndTitle(clang::Nam
             }
 #endif
         } else if (clang::FieldDecl *d = llvm::dyn_cast<clang::FieldDecl>(decl)) {
-            cached.first = getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
+            cached.first =
+                getReferenceAndTitle(d->getParent()).first + "::" + decl->getName().str();
         } else {
             cached.first = qualName;
             cached.first.erase(std::remove(cached.first.begin(), cached.first.end(), ' '),
                                cached.first.end());
             // replace < and > because alse jquery can't match them.
-            std::replace(cached.first.begin(), cached.first.end(), '<' , '{');
-            std::replace(cached.first.begin(), cached.first.end(), '>' , '}');
+            std::replace(cached.first.begin(), cached.first.end(), '<', '{');
+            std::replace(cached.first.begin(), cached.first.end(), '>', '}');
         }
         llvm::SmallString<64> buffer;
         cached.second = std::string(Generator::escapeAttr(qualName, buffer));
@@ -1012,11 +1098,11 @@ std::string Annotator::getTypeRef(clang::QualType type)
     return type.getAsString(getLangOpts());
 }
 
-std::string Annotator::getContextStr(clang::NamedDecl* usedContext)
+std::string Annotator::getContextStr(clang::NamedDecl *usedContext)
 {
     clang::FunctionDecl *fun = llvm::dyn_cast<clang::FunctionDecl>(usedContext);
-    clang::DeclContext* context = usedContext->getDeclContext();
-    while(!fun && context)  {
+    clang::DeclContext *context = usedContext->getDeclContext();
+    while (!fun && context) {
         fun = llvm::dyn_cast<clang::FunctionDecl>(context);
         if (fun && !fun->isDefinedOutsideFunctionOrMethod())
             fun = nullptr;
@@ -1027,18 +1113,18 @@ std::string Annotator::getContextStr(clang::NamedDecl* usedContext)
     return {};
 }
 
-std::string Annotator::getVisibleRef(clang::NamedDecl* Decl)
+std::string Annotator::getVisibleRef(clang::NamedDecl *Decl)
 {
     if (getVisibility(Decl) != Visibility::Global)
         return {};
     return getReferenceAndTitle(Decl).first;
 }
 
-//return the classes to add in the span
-std::string Annotator::computeClas(clang::NamedDecl* decl)
+// return the classes to add in the span
+std::string Annotator::computeClas(clang::NamedDecl *decl)
 {
     std::string s;
-    if (clang::CXXMethodDecl* f = llvm::dyn_cast<clang::CXXMethodDecl>(decl)) {
+    if (clang::CXXMethodDecl *f = llvm::dyn_cast<clang::CXXMethodDecl>(decl)) {
         if (f->isVirtual())
             s = "virtual";
     }
@@ -1053,7 +1139,8 @@ std::string Annotator::computeClas(clang::NamedDecl* decl)
  * The tags names have been changed, and we make a difference between different kinds of
  * keywords
  */
-void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::Sema &Sema) {
+void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::Sema &Sema)
+{
     using namespace clang;
 
     const clang::Preprocessor &PP = Sema.getPreprocessor();
@@ -1086,133 +1173,136 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
         unsigned TokOffs = SM.getFileOffset(Tok.getLocation());
         unsigned TokLen = Tok.getLength();
         switch (Tok.getKind()) {
-            default: break;
+        default:
+            break;
+        case tok::identifier:
+            llvm_unreachable("tok::identifier in raw lexing mode!");
+        case tok::raw_identifier: {
+            // Fill in Result.IdentifierInfo and update the token kind,
+            // looking up the identifier in the identifier table.
+            PP.LookUpIdentifierInfo(Tok);
+            // If this is a pp-identifier, for a keyword, highlight it as such.
+            switch (Tok.getKind()) {
             case tok::identifier:
-                llvm_unreachable("tok::identifier in raw lexing mode!");
-            case tok::raw_identifier: {
-                // Fill in Result.IdentifierInfo and update the token kind,
-                // looking up the identifier in the identifier table.
-                PP.LookUpIdentifierInfo(Tok);
-                // If this is a pp-identifier, for a keyword, highlight it as such.
-                switch (Tok.getKind()) {
-                    case tok::identifier:
-                        break;
-
-                    case tok::kw_auto:
-                    case tok::kw_char:
-                    case tok::kw_const:
-                    case tok::kw_double:
-                    case tok::kw_float:
-                    case tok::kw_int:
-                    case tok::kw_long:
-                    case tok::kw_register:
-//                    case tok::kw_restrict:  // ???  (type or not)
-                    case tok::kw_short:
-                    case tok::kw_signed:
-                    case tok::kw_static:
-                    case tok::kw_unsigned:
-                    case tok::kw_void:
-                    case tok::kw_volatile:
-                    case tok::kw_bool:
-                    case tok::kw_mutable:
-                    case tok::kw_wchar_t:
-                    case tok::kw_char16_t:
-                    case tok::kw_char32_t:
-                        generator.addTag("em", {}, TokOffs, TokLen);
-                        break;
-                    default: //other keywords
-                        generator.addTag("b", {}, TokOffs, TokLen);
-                }
                 break;
+
+            case tok::kw_auto:
+            case tok::kw_char:
+            case tok::kw_const:
+            case tok::kw_double:
+            case tok::kw_float:
+            case tok::kw_int:
+            case tok::kw_long:
+            case tok::kw_register:
+                //                    case tok::kw_restrict:  // ???  (type or not)
+            case tok::kw_short:
+            case tok::kw_signed:
+            case tok::kw_static:
+            case tok::kw_unsigned:
+            case tok::kw_void:
+            case tok::kw_volatile:
+            case tok::kw_bool:
+            case tok::kw_mutable:
+            case tok::kw_wchar_t:
+            case tok::kw_char16_t:
+            case tok::kw_char32_t:
+                generator.addTag("em", {}, TokOffs, TokLen);
+                break;
+            default: // other keywords
+                generator.addTag("b", {}, TokOffs, TokLen);
             }
-            case tok::comment: {
-                unsigned int CommentBegin = TokOffs;
-                unsigned int CommentLen = TokLen;
-                bool startOfLine = Tok.isAtStartOfLine();
-                SourceLocation CommentBeginLocation = Tok.getLocation();
-                L.LexFromRawLexer(Tok);
-                // Merge consecutive comments
-                if (startOfLine /*&&  BufferStart[CommentBegin+1] == '/'*/) {
-                    while (Tok.is(tok::comment)) {
-                        unsigned int Off = SM.getFileOffset(Tok.getLocation());
-                        if (BufferStart[Off+1] != '/')
-                            break;
-                        CommentLen = Off + Tok.getLength() - CommentBegin;
-                        L.LexFromRawLexer(Tok);
-                    }
-                }
-
-                std::string attributes;
-
-                if (startOfLine) {
-                    unsigned int NonCommentBegin = SM.getFileOffset(Tok.getLocation());
-                    // Find the location of the next \n
-                    const char *nl_it = BufferStart + NonCommentBegin;
-                    while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
-                        ++nl_it;
-                    commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
-                                                 Tok.getLocation(),
-                                                 Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)),
-                                                 CommentBeginLocation);
-                } else {
-                    //look up the location before
-                    const char *nl_it = BufferStart + CommentBegin;
-                    while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
-                        --nl_it;
-                    commentHandler.handleComment(*this, generator, Sema, BufferStart, CommentBegin, CommentLen,
-                                                 CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
-                                                 CommentBeginLocation, CommentBeginLocation);
-                }
-                continue; //Don't skip next token
-            }
-            case tok::utf8_string_literal:
-                // Chop off the u part of u8 prefix
-                ++TokOffs;
-                --TokLen;
-                LLVM_FALLTHROUGH;
-            case tok::wide_string_literal:
-            case tok::utf16_string_literal:
-            case tok::utf32_string_literal:
-                // Chop off the L, u, U or 8 prefix
-                ++TokOffs;
-                --TokLen;
-                LLVM_FALLTHROUGH;
-            case tok::string_literal:
-                // FIXME: Exclude the optional ud-suffix from the highlighted range.
-                generator.addTag("q", {}, TokOffs, TokLen);
-                break;
-
-            case tok::wide_char_constant:
-            case tok::utf16_char_constant:
-            case tok::utf32_char_constant:
-                ++TokOffs;
-                --TokLen;
-                LLVM_FALLTHROUGH;
-            case tok::char_constant:
-                generator.addTag("kbd", {}, TokOffs, TokLen);
-                break;
-            case tok::numeric_constant:
-                generator.addTag("var", {}, TokOffs, TokLen);
-                break;
-            case tok::hash: {
-                // If this is a preprocessor directive, all tokens to end of line are too.
-                if (!Tok.isAtStartOfLine())
-                    break;
-
-                // Eat all of the tokens until we get to the next one at the start of
-                // line.
-                unsigned TokEnd = TokOffs+TokLen;
-                L.LexFromRawLexer(Tok);
-                while (!Tok.isAtStartOfLine() && Tok.isNot(tok::eof)) {
-                    TokEnd = SM.getFileOffset(Tok.getLocation())+Tok.getLength();
+            break;
+        }
+        case tok::comment: {
+            unsigned int CommentBegin = TokOffs;
+            unsigned int CommentLen = TokLen;
+            bool startOfLine = Tok.isAtStartOfLine();
+            SourceLocation CommentBeginLocation = Tok.getLocation();
+            L.LexFromRawLexer(Tok);
+            // Merge consecutive comments
+            if (startOfLine /*&&  BufferStart[CommentBegin+1] == '/'*/) {
+                while (Tok.is(tok::comment)) {
+                    unsigned int Off = SM.getFileOffset(Tok.getLocation());
+                    if (BufferStart[Off + 1] != '/')
+                        break;
+                    CommentLen = Off + Tok.getLength() - CommentBegin;
                     L.LexFromRawLexer(Tok);
                 }
-
-                generator.addTag("u", {}, TokOffs, TokEnd - TokOffs);
-
-                // Don't skip the next token.
-                continue;
             }
+
+            std::string attributes;
+
+            if (startOfLine) {
+                unsigned int NonCommentBegin = SM.getFileOffset(Tok.getLocation());
+                // Find the location of the next \n
+                const char *nl_it = BufferStart + NonCommentBegin;
+                while (nl_it < BufferEnd && *nl_it && *nl_it != '\n')
+                    ++nl_it;
+                commentHandler.handleComment(
+                    *this, generator, Sema, BufferStart, CommentBegin, CommentLen,
+                    Tok.getLocation(),
+                    Tok.getLocation().getLocWithOffset(nl_it - (BufferStart + NonCommentBegin)),
+                    CommentBeginLocation);
+            } else {
+                // look up the location before
+                const char *nl_it = BufferStart + CommentBegin;
+                while (nl_it > BufferStart && *nl_it && *nl_it != '\n')
+                    --nl_it;
+                commentHandler.handleComment(
+                    *this, generator, Sema, BufferStart, CommentBegin, CommentLen,
+                    CommentBeginLocation.getLocWithOffset(nl_it - (BufferStart + CommentBegin)),
+                    CommentBeginLocation, CommentBeginLocation);
+            }
+            continue; // Don't skip next token
+        }
+        case tok::utf8_string_literal:
+            // Chop off the u part of u8 prefix
+            ++TokOffs;
+            --TokLen;
+            LLVM_FALLTHROUGH;
+        case tok::wide_string_literal:
+        case tok::utf16_string_literal:
+        case tok::utf32_string_literal:
+            // Chop off the L, u, U or 8 prefix
+            ++TokOffs;
+            --TokLen;
+            LLVM_FALLTHROUGH;
+        case tok::string_literal:
+            // FIXME: Exclude the optional ud-suffix from the highlighted range.
+            generator.addTag("q", {}, TokOffs, TokLen);
+            break;
+
+        case tok::wide_char_constant:
+        case tok::utf16_char_constant:
+        case tok::utf32_char_constant:
+            ++TokOffs;
+            --TokLen;
+            LLVM_FALLTHROUGH;
+        case tok::char_constant:
+            generator.addTag("kbd", {}, TokOffs, TokLen);
+            break;
+        case tok::numeric_constant:
+            generator.addTag("var", {}, TokOffs, TokLen);
+            break;
+        case tok::hash: {
+            // If this is a preprocessor directive, all tokens to end of line are too.
+            if (!Tok.isAtStartOfLine())
+                break;
+
+            // Eat all of the tokens until we get to the next one at the start of
+            // line.
+            unsigned TokEnd = TokOffs + TokLen;
+            L.LexFromRawLexer(Tok);
+            while (!Tok.isAtStartOfLine() && Tok.isNot(tok::eof)) {
+                TokEnd = SM.getFileOffset(Tok.getLocation()) + Tok.getLength();
+                L.LexFromRawLexer(Tok);
+            }
+
+            generator.addTag("u", {}, TokOffs, TokEnd - TokOffs);
+
+            // Don't skip the next token.
+            continue;
+        }
         }
 
         L.LexFromRawLexer(Tok);
