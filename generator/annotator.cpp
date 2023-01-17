@@ -46,6 +46,7 @@
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
+#include <llvm/Support/Process.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "compat.h"
@@ -349,7 +350,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         auto refFilename = it.first;
         replace_invalid_filename_chars(refFilename);
 
-        std::string filename = projectManager.outputPrefix % "/refs/" % refFilename;
+        std::string filename = projectManager.outputPrefix % "/refs/" % refFilename % mp_suffix;
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
         std::string error;
         llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
@@ -516,7 +517,8 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                             '\0' };
             llvm::StringRef idxRef(idx, 3); // include the '\0' on purpose
             if (saved.find(idxRef) == std::string::npos) {
-                std::string funcIndexFN = projectManager.outputPrefix % "/fnSearch/" % idx;
+                std::string funcIndexFN =
+                    projectManager.outputPrefix % "/fnSearch/" % idx % mp_suffix;
 #if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
                 std::string error;
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error,
@@ -935,7 +937,8 @@ void Annotator::registerMacro(const std::string &ref, clang::SourceLocation refL
     }
 }
 
-void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag, std::string attributes)
+void Annotator::annotateSourceRange(clang::SourceRange range, std::string tag,
+                                    std::string attributes)
 {
     clang::SourceManager &sm = getSourceMgr();
     if (!range.getBegin().isFileID()) {
