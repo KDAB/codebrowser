@@ -49,8 +49,8 @@ namespace cl = llvm::cl;
 
 cl::opt<std::string> BuildPath(
   "b",
-  cl::value_desc("compile_commands.json"),
-  cl::desc("Path to the compilation database (compile_commands.json) If this argument is not passed, the compilation arguments can be passed on the command line after '--'"),
+  cl::value_desc("build_path"),
+  cl::desc("Build path containing compilation database (compile_commands.json) If this argument is not passed, the compilation arguments can be passed on the command line after '--'"),
   cl::Optional);
 
 cl::list<std::string> SourcePaths(
@@ -97,7 +97,7 @@ Simple generation without compile command or project (compile command specified 
   codebrowser_generator -o ~/public_html/code -d https://code.woboq.org/data $PWD -- -std=c++14 -I/opt/llvm/include
 
 With a project
-  codebrowser_generator -b $PWD/compile_commands.js -a -p codebrowser:$PWD -o ~/public_html/code
+  codebrowser_generator -b $PWD/build -a -p codebrowser:$PWD -o ~/public_html/code
 )");
 
 #if 1
