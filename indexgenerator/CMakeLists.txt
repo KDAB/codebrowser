@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(codebrowser_indexgenerator)
 add_executable(codebrowser_indexgenerator indexer.cpp)
-set_property(TARGET codebrowser_indexgenerator PROPERTY CXX_STANDARD 14)
+set_property(TARGET codebrowser_indexgenerator PROPERTY CXX_STANDARD 20)
 install(TARGETS codebrowser_indexgenerator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 
