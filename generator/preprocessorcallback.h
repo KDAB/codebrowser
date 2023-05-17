@@ -72,7 +72,9 @@ public:
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok,
                             llvm::StringRef FileName, bool IsAngled,
                             clang::CharSourceRange FilenameRange,
-#if CLANG_VERSION_MAJOR >= 15
+#if CLANG_VERSION_MAJOR >= 16
+                            clang::OptionalFileEntryRef File,
+#elif CLANG_VERSION_MAJOR >= 15
                             llvm::Optional<clang::FileEntryRef> File,
 #else
                             const clang::FileEntry *File,

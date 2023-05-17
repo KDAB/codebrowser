@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(codebrowser_generator)
 
+cmake_policy(SET CMP0057 NEW)
+
 Find_Package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} in ${LLVM_INSTALL_PREFIX}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -38,7 +40,7 @@ endif()
 
 install(TARGETS codebrowser_generator RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 target_include_directories(codebrowser_generator SYSTEM PUBLIC ${CLANG_INCLUDE_DIRS})
-set_property(TARGET codebrowser_generator PROPERTY CXX_STANDARD 14)
+set_property(TARGET codebrowser_generator PROPERTY CXX_STANDARD 17)
 
 
 if (NOT APPLE AND NOT MSVC)

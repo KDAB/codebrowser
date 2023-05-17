@@ -1145,7 +1145,13 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
 
     const clang::Preprocessor &PP = Sema.getPreprocessor();
     const clang::SourceManager &SM = getSourceMgr();
-#if CLANG_VERSION_MAJOR >= 12
+#if CLANG_VERSION_MAJOR >= 16
+    const llvm::Optional<llvm::MemoryBufferRef> FromFile = SM.getBufferOrNone(FID);
+    if (!FromFile.has_value()) {
+        return;
+    }
+    Lexer L(FID, *FromFile, SM, getLangOpts());
+#elif CLANG_VERSION_MAJOR >= 12
     const llvm::Optional<llvm::MemoryBufferRef> FromFile = SM.getBufferOrNone(FID);
     if (!FromFile.hasValue()) {
         return;
