@@ -824,11 +824,6 @@ void Annotator::registerReference(clang::NamedDecl *decl, clang::SourceRange ran
     auto escapedRef = Generator::escapeAttr(ref, escapedRefBuffer);
     tags %= " data-ref=\"" % escapedRef % "\"";
 
-    // Do some additional escaping for filenames (e.g., ':' is not valid on Windows)
-    llvm::SmallString<64> refFilenameBuffer;
-    auto refFilename = Generator::escapeAttrForFilename(escapedRef, refFilenameBuffer);
-    tags %= " data-ref-filename=\"" % refFilename % "\"";
-
     if (declType >= Annotator::Use || (decl != canonDecl && declType != Annotator::Definition)) {
         std::string link;
         clang::SourceLocation loc = canonDecl->getLocation();
