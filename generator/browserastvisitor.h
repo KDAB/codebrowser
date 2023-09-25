@@ -209,7 +209,11 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
 #endif
         for (auto it : designators) {
             if (it.isFieldDesignator()) {
+#if CLANG_VERSION_MAJOR >= 17
+                if (auto decl = it.getFieldDecl()) {
+#else
                 if (auto decl = it.getField()) {
+#endif
                     annotator.registerUse(decl, it.getFieldLoc(), Annotator::Ref, currentContext,
                                           Annotator::Use_Write);
                 }

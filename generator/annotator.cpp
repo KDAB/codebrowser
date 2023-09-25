@@ -255,6 +255,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
     // make sure the main file is in the cache.
     htmlNameForFile(getSourceMgr().getMainFileID());
 
+#if CLANG_VERSION_MAJOR >= 16
+    static const std::string mp_suffix =
+        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").value_or("");
+#else
+    static const std::string mp_suffix =
+        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").getValueOr("");
+#endif
+
     std::set<std::string> done;
     for (auto it : cache) {
         if (!it.second.first)
@@ -1141,7 +1149,7 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
     const clang::Preprocessor &PP = Sema.getPreprocessor();
     const clang::SourceManager &SM = getSourceMgr();
 #if CLANG_VERSION_MAJOR >= 16
-    const llvm::Optional<llvm::MemoryBufferRef> FromFile = SM.getBufferOrNone(FID);
+    const auto FromFile = SM.getBufferOrNone(FID);
     if (!FromFile.has_value()) {
         return;
     }
