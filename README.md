@@ -1,16 +1,9 @@
 This is the generator for code browser, formerly created and maintained by Woboq, 
 KDAB wants to thank Woboq to have made available such a great tool to the community in the first place. 
 
-See https://code.woboq.org for an example.
-
-To browse the source code of the generator using the code browser itself:
-https://code.woboq.org/userspace/codebrowser/
-
-Main page: https://woboq.com/codebrowser.html
+See https://codebrowser.dev/ for an example.
 
 The announcement blog: https://woboq.com/blog/codebrowser-introduction.html
-
-[![Build Status](https://travis-ci.org/woboq/woboq_codebrowser.svg?branch=master)](https://travis-ci.org/woboq/woboq_codebrowser)
 
 Introduction and Design
 =======================
@@ -42,16 +35,6 @@ The idea is that you can have several project sharing the same output
 directory. In that case they will also share references and use searches will
 work between them.
 
-
-Install via RPM/DEB
-===================
-
-Please look at https://woboq.com/codebrowser-download.html
-
-Install via homebrew
-====================
-Please look at https://woboq.com/codebrowser-download.html
-
 Install via Arch User Repository (AUR)
 ======================================
 
@@ -69,7 +52,7 @@ Compiling the generator on Linux
 You need:
  - The clang libraries version 3.4 or later
  
-You may want to `sudo apt install llvm-7 clang-7 libclang-7-dev` on Ubuntu if you ran into error like that clang says it cannot find "ClangConfig.cmake". More details in [issues#74](https://github.com/woboq/woboq_codebrowser/issues/74) .
+You may want to `sudo apt install llvm-7 clang-7 libclang-7-dev` on Ubuntu if you ran into error like that clang says it cannot find "ClangConfig.cmake". More details in [issues#74](https://github.com/kdab/codebrowser/issues/74) .
  
 Example:
 ```bash
@@ -175,10 +158,10 @@ codebrowser_generator -a -o <output_dir> -b <buld_dir> -p <projectname>:<source_
 
  -d specify the data url where all the javascript and css files are found.
     default to ../data relative to the output dir
-    example: -d https://code.woboq.org/data
+    example: -d https://codebrowser.dev/data/
 
  -e reference to an external project.
-    example:-e clang/include/clang:/opt/llvm/include/clang/:https://code.woboq.org/llvm
+    example:-e clang/include/clang:/opt/llvm/include/clang/:https://codebrowser.dev/llvm
 
 
 Arguments to codebrowser_indexgenerator
@@ -196,8 +179,7 @@ codebrowser_indexgenerator <output_dir> [-d data_url] [-p project_definition]
 
  -d specify the data url where all the javascript and css files are found.
     default to ../data relative to the output dir
-    example: -d https://code.woboq.org/data
-
+    example: -d https://codebrowser.dev/data/
 
 
 Compilation Database (compile_commands.json)
@@ -224,11 +206,10 @@ There is also some further information on https://sarcasm.github.io/notes/dev/co
 Getting help
 ============
 No matter if you are a licensee or are just curious and evaulating, we'd love to help you.
-Ask us via e-mail on contact@woboq.com
-Or on IRC in #woboq on irc.freenode.net
+Ask us via e-mail on info@kdab.com
 
 If you find a bug or incompatibility, please file a github issue:
-https://github.com/woboq/woboq_codebrowser/issues
+https://github.com/kdab/codebrowser/issues
 
 
 Licence information
@@ -236,7 +217,6 @@ Licence information
 Licensees holding valid commercial licenses provided by Woboq may use
 this software in accordance with the terms contained in a written agreement
 between the licensee and Woboq.
-For further information see https://woboq.com/codebrowser.html
 
 Alternatively, this work may be used under a Creative Commons
 Attribution-NonCommercial-ShareAlike 3.0 (CC-BY-NC-SA 3.0) License.
