@@ -74,6 +74,13 @@ string(REGEX REPLACE "git.*$" "" LLVM_VERSION "${LLVM_VERSION}")
 if(NOT CLANG_BUILTIN_HEADERS_DIR)
     set(CLANG_BUILTIN_HEADERS_DIR "${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION}/include")
 endif()
+
+# try LLVM_VERSION_MAJOR, starting with llvm 16 the above fails
+if (NOT EXISTS ${CLANG_BUILTIN_HEADERS_DIR})
+    set(CLANG_BUILTIN_HEADERS_DIR "${LLVM_LIBRARY_DIR}/clang/${LLVM_VERSION_MAJOR}/include")
+endif()
+
+
 file(GLOB BUILTINS_HEADERS "${CLANG_BUILTIN_HEADERS_DIR}/*.h")
 if(NOT BUILTINS_HEADERS)
     message(FATAL_ERROR "Could not find any clang builtins headers in ${CLANG_BUILTIN_HEADERS_DIR}")
