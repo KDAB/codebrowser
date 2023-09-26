@@ -25,7 +25,7 @@
 #include <clang/Basic/Version.h>
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/PPCallbacks.h>
-#if CLANG_VERSION_MAJOR >= 15
+#if CLANG_VERSION_MAJOR == 15
 #include <llvm/ADT/Optional.h>
 #endif
 
