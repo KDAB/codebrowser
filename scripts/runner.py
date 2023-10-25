@@ -112,6 +112,9 @@ def do_merge(out, max_task):
     print("Merging ", refsM)
     do_merge_dir(refsM, max_task)
 
+    print("Merging fileIndex")
+    do_merge_dir(out, max_task)
+
 
 def main():
     usage = "python runner.py -p compile_commands.json -o output/ -e ./generator/codebrowser_generator -a project_name -x external_project"

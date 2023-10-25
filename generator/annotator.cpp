@@ -243,11 +243,19 @@ void Annotator::registerInterestingDefinition(clang::SourceRange sourceRange,
 
 bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 {
+#if CLANG_VERSION_MAJOR >= 16
+    static const std::string mp_suffix =
+        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").value_or("");
+#else
+    static const std::string mp_suffix =
+        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").getValueOr("");
+#endif
+
     std::ofstream fileIndex;
-    fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
+    fileIndex.open(projectManager.outputPrefix + "/fileIndex" + mp_suffix, std::ios::app);
     if (!fileIndex) {
         create_directories(projectManager.outputPrefix);
-        fileIndex.open(projectManager.outputPrefix + "/fileIndex", std::ios::app);
+        fileIndex.open(projectManager.outputPrefix + "/fileIndex" + mp_suffix, std::ios::app);
         if (!fileIndex) {
             std::cerr << "Can't generate index for " << std::endl;
             return false;
@@ -256,14 +264,6 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
     // make sure the main file is in the cache.
     htmlNameForFile(getSourceMgr().getMainFileID());
-
-#if CLANG_VERSION_MAJOR >= 16
-    static const std::string mp_suffix =
-        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").value_or("");
-#else
-    static const std::string mp_suffix =
-        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").getValueOr("");
-#endif
 
     std::set<std::string> done;
     for (auto it : cache) {
