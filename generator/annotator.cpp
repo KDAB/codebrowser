@@ -1027,6 +1027,21 @@ static clang::NamedDecl *getSpecializedCursorTemplate(clang::NamedDecl *D)
         return D;
 }
 
+static std::string getQualifiedName(clang::NamedDecl *decl)
+{
+    if (decl->getDeclName()) {
+        return decl->getQualifiedNameAsString();
+    }
+    // anonymous struct / union
+    std::string name;
+    clang::PrintingPolicy policy(decl->getASTContext().getLangOpts());
+    // we don't want filelocation:line:column
+    policy.AnonymousTagLocations = false;
+    llvm::raw_string_ostream stream(name);
+    decl->printQualifiedName(stream, policy);
+    return name;
+}
+
 
 std::pair<std::string, std::string> Annotator::getReferenceAndTitle(clang::NamedDecl *decl)
 {
@@ -1035,7 +1050,7 @@ std::pair<std::string, std::string> Annotator::getReferenceAndTitle(clang::Named
     if (cached.first.empty()) {
         decl = getSpecializedCursorTemplate(decl);
 
-        std::string qualName = decl->getQualifiedNameAsString();
+        std::string qualName = getQualifiedName(decl);
         if (llvm::isa<clang::FunctionDecl>(decl)
 #if CLANG_VERSION_MAJOR >= 5
             // We can't mangle a deduction guide (also there is no need since it is not referenced)
