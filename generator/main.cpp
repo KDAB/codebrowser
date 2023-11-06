@@ -165,7 +165,11 @@ public:
         , WasInDatabase(WasInDatabase)
     {
         // ci.getLangOpts().DelayedTemplateParsing = (true);
+#if CLANG_VERSION_MAJOR < 16
+        // the meaning of this function has changed which causes
+        // a lot of issues in clang 16
         ci.getPreprocessor().enableIncrementalProcessing();
+#endif
     }
     virtual ~BrowserASTConsumer()
     {
