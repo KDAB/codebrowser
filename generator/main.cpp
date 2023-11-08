@@ -123,6 +123,11 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer
     {
     }
 
+    static bool isImmintrinDotH(const clang::PresumedLoc &loc)
+    {
+        return llvm::StringRef(loc.getFilename()).contains("immintrin.h");
+    }
+
     virtual void HandleDiagnostic(clang::DiagnosticsEngine::Level DiagLevel,
                                   const clang::Diagnostic &Info) override
     {
@@ -132,6 +137,9 @@ struct BrowserDiagnosticClient : clang::DiagnosticConsumer
 
         switch (DiagLevel) {
         case clang::DiagnosticsEngine::Fatal:
+            // ignore tons of errors in immintrin.h
+            if (isImmintrinDotH(annotator.getSourceMgr().getPresumedLoc(Info.getLocation())))
+                return;
             std::cerr << "FATAL ";
             LLVM_FALLTHROUGH;
         case clang::DiagnosticsEngine::Error:
