@@ -21,7 +21,6 @@
 
 #include "preprocessorcallback.h"
 #include "annotator.h"
-#include "projectmanager.h"
 #include "stringbuilder.h"
 #include <clang/Basic/FileManager.h>
 #include <clang/Basic/Version.h>

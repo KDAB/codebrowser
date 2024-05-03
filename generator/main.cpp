@@ -40,8 +40,6 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#include <limits>
-#include <stdexcept>
 
 #include "embedded_includes.h"
 

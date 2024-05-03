@@ -34,7 +34,6 @@
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Lookup.h>
 #include <clang/Sema/Sema.h>
-#include <iostream>
 
 clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &Sema,
                                             bool isFunction)

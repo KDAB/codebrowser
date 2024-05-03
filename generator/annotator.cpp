@@ -40,7 +40,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <time.h>
 
 #include <llvm/ADT/SmallString.h>
@@ -49,7 +48,6 @@
 #include <llvm/Support/Process.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "compat.h"
 #include "inlayhintannotator.h"
 #include "projectmanager.h"
 #include "stringbuilder.h"
