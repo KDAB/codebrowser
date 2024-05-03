@@ -1155,8 +1155,7 @@ std::pair<std::string, std::string> Annotator::getReferenceAndTitle(clang::Named
     return cached;
 }
 
-
-std::string Annotator::getTypeRef(clang::QualType type)
+std::string Annotator::getTypeRef(clang::QualType type) const
 {
     return type.getAsString(getLangOpts());
 }

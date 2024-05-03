@@ -241,7 +241,7 @@ public:
         return generators[fid];
     }
 
-    std::string getTypeRef(clang::QualType type);
+    std::string getTypeRef(clang::QualType type) const;
     std::string computeClas(clang::NamedDecl *decl);
     std::string getContextStr(clang::NamedDecl *usedContext);
     /**

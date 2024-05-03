@@ -78,7 +78,7 @@ ProjectInfo *ProjectManager::projectForFile(llvm::StringRef filename)
     return result;
 }
 
-bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo *project)
+bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo *project) const
 {
     if (!project)
         return false;

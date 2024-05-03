@@ -79,7 +79,7 @@ struct ProjectManager
 
     // return true if the filename should be proesseded.
     // 'project' is the value returned by projectForFile
-    bool shouldProcess(llvm::StringRef filename, ProjectInfo *project);
+    bool shouldProcess(llvm::StringRef filename, ProjectInfo *project) const;
 
     std::string includeRecovery(llvm::StringRef includeName, llvm::StringRef from);
 
