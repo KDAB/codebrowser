@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
 project(codebrowser_indexgenerator)
 add_executable(codebrowser_indexgenerator indexer.cpp)
 set_property(TARGET codebrowser_indexgenerator PROPERTY CXX_STANDARD 20)
