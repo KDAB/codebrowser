@@ -37,11 +37,7 @@ static bool isReservedName(llvm::StringRef id)
 {
     if (id.size() < 2)
         return false;
-#if CLANG_VERSION_MAJOR >= 16
     return id.starts_with("__");
-#else
-    return id.startswith("__");
-#endif
 }
 
 static llvm::StringRef getSimpleName(const clang::NamedDecl *d)
@@ -259,11 +255,7 @@ bool InlayHintsAnnotatorHelper::isPrecededByParamNameComment(const clang::Expr *
     if (!sourcePrefix.consume_back(paramName))
         return false;
     sourcePrefix = sourcePrefix.rtrim(ignoreChars);
-#if CLANG_VERSION_MAJOR >= 16
     return sourcePrefix.ends_with("/*");
-#else
-    return sourcePrefix.endswith("/*");
-#endif
 }
 
 std::string InlayHintsAnnotatorHelper::getParamNameInlayHint(clang::CallExpr *e,
@@ -278,12 +270,8 @@ std::string InlayHintsAnnotatorHelper::getParamNameInlayHint(clang::CallExpr *e,
     if (!f)
         return {};
 
-        // simple setter? => ignore
-#if CLANG_VERSION_MAJOR >= 16
+    // simple setter? => ignore
     if (f->getNumParams() == 1 && getSimpleName(f).starts_with_insensitive("set"))
-#else
-    if (f->getNumParams() == 1 && getSimpleName(f).startswith_insensitive("set"))
-#endif
         return {};
 
     llvm::StringRef paramName = getSimpleName(paramDecl);

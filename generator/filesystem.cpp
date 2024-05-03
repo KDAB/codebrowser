@@ -59,24 +59,7 @@ void replace_invalid_filename_chars(std::string &str)
 std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char> &result)
 {
     std::string p = path.str();
-#if CLANG_VERSION_MAJOR >= 5
     llvm::sys::fs::real_path(path, result);
-#else
-#ifdef PATH_MAX
-    int path_max = PATH_MAX;
-#elif defined(MAX_PATH)
-    unsigned int path_max = MAX_PATH;
-#else
-    int path_max = pathconf(p.c_str(), _PC_PATH_MAX);
-    if (path_max <= 0)
-        path_max = 4096;
-#endif
-
-    result.resize(path_max);
-    realpath(p.c_str(), result.data());
-
-    result.resize(strlen(result.data()));
-#endif
 
 #ifdef _WIN32
     // Make sure we use forward slashes to make sure folder detection works as expected everywhere
@@ -86,7 +69,6 @@ std::error_code canonicalize(const llvm::Twine &path, llvm::SmallVectorImpl<char
     return {};
 }
 
-#if (CLANG_VERSION_MAJOR >= 3 && CLANG_VERSION_MINOR >= 8) || CLANG_VERSION_MAJOR > 3
 std::error_code create_directories(const llvm::Twine &path)
 {
     using namespace llvm::sys::fs;
@@ -94,50 +76,6 @@ std::error_code create_directories(const llvm::Twine &path)
 
     return llvm::sys::fs::create_directories(path, true, defaultPerms);
 }
-#else
-/* Based on the one from Support/Unix/PathV2 but with different default rights */
-static std::error_code create_directory(const llvm::Twine &path)
-{
-    using namespace llvm;
-    SmallString<128> path_storage;
-    StringRef p = path.toNullTerminatedStringRef(path_storage);
-
-    if (::mkdir(p.begin(), 0755) == -1) {
-        if (errno != static_cast<int>(std::errc::file_exists))
-            return { errno, std::system_category() };
-    }
-    return {};
-}
-
-std::error_code create_directories(const llvm::Twine &path)
-{
-    using namespace llvm;
-    using namespace llvm::sys;
-    SmallString<128> path_storage;
-    StringRef p = path.toStringRef(path_storage);
-    StringRef parent = path::parent_path(p);
-    if (!parent.empty()) {
-        bool parent_exists;
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
-        if (auto ec = fs::exists(parent, parent_exists)) {
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
-            return std::error_code(ec.value(), std::system_category());
-#else
-            return ec;
-#endif
-        }
-#else
-        parent_exists = fs::exists(parent);
-#endif
-
-        if (!parent_exists)
-            if (auto ec = create_directories(parent))
-                return ec;
-    }
-
-    return create_directory(p);
-}
-#endif
 
 /**
  * https://svn.boost.org/trac/boost/ticket/1976#comment:2

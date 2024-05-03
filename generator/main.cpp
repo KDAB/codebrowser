@@ -170,12 +170,6 @@ public:
         , annotator(projectManager)
         , WasInDatabase(WasInDatabase)
     {
-        // ci.getLangOpts().DelayedTemplateParsing = (true);
-#if CLANG_VERSION_MAJOR < 16
-        // the meaning of this function has changed which causes
-        // a lot of issues in clang 16
-        ci.getPreprocessor().enableIncrementalProcessing();
-#endif
     }
     virtual ~BrowserASTConsumer()
     {
@@ -233,12 +227,8 @@ class BrowserAction : public clang::ASTFrontendAction
     DatabaseType WasInDatabase;
 
 protected:
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
-    virtual clang::ASTConsumer *
-#else
-    virtual std::unique_ptr<clang::ASTConsumer>
-#endif
-    CreateASTConsumer(clang::CompilerInstance &CI, llvm::StringRef InFile) override
+    virtual std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &CI,
+                                                                  llvm::StringRef InFile) override
     {
         if (processed.count(InFile.str())) {
             std::cerr << "Skipping already processed " << InFile.str() << std::endl;
@@ -297,11 +287,7 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
         previousIsDashI = false;
         if (A.empty())
             continue;
-#if CLANG_VERSION_MAJOR >= 16
         if (llvm::StringRef(A).starts_with("-I") && A[2] != '/') {
-#else
-        if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
-#endif
             A = "-I" % Directory % "/" % llvm::StringRef(A).substr(2);
             continue;
         }
@@ -312,17 +298,8 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
             A = PossiblePath;
     }
 
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 6
-    auto Ajust = [&](clang::tooling::ArgumentsAdjuster &&aj) { command = aj.Adjust(command); };
-    Ajust(clang::tooling::ClangSyntaxOnlyAdjuster());
-    Ajust(clang::tooling::ClangStripOutputAdjuster());
-#elif CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 8
-    command = clang::tooling::getClangSyntaxOnlyAdjuster()(command);
-    command = clang::tooling::getClangStripOutputAdjuster()(command);
-#else
     command = clang::tooling::getClangSyntaxOnlyAdjuster()(command, file);
     command = clang::tooling::getClangStripOutputAdjuster()(command, file);
-#endif
 
     if (!hasNoStdInc) {
 #ifndef _WIN32
@@ -338,17 +315,6 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
     command.push_back("-Wno-unknown-warning-option");
     clang::tooling::ToolInvocation Inv(command, maybe_unique(new BrowserAction(WasInDatabase)), FM);
 
-#if CLANG_VERSION_MAJOR <= 10
-    if (!hasNoStdInc) {
-        // Map the builtins includes
-        const EmbeddedFile *f = EmbeddedFiles;
-        while (f->filename) {
-            Inv.mapVirtualFile(f->filename, { f->content, f->size });
-            f++;
-        }
-    }
-#endif
-
     bool result = Inv.run();
     if (!result) {
         std::cerr << "Error: The file was not recognized as source code: " << file.str()
@@ -361,12 +327,7 @@ int main(int argc, const char **argv)
 {
     std::string ErrorMessage;
     std::unique_ptr<clang::tooling::CompilationDatabase> Compilations(
-        clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv
-#if CLANG_VERSION_MAJOR >= 5
-                                                                      ,
-                                                                      ErrorMessage
-#endif
-                                                                      ));
+        clang::tooling::FixedCompilationDatabase::loadFromCommandLine(argc, argv, ErrorMessage));
     if (!ErrorMessage.empty()) {
         std::cerr << ErrorMessage << std::endl;
         ErrorMessage = {};
@@ -423,12 +384,7 @@ int main(int argc, const char **argv)
         } else {
             Compilations = std::unique_ptr<clang::tooling::CompilationDatabase>(
                 clang::tooling::JSONCompilationDatabase::loadFromFile(
-                    BuildPath, ErrorMessage
-#if CLANG_VERSION_MAJOR >= 4
-                    ,
-                    clang::tooling::JSONCommandLineSyntax::AutoDetect
-#endif
-                    ));
+                    BuildPath, ErrorMessage, clang::tooling::JSONCommandLineSyntax::AutoDetect));
         }
         if (!Compilations && !ErrorMessage.empty()) {
             std::cerr << ErrorMessage << std::endl;
@@ -456,24 +412,15 @@ int main(int argc, const char **argv)
         std::cerr << "Cannot use both sources and  '-a'" << std::endl;
         return EXIT_FAILURE;
     } else if (Sources.size() == 1 && llvm::sys::fs::is_directory(Sources.front())) {
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 5
         // A directory was passed, process all the files in that directory
         llvm::SmallString<128> DirName;
         llvm::sys::path::native(Sources.front(), DirName);
-#if CLANG_VERSION_MAJOR >= 16
         while (llvm::StringRef(DirName).ends_with("/"))
-#else
-        while (DirName.endswith("/"))
-#endif
             DirName.pop_back();
         std::error_code EC;
         for (llvm::sys::fs::recursive_directory_iterator it(DirName.str(), EC), DirEnd;
              it != DirEnd && !EC; it.increment(EC)) {
-#if CLANG_VERSION_MAJOR >= 16
             if (llvm::sys::path::filename(it->path()).starts_with(".")) {
-#else
-            if (llvm::sys::path::filename(it->path()).startswith(".")) {
-#endif
                 it.no_push();
                 continue;
             }
@@ -491,10 +438,6 @@ int main(int argc, const char **argv)
                                std::string(DirName.str()) };
             projectManager.addProject(std::move(info));
         }
-#else
-        std::cerr << "Passing directory is only implemented with llvm >= 3.5" << std::endl;
-        return EXIT_FAILURE;
-#endif
     }
 
     if (Sources.empty()) {
@@ -508,16 +451,11 @@ int main(int argc, const char **argv)
         return EXIT_FAILURE;
     }
 
-#if CLANG_VERSION_MAJOR >= 12
     llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> VFS(
         new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
     clang::FileManager FM({ "." }, VFS);
-#else
-    clang::FileManager FM({ "." });
-#endif
     FM.Retain();
 
-#if CLANG_VERSION_MAJOR >= 12
     // Map virtual files
     {
         auto InMemoryFS = llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem>(
@@ -530,7 +468,6 @@ int main(int argc, const char **argv)
             f++;
         }
     }
-#endif
 
     int Progress = 0;
 
@@ -613,11 +550,7 @@ int main(int argc, const char **argv)
                       << "\n";
             auto command = compileCommandsForFile.front().CommandLine;
             std::replace(command.begin(), command.end(), fileForCommands, it);
-#if CLANG_VERSION_MAJOR >= 16
             if (llvm::StringRef(file).ends_with(".qdoc")) {
-#else
-            if (llvm::StringRef(file).endswith(".qdoc")) {
-#endif
                 command.insert(command.begin() + 1, "-xc++");
                 // include the header for this .qdoc file
                 command.push_back("-include");
@@ -648,16 +581,10 @@ int main(int argc, const char **argv)
             if (!projectinfo->revision.empty())
                 footer %= " revision <em>" % projectinfo->revision % "</em>";
 
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
-            llvm::OwningPtr<llvm::MemoryBuffer> Buf;
-            if (!llvm::MemoryBuffer::getFile(file, Buf))
-                continue;
-#else
             auto B = llvm::MemoryBuffer::getFile(file);
             if (!B)
                 continue;
             std::unique_ptr<llvm::MemoryBuffer> Buf = std::move(B.get());
-#endif
 
             std::string fn = projectinfo->name % "/"
                 % llvm::StringRef(file).substr(projectinfo->source_path.size());

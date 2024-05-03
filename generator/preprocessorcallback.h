@@ -25,9 +25,6 @@
 #include <clang/Basic/Version.h>
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/PPCallbacks.h>
-#if CLANG_VERSION_MAJOR == 15
-#include <llvm/ADT/Optional.h>
-#endif
 
 namespace clang {
 class Preprocessor;
@@ -51,46 +48,21 @@ public:
     {
     }
 
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
     using MyMacroDefinition = const clang::MacroDefinition &;
-#else
-    using MyMacroDefinition = const clang::MacroDirective *;
-#endif
-
     void MacroExpands(const clang::Token &MacroNameTok, MyMacroDefinition MD,
                       clang::SourceRange Range, const clang::MacroArgs *Args) override;
 
     void MacroDefined(const clang::Token &MacroNameTok, const clang::MacroDirective *MD) override;
 
-    void MacroUndefined(const clang::Token &MacroNameTok, MyMacroDefinition MD
-#if CLANG_VERSION_MAJOR >= 5
-                        ,
-                        const clang::MacroDirective *
-#endif
-                        ) override;
+    void MacroUndefined(const clang::Token &MacroNameTok, MyMacroDefinition MD,
+                        const clang::MacroDirective *) override;
 
     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok,
                             llvm::StringRef FileName, bool IsAngled,
-                            clang::CharSourceRange FilenameRange,
-#if CLANG_VERSION_MAJOR >= 16
-                            clang::OptionalFileEntryRef File,
-#elif CLANG_VERSION_MAJOR >= 15
-                            llvm::Optional<clang::FileEntryRef> File,
-#else
-                            const clang::FileEntry *File,
-#endif
+                            clang::CharSourceRange FilenameRange, clang::OptionalFileEntryRef File,
                             llvm::StringRef SearchPath, llvm::StringRef RelativePath,
-                            const clang::Module *Imported
-#if CLANG_VERSION_MAJOR >= 7
-                            ,
-                            clang::SrcMgr::CharacteristicKind
-#endif
-
-                            ) override;
-
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 5
-    typedef bool ConditionValueKind; // It's an enum in clang 3.5
-#endif
+                            const clang::Module *Imported,
+                            clang::SrcMgr::CharacteristicKind) override;
 
     void PragmaDirective(clang::SourceLocation Loc, clang::PragmaIntroducerKind Introducer) override
     {

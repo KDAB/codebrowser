@@ -122,27 +122,13 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
     // Make sure the parent directory exist:
     create_directories(llvm::StringRef(real_filename).rsplit('/').first);
 
-#if CLANG_VERSION_MAJOR==3 && CLANG_VERSION_MINOR<=5
-    std::string error;
-    llvm::raw_fd_ostream myfile(real_filename.c_str(), error, llvm::sys::fs::F_None);
-    if (!error.empty()) {
-        std::cerr << "Error generating " << real_filename << " ";
-        std::cerr << error<< std::endl;
-        return;
-    }
-#else
     std::error_code error_code;
-#if CLANG_VERSION_MAJOR >= 13
     llvm::raw_fd_ostream myfile(real_filename, error_code, llvm::sys::fs::OF_None);
-#else
-    llvm::raw_fd_ostream myfile(real_filename, error_code, llvm::sys::fs::F_None);
-#endif
     if (error_code) {
         std::cerr << "Error generating " << real_filename << " ";
         std::cerr << error_code.message() << std::endl;
         return;
     }
-#endif
 
     int count = std::count(filename.begin(), filename.end(), '/');
     std::string root_path = "..";

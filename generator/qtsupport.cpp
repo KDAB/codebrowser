@@ -179,11 +179,7 @@ void QtSupport::handleSignalOrSlot(clang::Expr *obj, clang::Expr *method)
         llvm::StringRef argument = signature.substr(argPos, searchPos - argPos).trim();
         // Skip the const at the beginning
 
-#if CLANG_VERSION_MAJOR >= 16
         if (argument.starts_with("const ") && argument.ends_with("&"))
-#else
-        if (argument.startswith("const ") && argument.endswith("&"))
-#endif
             argument = argument.slice(6, argument.size() - 1).trim();
 
         argPos = searchPos + 1;
@@ -223,18 +219,10 @@ void QtSupport::handleSignalOrSlot(clang::Expr *obj, clang::Expr *method)
                     ++sigIt;
                 } else if (*parIt == ' ') {
                     ++parIt;
-#if CLANG_VERSION_MAJOR >= 16
                 } else if (*sigIt == 'n' && llvm::StringRef(sigIt, 9).starts_with("nsigned ")) {
-#else
-                } else if (*sigIt == 'n' && llvm::StringRef(sigIt, 9).startswith("nsigned ")) {
-#endif
                     // skip unsigned
                     sigIt += 8;
-#if CLANG_VERSION_MAJOR >= 16
                 } else if (*parIt == 'n' && llvm::StringRef(parIt, 9).starts_with("nsigned ")) {
-#else
-                } else if (*parIt == 'n' && llvm::StringRef(parIt, 9).startswith("nsigned ")) {
-#endif
                     // skip unsigned
                     parIt += 8;
                 } else {
@@ -284,13 +272,8 @@ void QtSupport::handleSignalOrSlot(clang::Expr *obj, clang::Expr *method)
         // Goes two level up in the macro expension:  First level is the # expansion,  Second level
         // is SIGNAL macro
         auto r = sm.getImmediateExpansionRange(methodLiteral->getStrTokenLoc(1));
-#if CLANG_VERSION_MAJOR < 7
-        range = { sm.getImmediateExpansionRange(r.first).first,
-                  sm.getImmediateExpansionRange(r.second).second };
-#else
         range = { sm.getImmediateExpansionRange(r.getBegin()).getBegin(),
                   sm.getImmediateExpansionRange(r.getEnd()).getEnd() };
-#endif
 
         // now remove the SIGNAL or SLOT macro from the range.
         auto skip = clang::Lexer::MeasureTokenLength(range.getBegin(), sm, annotator.getLangOpts());
@@ -355,11 +338,7 @@ void QtSupport::visitCallExpr(clang::CallExpr *e)
 
     auto parentName = methodDecl->getParent()->getName();
 
-#if CLANG_VERSION_MAJOR >= 16
     if (!parentName.starts_with("Q"))
-#else
-    if (!parentName.startswith("Q"))
-#endif
         return; // only Qt classes
 
     if (parentName == "QObject"
@@ -443,11 +422,7 @@ void QtSupport::visitCXXConstructExpr(clang::CXXConstructExpr *e)
         return;
 
     auto parent = methodDecl->getParent();
-#if CLANG_VERSION_MAJOR >= 16
     if (!parent->getName().starts_with("Q"))
-#else
-    if (!parent->getName().startswith("Q"))
-#endif
         return; // only Qt classes
 
     if (parent->getName() == "QShortcut") {

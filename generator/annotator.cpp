@@ -139,10 +139,8 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
     if (llvm::isa<clang::LabelDecl>(decl))
         return Visibility::Local;
 
-#if CLANG_VERSION_MAJOR >= 5
     if (llvm::isa<clang::CXXDeductionGuideDecl>(decl))
         return Visibility::Static; // Because it is not referenced in the AST anyway (FIXME)
-#endif
 
     clang::SourceManager &sm = getSourceMgr();
     clang::FileID mainFID = sm.getMainFileID();
@@ -263,13 +261,8 @@ void Annotator::registerInterestingDefinition(clang::SourceRange sourceRange,
 
 bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 {
-#if CLANG_VERSION_MAJOR >= 16
     static const std::string mp_suffix =
         llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").value_or("");
-#else
-    static const std::string mp_suffix =
-        llvm::sys::Process::GetEnv("MULTIPROCESS_MODE").getValueOr("");
-#endif
 
     std::ofstream fileIndex;
     fileIndex.open(projectManager.outputPrefix + "/fileIndex" + mp_suffix, std::ios::app);
@@ -294,15 +287,9 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
         done.insert(fn);
 
-        auto project_it =
-            std::find_if(projectManager.projects.cbegin(), projectManager.projects.cend(),
-                         [&fn](const ProjectInfo &it) {
-#if CLANG_VERSION_MAJOR >= 16
-                             return llvm::StringRef(fn).starts_with(it.name);
-#else
-                             return llvm::StringRef(fn).startswith(it.name);
-#endif
-                         });
+        auto project_it = std::find_if(
+            projectManager.projects.cbegin(), projectManager.projects.cend(),
+            [&fn](const ProjectInfo &it) { return llvm::StringRef(fn).starts_with(it.name); });
         if (project_it == projectManager.projects.cend()) {
             std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
             continue;
@@ -333,11 +320,10 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         if (!projectinfo.revision.empty())
             footer %= " revision <em>" % projectinfo.revision % "</em>";
 
-            /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) << "'>" <<
-            filename << "</a>" title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
+        /*     << " from file <a href='" << projectinfo.fileRepoUrl(filename) << "'>" <<
+        filename << "</a>" title=\"Arguments: << " << Generator::escapeAttr(args)   <<"\"" */
 
-            // Emit the HTML.
-#if CLANG_VERSION_MAJOR >= 12
+        // Emit the HTML.
         const llvm::StringRef Buf = getSourceMgr().getBufferData(FID);
         g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf.begin(), Buf.end(),
                    footer,
@@ -345,17 +331,6 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
                                  : "Warning: That file was not part of the compilation database. "
                                    "It may have many parsing errors.",
                    interestingDefinitionsInFile[FID]);
-
-#else
-        const llvm::MemoryBuffer *Buf = getSourceMgr().getBuffer(FID);
-        g.generate(projectManager.outputPrefix, projectManager.dataPath, fn, Buf->getBufferStart(),
-                   Buf->getBufferEnd(), footer,
-                   WasInDatabase ? ""
-                                 : "Warning: That file was not part of the compilation database. "
-                                   "It may have many parsing errors.",
-                   interestingDefinitionsInFile[FID]);
-
-#endif
 
         if (projectinfo.type == ProjectInfo::Normal)
             fileIndex << fn << '\n';
@@ -368,11 +343,7 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
     create_directories(llvm::Twine(projectManager.outputPrefix, "/refs/_M"));
     for (const auto &it : references) {
-#if CLANG_VERSION_MAJOR >= 16
         if (llvm::StringRef(it.first).starts_with("__builtin"))
-#else
-        if (llvm::StringRef(it.first).startswith("__builtin"))
-#endif
             continue;
         if (it.first == "main")
             continue;
@@ -381,26 +352,14 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
         replace_invalid_filename_chars(refFilename);
 
         std::string filename = projectManager.outputPrefix % "/refs/" % refFilename % mp_suffix;
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
-        std::string error;
-        llvm::raw_fd_ostream myfile(filename.c_str(), error, llvm::sys::fs::F_Append);
-        if (!error.empty()) {
-            std::cerr << error << std::endl;
-            continue;
-        }
-#else
         std::error_code error_code;
-#if CLANG_VERSION_MAJOR >= 13
         llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::OF_Append);
-#else
-        llvm::raw_fd_ostream myfile(filename, error_code, llvm::sys::fs::F_Append);
-#endif
         if (error_code) {
             std::cerr << "Error writing ref file " << filename << ": " << error_code.message()
                       << std::endl;
             continue;
         }
-#endif
+
         for (const auto &it2 : it.second) {
             clang::SourceRange loc = it2.loc;
             clang::SourceManager &sm = getSourceMgr();
@@ -549,30 +508,16 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             if (saved.find(idxRef) == std::string::npos) {
                 std::string funcIndexFN =
                     projectManager.outputPrefix % "/fnSearch/" % idx % mp_suffix;
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 5
-                std::string error;
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN.c_str(), error,
-                                                   llvm::sys::fs::F_Append);
-                if (!error.empty()) {
-                    std::cerr << error << std::endl;
-                    return false;
-                }
-#else
+
                 std::error_code error_code;
-#if CLANG_VERSION_MAJOR >= 13
                 llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code,
                                                    llvm::sys::fs::OF_Append);
-#else
-                llvm::raw_fd_ostream funcIndexFile(funcIndexFN, error_code,
-                                                   llvm::sys::fs::F_Append);
-#endif
 
                 if (error_code) {
                     std::cerr << "Error writing index file " << funcIndexFN << ": "
                               << error_code.message() << std::endl;
                     continue;
                 }
-#endif
                 funcIndexFile << fnIt.second << '|' << fnIt.first << '\n';
                 saved.append(idxRef); // include \0;
             }
@@ -1082,36 +1027,21 @@ std::pair<std::string, std::string> Annotator::getReferenceAndTitle(clang::Named
 
         std::string qualName = getQualifiedName(decl);
         if (llvm::isa<clang::FunctionDecl>(decl)
-#if CLANG_VERSION_MAJOR >= 5
             // We can't mangle a deduction guide (also there is no need since it is not referenced)
             && !llvm::isa<clang::CXXDeductionGuideDecl>(decl)
-#endif
             && mangle->shouldMangleDeclName(decl)
-        // workaround crash in clang while trying to mangle some builtin types
-#if CLANG_VERSION_MAJOR >= 16
+            // workaround crash in clang while trying to mangle some builtin types
             && !llvm::StringRef(qualName).starts_with("__")) {
-#else
-            && !llvm::StringRef(qualName).startswith("__")) {
-#endif
             llvm::raw_string_ostream s(cached.first);
             if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
-#if CLANG_VERSION_MAJOR >= 11
                 mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXDestructorDecl>(decl),
                                                      clang::Dtor_Complete),
                                    s);
-#else
-                mangle->mangleCXXDtor(llvm::cast<clang::CXXDestructorDecl>(decl),
-                                      clang::Dtor_Complete, s);
-#endif
+
             } else if (llvm::isa<clang::CXXConstructorDecl>(decl)) {
-#if CLANG_VERSION_MAJOR >= 11
                 mangle->mangleName(clang::GlobalDecl(llvm::cast<clang::CXXConstructorDecl>(decl),
                                                      clang::Ctor_Complete),
                                    s);
-#else
-                mangle->mangleCXXCtor(llvm::cast<clang::CXXConstructorDecl>(decl),
-                                      clang::Ctor_Complete, s);
-#endif
             } else {
                 mangle->mangleName(decl, s);
             }
@@ -1207,22 +1137,13 @@ void Annotator::syntaxHighlight(Generator &generator, clang::FileID FID, clang::
 
     const clang::Preprocessor &PP = Sema.getPreprocessor();
     const clang::SourceManager &SM = getSourceMgr();
-#if CLANG_VERSION_MAJOR >= 16
+
     const auto FromFile = SM.getBufferOrNone(FID);
     if (!FromFile.has_value()) {
         return;
     }
     Lexer L(FID, *FromFile, SM, getLangOpts());
-#elif CLANG_VERSION_MAJOR >= 12
-    const llvm::Optional<llvm::MemoryBufferRef> FromFile = SM.getBufferOrNone(FID);
-    if (!FromFile.hasValue()) {
-        return;
-    }
-    Lexer L(FID, FromFile.getValue(), SM, getLangOpts());
-#else
-    const llvm::MemoryBuffer *FromFile = SM.getBuffer(FID);
-    Lexer L(FID, FromFile, SM, getLangOpts());
-#endif
+
     const char *BufferStart = FromFile->getBufferStart();
     const char *BufferEnd = FromFile->getBufferEnd();
 

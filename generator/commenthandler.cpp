@@ -43,19 +43,10 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
 
     auto Buf = llvm::MemoryBuffer::getMemBufferCopy(Text);
     llvm::MemoryBuffer *Buf2 = &*Buf;
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
-    auto FID = PP.getSourceManager().createFileIDForMemBuffer(Buf);
-#else
     auto FID = PP.getSourceManager().createFileID(std::move(Buf));
-#endif
 
-
-#if CLANG_VERSION_MAJOR >= 12
     auto MemBufRef = Buf2->getMemBufferRef();
     clang::Lexer Lex(FID, MemBufRef, PP.getSourceManager(), PP.getLangOpts());
-#else
-    clang::Lexer Lex(FID, Buf2, PP.getSourceManager(), PP.getLangOpts());
-#endif
 
     auto TuDecl = Sema.getASTContext().getTranslationUnitDecl();
     clang::CXXScopeSpec SS;
@@ -83,17 +74,10 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                 auto TemplateKind = Sema.isTemplateName(Sema.getScopeForContext(TuDecl), SS, false,
                                                         Name, {}, false, Template, dummy);
                 if (TemplateKind == clang::TNK_Non_template) {
-#if CLANG_VERSION_MAJOR >= 4
                     clang::Sema::NestedNameSpecInfo nameInfo(II, Tok.getLocation(),
                                                              Next.getLocation());
                     if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), nameInfo,
-                                                         false, SS))
-#else
-                    if (Sema.ActOnCXXNestedNameSpecifier(Sema.getScopeForContext(TuDecl), *II,
-                                                         Tok.getLocation(), Next.getLocation(), {},
-                                                         false, SS))
-#endif
-                    {
+                                                         false, SS)) {
                         SS.SetInvalid(Tok.getLocation());
                     }
                 } else if (auto T = Template.get().getAsTemplateDecl()) {
@@ -109,13 +93,8 @@ clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &S
                         if (!Next.is(clang::tok::eof) && !Next.is(clang::tok::l_paren))
                             return nullptr;
                         auto Result = T2->lookup(II);
-#if CLANG_VERSION_MAJOR >= 13
-                        if (Result.isSingleResult())
+                        if (!Result.isSingleResult())
                             return nullptr;
-#else
-                        if (Result.size() != 1)
-                            return nullptr;
-#endif
                         auto D = Result.front();
                         if (isFunction
                             && (llvm::isa<clang::RecordDecl>(D)
@@ -302,13 +281,10 @@ private:
         while (clang::isWhitespace(*begin))
             begin++;
         auto end = begin;
-#if CLANG_VERSION_MAJOR >= 14
+
         while (clang::isAsciiIdentifierContinue(*end))
             end++;
-#else
-        while (clang::isIdentifierBody(*end))
-            end++;
-#endif
+
         llvm::StringRef value(begin, end - begin);
 
         auto it = std::find_if(
@@ -344,11 +320,7 @@ static void handleUrlsInComment(Generator &generator, llvm::StringRef rawString,
         }
         if (pos < rawString.size() && rawString[pos] == 's')
             pos++;
-#if CLANG_VERSION_MAJOR >= 16
         if (!rawString.substr(pos).starts_with("://"))
-#else
-        if (!rawString.substr(pos).startswith("://"))
-#endif
             continue;
         pos += 3;
         // We have an URL
@@ -393,47 +365,34 @@ void CommentHandler::handleComment(Annotator &A, Generator &generator, clang::Se
 
     std::string attributes;
 
-#if CLANG_VERSION_MAJOR >= 16
     if ((rawString.ltrim().starts_with("/**") && !rawString.ltrim().starts_with("/***"))
         || rawString.ltrim().starts_with("/*!") || rawString.ltrim().starts_with("//!")
-        || (rawString.ltrim().starts_with("///") && !rawString.ltrim().starts_with("////")))
-#else
-    if ((rawString.ltrim().startswith("/**") && !rawString.ltrim().startswith("/***"))
-        || rawString.ltrim().startswith("/*!") || rawString.ltrim().startswith("//!")
-        || (rawString.ltrim().startswith("///") && !rawString.ltrim().startswith("////")))
-#endif
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
-        if (rawString.find("deprecated")
-            == rawString.npos) // workaround crash in comments::Sema::checkDeprecatedCommand
-#endif
-        {
-            attributes = "class=\"doc\"";
+        || (rawString.ltrim().starts_with("///") && !rawString.ltrim().starts_with("////"))) {
+        attributes = "class=\"doc\"";
 
-            clang::Preprocessor &PP = Sema.getPreprocessor();
-            clang::comments::CommandTraits traits(PP.getPreprocessorAllocator(),
-                                                  clang::CommentOptions());
-            traits.registerBlockCommand("value"); // enum value
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR <= 4
-            traits.registerBlockCommand("deprecated"); // avoid typo correction leading to crash.
-#endif
-            clang::comments::Lexer lexer(PP.getPreprocessorAllocator(), PP.getDiagnostics(), traits,
-                                         commentLoc, bufferStart + commentStart,
-                                         bufferStart + commentStart + len);
-            clang::comments::Sema sema(PP.getPreprocessorAllocator(), PP.getSourceManager(),
-                                       PP.getDiagnostics(), traits, &PP);
-            clang::comments::Parser parser(lexer, sema, PP.getPreprocessorAllocator(),
-                                           PP.getSourceManager(), PP.getDiagnostics(), traits);
-            auto fullComment = parser.parseFullComment();
-            CommentVisitor visitor { A, generator, traits, Sema };
-            visitor.visit(fullComment);
-            if (!visitor.DeclRef.empty()) {
-                for (auto &p : visitor.SubDocs)
-                    docs.insert(std::move(p));
-                docs.insert({ std::move(visitor.DeclRef), { rawString.str(), commentLoc } });
-                generator.addTag("i", attributes, commentStart, len);
-                return;
-            }
+        clang::Preprocessor &PP = Sema.getPreprocessor();
+        clang::comments::CommandTraits traits(PP.getPreprocessorAllocator(),
+                                              clang::CommentOptions());
+        traits.registerBlockCommand("value"); // enum value
+
+        clang::comments::Lexer lexer(PP.getPreprocessorAllocator(), PP.getDiagnostics(), traits,
+                                     commentLoc, bufferStart + commentStart,
+                                     bufferStart + commentStart + len);
+        clang::comments::Sema sema(PP.getPreprocessorAllocator(), PP.getSourceManager(),
+                                   PP.getDiagnostics(), traits, &PP);
+        clang::comments::Parser parser(lexer, sema, PP.getPreprocessorAllocator(),
+                                       PP.getSourceManager(), PP.getDiagnostics(), traits);
+        auto fullComment = parser.parseFullComment();
+        CommentVisitor visitor { A, generator, traits, Sema };
+        visitor.visit(fullComment);
+        if (!visitor.DeclRef.empty()) {
+            for (auto &p : visitor.SubDocs)
+                docs.insert(std::move(p));
+            docs.insert({ std::move(visitor.DeclRef), { rawString.str(), commentLoc } });
+            generator.addTag("i", attributes, commentStart, len);
+            return;
         }
+    }
 
 
     // Try to find a matching declaration

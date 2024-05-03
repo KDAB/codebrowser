@@ -150,13 +150,8 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
     }
     bool VisitEnumConstantDecl(clang::EnumConstantDecl *d)
     {
-#if CLANG_VERSION_MAJOR >= 13
         annotator.registerReference(d, d->getLocation(), Annotator::EnumDecl,
                                     Annotator::Declaration, llvm::toString(d->getInitVal(), 10));
-#else
-        annotator.registerReference(d, d->getLocation(), Annotator::EnumDecl,
-                                    Annotator::Declaration, d->getInitVal().toString(10));
-#endif
         return true;
     }
     bool VisitVarDecl(clang::VarDecl *d)
@@ -201,12 +196,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
 
     bool VisitDesignatedInitExpr(clang::DesignatedInitExpr *e)
     {
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 5
-        llvm::ArrayRef<clang::DesignatedInitExpr::Designator> designators { e->designators_begin(),
-                                                                            e->designators_end() };
-#else
         auto designators = e->designators();
-#endif
         for (auto it : designators) {
             if (it.isFieldDesignator()) {
 #if CLANG_VERSION_MAJOR >= 17
@@ -454,15 +444,6 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
         recursionCount--;
         return r;
     }
-
-#if CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR < 8
-    bool shouldUseDataRecursionFor(clang::Stmt *S)
-    {
-        // We need to disable this data recursion feature otherwise this break the detection
-        // of parents (expr_stack).  Especially for the CaseStmt
-        return false;
-    }
-#endif
 
     bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo NameInfo)
     {

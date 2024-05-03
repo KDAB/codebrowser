@@ -66,11 +66,7 @@ ProjectInfo *ProjectManager::projectForFile(llvm::StringRef filename)
         if (source_path.size() < match_length) {
             continue;
         }
-#if CLANG_VERSION_MAJOR >= 16
         if (filename.starts_with(source_path)) {
-#else
-        if (filename.startswith(source_path)) {
-#endif
             result = &it;
             match_length = source_path.size();
         }
@@ -93,7 +89,6 @@ bool ProjectManager::shouldProcess(llvm::StringRef filename, ProjectInfo *projec
 
 std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::StringRef from)
 {
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 5
     if (includeRecoveryCache.empty()) {
         for (const auto &proj : projects) {
             // skip sub project
@@ -106,11 +101,7 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
             for (llvm::sys::fs::recursive_directory_iterator it(sourcePath, EC), DirEnd;
                  it != DirEnd && !EC; it.increment(EC)) {
                 auto fileName = llvm::sys::path::filename(it->path());
-#if CLANG_VERSION_MAJOR >= 16
                 if (fileName.starts_with(".")) {
-#else
-                if (fileName.startswith(".")) {
-#endif
                     it.no_push();
                     continue;
                 }
@@ -155,7 +146,4 @@ std::string ProjectManager::includeRecovery(llvm::StringRef includeName, llvm::S
         resolved = std::string(candidate);
     }
     return resolved;
-#else
-    return {}; // Not supported with clang < 3.4
-#endif
 }

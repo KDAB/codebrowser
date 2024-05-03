@@ -36,11 +36,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token &MacroNameTok, MyMacr
     if (disabled)
         return;
 
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
     auto *MI = MD.getMacroInfo();
-#else
-    auto *MI = MD->getMacroInfo();
-#endif
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())
         return;
@@ -104,15 +100,7 @@ void PreprocessorCallback::MacroExpands(const clang::Token &MacroNameTok, MyMacr
     PP.setPragmasEnabled(false);
     seenPragma = false;
 
-#if CLANG_VERSION_MAJOR >= 9
     PP.EnterTokenStream(tokens, /*DisableMacroExpansion=*/false, /*IsReinject=*/false);
-#elif CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 9
-    PP.EnterTokenStream(tokens, /*DisableMacroExpansion=*/false);
-#else
-    PP.EnterTokenStream(tokens.data(), tokens.size(), false, false);
-#endif
-
-
     PP.Lex(tok);
     while (tok.isNot(clang::tok::eof)) {
         if (seenPragma) {
@@ -204,12 +192,8 @@ void PreprocessorCallback::MacroDefined(const clang::Token &MacroNameTok,
 }
 
 void PreprocessorCallback::MacroUndefined(const clang::Token &MacroNameTok,
-                                          PreprocessorCallback::MyMacroDefinition MD
-#if CLANG_VERSION_MAJOR >= 5
-                                          ,
-                                          const clang::MacroDirective *
-#endif
-)
+                                          PreprocessorCallback::MyMacroDefinition MD,
+                                          const clang::MacroDirective *)
 {
     clang::SourceLocation loc = MacroNameTok.getLocation();
     if (!loc.isValid() || !loc.isFileID())
@@ -227,11 +211,7 @@ void PreprocessorCallback::MacroUndefined(const clang::Token &MacroNameTok,
     clang::FileID defFID;
 
     if (MD) {
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
         auto *MI = MD.getMacroInfo();
-#else
-        auto *MI = MD->getMacroInfo();
-#endif
         if (MI) {
             defLoc = MI->getDefinitionLoc();
             defFID = sm.getFileID(defLoc);
@@ -266,20 +246,9 @@ void PreprocessorCallback::MacroUndefined(const clang::Token &MacroNameTok,
 
 void PreprocessorCallback::InclusionDirective(
     clang::SourceLocation HashLoc, const clang::Token &IncludeTok, llvm::StringRef FileName,
-    bool IsAngled, clang::CharSourceRange FilenameRange,
-#if CLANG_VERSION_MAJOR >= 16
-    clang::OptionalFileEntryRef File,
-#elif CLANG_VERSION_MAJOR >= 15
-    llvm::Optional<clang::FileEntryRef> File,
-#else
-    const clang::FileEntry *File,
-#endif
-    llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module *Imported
-#if CLANG_VERSION_MAJOR >= 7
-    ,
-    clang::SrcMgr::CharacteristicKind
-#endif
-)
+    bool IsAngled, clang::CharSourceRange FilenameRange, clang::OptionalFileEntryRef File,
+    llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module *Imported,
+    clang::SrcMgr::CharacteristicKind)
 {
     if (!HashLoc.isValid() || !HashLoc.isFileID() || !File)
         return;
@@ -288,11 +257,7 @@ void PreprocessorCallback::InclusionDirective(
     if (!annotator.shouldProcess(FID))
         return;
 
-#if CLANG_VERSION_MAJOR >= 16
     std::string link = annotator.pathTo(FID, File->getName());
-#else
-    std::string link = annotator.pathTo(FID, llvm::StringRef(File->getName()));
-#endif
     if (link.empty())
         return;
 
@@ -322,11 +287,7 @@ void PreprocessorCallback::Defined(const clang::Token &MacroNameTok, MyMacroDefi
     clang::FileID defFID;
 
     if (MD) {
-#if CLANG_VERSION_MAJOR != 3 || CLANG_VERSION_MINOR >= 7
         auto *MI = MD.getMacroInfo();
-#else
-        auto *MI = MD->getMacroInfo();
-#endif
         if (MI) {
             defLoc = MI->getDefinitionLoc();
             defFID = sm.getFileID(defLoc);
