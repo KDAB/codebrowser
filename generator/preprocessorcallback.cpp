@@ -277,7 +277,8 @@ void PreprocessorCallback::InclusionDirective(
 #endif
     llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module *Imported
 #if CLANG_VERSION_MAJOR >= 7
-    , clang::SrcMgr::CharacteristicKind
+    ,
+    clang::SrcMgr::CharacteristicKind
 #endif
 )
 {
@@ -289,11 +290,9 @@ void PreprocessorCallback::InclusionDirective(
         return;
 
 #if CLANG_VERSION_MAJOR >= 16
-    std::string link = annotator.pathTo(FID, *File);
-#elif CLANG_VERSION_MAJOR >= 15
-    std::string link = annotator.pathTo(FID, File.value());
+    std::string link = annotator.pathTo(FID, File->getName());
 #else
-    std::string link = annotator.pathTo(FID, File);
+    std::string link = annotator.pathTo(FID, llvm::StringRef(File->getName()));
 #endif
     if (link.empty())
         return;

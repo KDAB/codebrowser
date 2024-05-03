@@ -151,9 +151,19 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
 
     switch (decl->getLinkageInternal()) {
     default:
+#if CLANG_VERSION_MAJOR >= 18
+    case clang::Linkage::None:
+        return Visibility::Local;
+#else
     case clang::NoLinkage:
         return Visibility::Local;
+#endif
+        // ----
+#if CLANG_VERSION_MAJOR >= 18
+    case clang::Linkage::External:
+#else
     case clang::ExternalLinkage:
+#endif
         if (decl->getDeclContext()->isRecord()
             && mainFID
                 == sm.getFileID(
@@ -172,11 +182,19 @@ Annotator::Visibility Annotator::getVisibility(const clang::NamedDecl *decl)
             return Visibility::Static;
         }
         return Visibility::Global;
+#if CLANG_VERSION_MAJOR >= 18
+    case clang::Linkage::Internal:
+#else
     case clang::InternalLinkage:
+#endif
         if (mainFID != sm.getFileID(sm.getSpellingLoc(decl->getSourceRange().getBegin())))
             return Visibility::Global;
         return Visibility::Static;
+#if CLANG_VERSION_MAJOR >= 18
+    case clang::Linkage::UniqueExternal:
+#else
     case clang::UniqueExternalLinkage:
+#endif
         return Visibility::Static;
     }
 }
@@ -202,7 +220,11 @@ std::string Annotator::htmlNameForFile(clang::FileID id)
         }
     }
 
+#if CLANG_VERSION_MAJOR >= 18
+    const clang::OptionalFileEntryRef entry = getSourceMgr().getFileEntryRefForID(id);
+#else
     const clang::FileEntry *entry = getSourceMgr().getFileEntryForID(id);
+#endif
     if (!entry || llvm::StringRef(entry->getName()).empty()) {
         cache[id] = { false, {} };
         return {};
@@ -274,9 +296,15 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
             continue;
         done.insert(fn);
 
-        auto project_it = std::find_if(
-            projectManager.projects.cbegin(), projectManager.projects.cend(),
-            [&fn](const ProjectInfo &it) { return llvm::StringRef(fn).startswith(it.name); });
+        auto project_it =
+            std::find_if(projectManager.projects.cbegin(), projectManager.projects.cend(),
+                         [&fn](const ProjectInfo &it) {
+#if CLANG_VERSION_MAJOR >= 16
+                             return llvm::StringRef(fn).starts_with(it.name);
+#else
+                             return llvm::StringRef(fn).startswith(it.name);
+#endif
+                         });
         if (project_it == projectManager.projects.cend()) {
             std::cerr << "GENERATION ERROR: " << fn << " not in a project" << std::endl;
             continue;
@@ -342,7 +370,11 @@ bool Annotator::generate(clang::Sema &Sema, bool WasInDatabase)
 
     create_directories(llvm::Twine(projectManager.outputPrefix, "/refs/_M"));
     for (const auto &it : references) {
+#if CLANG_VERSION_MAJOR >= 16
+        if (llvm::StringRef(it.first).starts_with("__builtin"))
+#else
         if (llvm::StringRef(it.first).startswith("__builtin"))
+#endif
             continue;
         if (it.first == "main")
             continue;
@@ -585,17 +617,17 @@ std::string Annotator::pathTo(clang::FileID From, clang::FileID To, std::string 
     return result = naive_uncomplete(llvm::sys::path::parent_path(fromFN), toFN) + ".html";
 }
 
-std::string Annotator::pathTo(clang::FileID From, const clang::FileEntry *To)
+std::string Annotator::pathTo(clang::FileID From, llvm::StringRef To)
 {
     // this is a bit duplicated with the other pathTo and htmlNameForFile
 
-    if (!To || llvm::StringRef(To->getName()).empty())
+    if (To.empty())
         return {};
 
     std::string fromFN = htmlNameForFile(From);
 
     llvm::SmallString<256> filename;
-    canonicalize(To->getName(), filename);
+    canonicalize(To, filename);
 
 
     ProjectInfo *project = projectManager.projectForFile(filename);
@@ -1057,8 +1089,12 @@ std::pair<std::string, std::string> Annotator::getReferenceAndTitle(clang::Named
             && !llvm::isa<clang::CXXDeductionGuideDecl>(decl)
 #endif
             && mangle->shouldMangleDeclName(decl)
-            // workaround crash in clang while trying to mangle some builtin types
+        // workaround crash in clang while trying to mangle some builtin types
+#if CLANG_VERSION_MAJOR >= 16
+            && !llvm::StringRef(qualName).starts_with("__")) {
+#else
             && !llvm::StringRef(qualName).startswith("__")) {
+#endif
             llvm::raw_string_ostream s(cached.first);
             if (llvm::isa<clang::CXXDestructorDecl>(decl)) {
 #if CLANG_VERSION_MAJOR >= 11

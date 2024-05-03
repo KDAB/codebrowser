@@ -197,7 +197,7 @@ public:
      * string is set to the project name.
      **/
     std::string pathTo(clang::FileID From, clang::FileID To, std::string *proj = nullptr);
-    std::string pathTo(clang::FileID From, const clang::FileEntry *To);
+    std::string pathTo(clang::FileID From, llvm::StringRef To);
 
     /**
      * Registers that the code in the given \a range refers to the specified declaration.

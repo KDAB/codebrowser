@@ -299,7 +299,11 @@ static bool proceedCommand(std::vector<std::string> command, llvm::StringRef Dir
         previousIsDashI = false;
         if (A.empty())
             continue;
+#if CLANG_VERSION_MAJOR >= 16
+        if (llvm::StringRef(A).starts_with("-I") && A[2] != '/') {
+#else
         if (llvm::StringRef(A).startswith("-I") && A[2] != '/') {
+#endif
             A = "-I" % Directory % "/" % llvm::StringRef(A).substr(2);
             continue;
         }
@@ -458,12 +462,20 @@ int main(int argc, const char **argv)
         // A directory was passed, process all the files in that directory
         llvm::SmallString<128> DirName;
         llvm::sys::path::native(Sources.front(), DirName);
+#if CLANG_VERSION_MAJOR >= 16
+        while (llvm::StringRef(DirName).ends_with("/"))
+#else
         while (DirName.endswith("/"))
+#endif
             DirName.pop_back();
         std::error_code EC;
         for (llvm::sys::fs::recursive_directory_iterator it(DirName.str(), EC), DirEnd;
              it != DirEnd && !EC; it.increment(EC)) {
+#if CLANG_VERSION_MAJOR >= 16
+            if (llvm::sys::path::filename(it->path()).starts_with(".")) {
+#else
             if (llvm::sys::path::filename(it->path()).startswith(".")) {
+#endif
                 it.no_push();
                 continue;
             }
@@ -603,7 +615,11 @@ int main(int argc, const char **argv)
                       << "\n";
             auto command = compileCommandsForFile.front().CommandLine;
             std::replace(command.begin(), command.end(), fileForCommands, it);
+#if CLANG_VERSION_MAJOR >= 16
+            if (llvm::StringRef(file).ends_with(".qdoc")) {
+#else
             if (llvm::StringRef(file).endswith(".qdoc")) {
+#endif
                 command.insert(command.begin() + 1, "-xc++");
                 // include the header for this .qdoc file
                 command.push_back("-include");
