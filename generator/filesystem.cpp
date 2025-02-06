@@ -21,20 +21,14 @@
 
 #include "filesystem.h"
 
-#include <clang/Basic/Version.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/ADT/Twine.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
+#include <algorithm>
+#include <cstring>
 #include <iostream>
-
-#ifndef _WIN32
-#include <sys/stat.h>
-#include <unistd.h>
-#else
-#include <windows.h> // MAX_PATH
-#endif
 
 void make_forward_slashes(char *str)
 {

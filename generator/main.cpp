@@ -21,7 +21,6 @@
 
 
 #include "clang/AST/ASTContext.h"
-#include "clang/Frontend/FrontendActions.h"
 #include "clang/Tooling/JSONCompilationDatabase.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
@@ -30,6 +29,20 @@
 #include <llvm/ADT/StringSwitch.h>
 #include <llvm/Support/Path.h>
 
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
+#include <functional>
+#include <initializer_list>
+#include <iostream>
+#include <memory>
+#include <set>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
+
 #include "annotator.h"
 #include "browserastvisitor.h"
 #include "compat.h"
@@ -37,11 +50,8 @@
 #include "preprocessorcallback.h"
 #include "projectmanager.h"
 #include "stringbuilder.h"
-#include <ctime>
-#include <fstream>
-#include <iostream>
-
 #include "embedded_includes.h"
+#include "generator.h"
 
 namespace cl = llvm::cl;
 

@@ -22,12 +22,14 @@
 #pragma once
 
 #include <clang/Basic/SourceLocation.h>
+
 #include <map>
 #include <string>
+#include <utility>
 
 class Annotator;
+
 namespace clang {
-class Preprocessor;
 class Sema;
 }
 

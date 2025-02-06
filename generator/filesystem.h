@@ -21,11 +21,11 @@
 
 #pragma once
 
-#include <llvm/ADT/SmallString.h>
 #include <llvm/ADT/SmallVector.h>
-#include <llvm/Support/FileSystem.h>
+#include <llvm/ADT/StringRef.h>
 
 #include <system_error>
+#include <string>
 
 namespace llvm {
 class Twine;

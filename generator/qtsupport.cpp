@@ -22,14 +22,17 @@
 /* This file handle the support of the SIGNAL and SLOT macro in QObject::connect */
 
 #include "qtsupport.h"
-#include "annotator.h"
+
 #include <clang/AST/DeclCXX.h>
 #include <clang/AST/ExprCXX.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <clang/Basic/SourceManager.h>
-#include <clang/Basic/Version.h>
 #include <clang/Lex/Lexer.h>
-#include <llvm/Support/MemoryBuffer.h>
+
+#include <algorithm>
+#include <string>
+
+#include "annotator.h"
 
 /**
  * Lookup candidates function of name \a methodName within the QObject derivative \a objClass

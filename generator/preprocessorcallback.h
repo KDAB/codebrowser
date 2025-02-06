@@ -26,6 +26,8 @@
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/PPCallbacks.h>
 
+#include <map>
+
 namespace clang {
 class Preprocessor;
 }

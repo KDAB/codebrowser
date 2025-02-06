@@ -20,15 +20,18 @@
  ****************************************************************************/
 
 #include "preprocessorcallback.h"
-#include "annotator.h"
-#include "stringbuilder.h"
-#include <clang/Basic/FileManager.h>
-#include <clang/Basic/Version.h>
+
 #include <clang/Lex/MacroInfo.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Lex/Token.h>
 #include <llvm/ADT/Twine.h>
 
+#include <string>
+#include <vector>
+
+#include "annotator.h"
+#include "generator.h"
+#include "stringbuilder.h"
 
 void PreprocessorCallback::MacroExpands(const clang::Token &MacroNameTok, MyMacroDefinition MD,
                                         clang::SourceRange Range, const clang::MacroArgs *)

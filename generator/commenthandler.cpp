@@ -19,11 +19,11 @@
  * purchasing a commercial licence.
  ****************************************************************************/
 
-#include "commenthandler.h"
 #include "annotator.h"
+#include "commenthandler.h"
 #include "generator.h"
 #include "stringbuilder.h"
-#include <cctype>
+
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/CommentParser.h>
 #include <clang/AST/CommentVisitor.h>
@@ -34,6 +34,12 @@
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Lookup.h>
 #include <clang/Sema/Sema.h>
+
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <memory>
+#include <vector>
 
 clang::NamedDecl *parseDeclarationReference(llvm::StringRef Text, clang::Sema &Sema,
                                             bool isFunction)

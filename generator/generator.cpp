@@ -25,8 +25,9 @@
 
 #include "../global.h"
 
-#include <fstream>
+#include <deque>
 #include <iostream>
+
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/ADT/StringExtras.h>

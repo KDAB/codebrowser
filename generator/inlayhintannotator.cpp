@@ -27,11 +27,12 @@
 #include "stringbuilder.h"
 
 #include <clang/AST/ExprCXX.h>
-#include <clang/Basic/FileManager.h>
 #include <clang/Basic/SourceManager.h>
-#include <clang/Basic/Version.h>
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/DenseSet.h>
+
+#include <iterator>
+#include <utility>
 
 static bool isReservedName(llvm::StringRef id)
 {

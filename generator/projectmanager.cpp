@@ -20,13 +20,16 @@
  ****************************************************************************/
 
 #include "projectmanager.h"
-#include "filesystem.h"
-#include "stringbuilder.h"
 
-#include <clang/Basic/Version.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
+
+#include <algorithm>
+#include <system_error>
+
+#include "filesystem.h"
+#include "stringbuilder.h"
 
 ProjectManager::ProjectManager(std::string outputPrefix, std::string _dataPath)
     : outputPrefix(std::move(outputPrefix))

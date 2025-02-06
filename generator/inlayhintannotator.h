@@ -22,6 +22,8 @@
 #include <clang/AST/Expr.h>
 #include <clang/Basic/SourceManager.h>
 
+#include <string>
+
 class Annotator;
 
 class InlayHintsAnnotatorHelper

@@ -20,13 +20,16 @@
  ****************************************************************************/
 
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <memory>
-#include <vector>
-#include <map>
+#include <algorithm>
 #include <ctime>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <utility>
 
 #include "../global.h"
 

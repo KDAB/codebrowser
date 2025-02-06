@@ -20,8 +20,6 @@
  ****************************************************************************/
 
 #include "annotator.h"
-#include "filesystem.h"
-#include "generator.h"
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
 #include <clang/AST/DeclBase.h>
@@ -37,17 +35,22 @@
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
 #include <clang/Tooling/Tooling.h>
-
-#include <fstream>
-#include <iostream>
-#include <time.h>
-
 #include <llvm/ADT/SmallString.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 #include <llvm/Support/Process.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <algorithm>
+#include <cassert>
+#include <ctime>
+#include <fstream>
+#include <initializer_list>
+#include <iostream>
+#include <optional>
+#include <system_error>
+
+#include "filesystem.h"
 #include "inlayhintannotator.h"
 #include "projectmanager.h"
 #include "stringbuilder.h"

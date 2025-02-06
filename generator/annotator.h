@@ -21,15 +21,20 @@
 
 #pragma once
 
-#include "commenthandler.h"
-#include "generator.h"
 #include <clang/AST/Mangle.h>
 #include <clang/Basic/SourceLocation.h>
+
+#include <cstddef>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+
+#include "commenthandler.h"
+#include "generator.h"
 
 struct ProjectManager;
 struct ProjectInfo;

@@ -22,8 +22,10 @@
 #pragma once
 
 #include <llvm/ADT/StringRef.h>
+
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 struct ProjectInfo
