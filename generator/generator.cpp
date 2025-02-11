@@ -26,6 +26,7 @@
 #include "../global.h"
 
 #include <clang/Basic/Version.h>
+#include <deque>
 #include <fstream>
 #include <iostream>
 #include <llvm/ADT/StringExtras.h>
