@@ -248,6 +248,9 @@ void PreprocessorCallback::InclusionDirective(
     clang::SourceLocation HashLoc, const clang::Token &IncludeTok, llvm::StringRef FileName,
     bool IsAngled, clang::CharSourceRange FilenameRange, clang::OptionalFileEntryRef File,
     llvm::StringRef SearchPath, llvm::StringRef RelativePath, const clang::Module *Imported,
+#if CLANG_VERSION_MAJOR >= 19
+    bool ModuleImported,
+#endif
     clang::SrcMgr::CharacteristicKind)
 {
     if (!HashLoc.isValid() || !HashLoc.isFileID() || !File)
