@@ -20,36 +20,49 @@
  ****************************************************************************/
 
 #include "generator.h"
-#include "stringbuilder.h"
 #include "filesystem.h"
+#include "stringbuilder.h"
 
 #include "../global.h"
 
+#include <clang/Basic/Version.h>
 #include <fstream>
 #include <iostream>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/FileSystem.h>
 #include <llvm/ADT/StringExtras.h>
-#include <clang/Basic/Version.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
 
 template<int N>
-static void bufferAppend(llvm::SmallVectorImpl<char> &buffer, const char (&val)[N]) {
+static void bufferAppend(llvm::SmallVectorImpl<char> &buffer, const char (&val)[N])
+{
     buffer.append(val, val + N - 1);
 }
 
-llvm::StringRef Generator::escapeAttr(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
+llvm::StringRef Generator::escapeAttr(llvm::StringRef s, llvm::SmallVectorImpl<char> &buffer)
 {
     buffer.clear();
     unsigned len = s.size();
-    for (unsigned i = 0 ; i < len; ++i) {
+    for (unsigned i = 0; i < len; ++i) {
         char c = s[i];
         switch (c) {
-            default: buffer.push_back(c); break;
-            case '<': bufferAppend(buffer, "&lt;"); break;
-            case '>': bufferAppend(buffer, "&gt;"); break;
-            case '&': bufferAppend(buffer, "&amp;"); break;
-            case '\"': bufferAppend(buffer, "&quot;"); break;
-            case '\'': bufferAppend(buffer, "&apos;"); break;
+        default:
+            buffer.push_back(c);
+            break;
+        case '<':
+            bufferAppend(buffer, "&lt;");
+            break;
+        case '>':
+            bufferAppend(buffer, "&gt;");
+            break;
+        case '&':
+            bufferAppend(buffer, "&amp;");
+            break;
+        case '\"':
+            bufferAppend(buffer, "&quot;");
+            break;
+        case '\'':
+            bufferAppend(buffer, "&apos;");
+            break;
         }
     }
     return llvm::StringRef(buffer.begin(), buffer.size());
@@ -58,32 +71,48 @@ llvm::StringRef Generator::escapeAttr(llvm::StringRef s, llvm::SmallVectorImpl< 
 void Generator::escapeAttr(llvm::raw_ostream &os, llvm::StringRef s)
 {
     unsigned len = s.size();
-    for (unsigned i = 0 ; i < len; ++i) {
+    for (unsigned i = 0; i < len; ++i) {
         char c = s[i];
         switch (c) {
-            default:
-                os << c; break;
+        default:
+            os << c;
+            break;
 
-            case '<': os << "&lt;"; break;
-            case '>': os << "&gt;"; break;
-            case '&': os << "&amp;"; break;
-            case '\"': os << "&quot;"; break;
-            case '\'': os << "&apos;"; break;
+        case '<':
+            os << "&lt;";
+            break;
+        case '>':
+            os << "&gt;";
+            break;
+        case '&':
+            os << "&amp;";
+            break;
+        case '\"':
+            os << "&quot;";
+            break;
+        case '\'':
+            os << "&apos;";
+            break;
         }
     }
-
 }
 
-// ATTENTION: Keep in sync with `replace_invalid_filename_chars` functions in filesystem.cpp and in .js files
-llvm::StringRef Generator::escapeAttrForFilename(llvm::StringRef s, llvm::SmallVectorImpl< char >& buffer)
+// ATTENTION: Keep in sync with `replace_invalid_filename_chars` functions in filesystem.cpp and in
+// .js files
+llvm::StringRef Generator::escapeAttrForFilename(llvm::StringRef s,
+                                                 llvm::SmallVectorImpl<char> &buffer)
 {
     buffer.clear();
     unsigned len = s.size();
-    for (unsigned i = 0 ; i < len; ++i) {
+    for (unsigned i = 0; i < len; ++i) {
         char c = s[i];
         switch (c) {
-            default: buffer.push_back(c); break;
-            case ':': bufferAppend(buffer, "."); break;
+        default:
+            buffer.push_back(c);
+            break;
+        case ':':
+            bufferAppend(buffer, ".");
+            break;
         }
     }
     return llvm::StringRef(buffer.begin(), buffer.size());
@@ -100,7 +129,8 @@ void Generator::Tag::open(llvm::raw_ostream &myfile) const
         if (!innerHtml.empty())
             myfile << innerHtml;
     } else {
-        // Unfortunately, html5 won't allow <a /> or <span /> tags, they need to be explicitly closed
+        // Unfortunately, html5 won't allow <a /> or <span /> tags, they need to be explicitly
+        // closed
         //    myfile << "/>";
         if (!innerHtml.empty())
             myfile << ">" << innerHtml << "</" << name << ">";
@@ -114,8 +144,9 @@ void Generator::Tag::close(llvm::raw_ostream &myfile) const
     myfile << "</" << name << ">";
 }
 
-void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, const std::string &filename,
-                         const char* begin, const char* end, llvm::StringRef footer, llvm::StringRef warningMessage,
+void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath,
+                         const std::string &filename, const char *begin, const char *end,
+                         llvm::StringRef footer, llvm::StringRef warningMessage,
                          const std::set<std::string> &interestingDefinitions)
 {
     std::string real_filename = outputPrefix % "/" % filename % ".html";
@@ -140,32 +171,42 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
         dataPath = root_path % "/" % dataPath;
 
     myfile << "<!doctype html>\n" // Use HTML 5 doctype
-    "<html>\n<head>\n";
+              "<html>\n<head>\n";
     myfile << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
-    myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " source code [" << filename << "] - Woboq Code Browser</title>\n";
+    myfile << "<title>" << llvm::StringRef(filename).rsplit('/').second.str() << " source code ["
+           << filename << "] - Woboq Code Browser</title>\n";
     if (interestingDefinitions.size() > 0) {
-        std::string interestingDefitionsStr =  llvm::join(interestingDefinitions.begin(), interestingDefinitions.end(), ",");
-        myfile << "<meta name=\"woboq:interestingDefinitions\" content=\"" << interestingDefitionsStr << " \"/>\n";
+        std::string interestingDefitionsStr =
+            llvm::join(interestingDefinitions.begin(), interestingDefinitions.end(), ",");
+        myfile << "<meta name=\"woboq:interestingDefinitions\" content=\""
+               << interestingDefitionsStr << " \"/>\n";
     }
-    myfile << "<link rel=\"stylesheet\" href=\"" << dataPath << "/qtcreator.css\" title=\"QtCreator\"/>\n";
-    myfile << "<link rel=\"alternate stylesheet\" href=\"" << dataPath << "/kdevelop.css\" title=\"KDevelop\"/>\n";
-    myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery.min.js\"></script>\n";
-    myfile << "<script type=\"text/javascript\" src=\"" << dataPath << "/jquery/jquery-ui.min.js\"></script>\n";
-    myfile << "<script>var file = '"<< filename  <<"'; var root_path = '"<< root_path <<"'; var data_path = '"<< dataPath <<"'; var ecma_script_api_version = 2;";
+    myfile << "<link rel=\"stylesheet\" href=\"" << dataPath
+           << "/qtcreator.css\" title=\"QtCreator\"/>\n";
+    myfile << "<link rel=\"alternate stylesheet\" href=\"" << dataPath
+           << "/kdevelop.css\" title=\"KDevelop\"/>\n";
+    myfile << "<script type=\"text/javascript\" src=\"" << dataPath
+           << "/jquery/jquery.min.js\"></script>\n";
+    myfile << "<script type=\"text/javascript\" src=\"" << dataPath
+           << "/jquery/jquery-ui.min.js\"></script>\n";
+    myfile << "<script>var file = '" << filename << "'; var root_path = '" << root_path
+           << "'; var data_path = '" << dataPath << "'; var ecma_script_api_version = 2;";
     if (!projects.empty()) {
         myfile << "var projects = {";
         bool first = true;
-        for (auto it: projects) {
-            if (!first) myfile << ", ";
+        for (auto it : projects) {
+            if (!first)
+                myfile << ", ";
             first = false;
-            myfile << "\"" << it.first << "\" : \"" << it.second <<  "\"";
+            myfile << "\"" << it.first << "\" : \"" << it.second << "\"";
         }
         myfile << "};";
     }
     myfile << "</script>\n";
     myfile << "<script src='" << dataPath << "/codebrowser.js'></script>\n";
 
-    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse the source code of </span>";
+    myfile << "</head>\n<body><div id='header'><h1 id='breadcrumb'><span>Browse the source code of "
+              "</span>";
     // FIXME: If interestingDefitions has only 1 class, add it to the h1
 
     {
@@ -214,9 +255,9 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
         bufferStart = c;
     };
 
-    myfile << "<tr><th id=\"1\">"<< 1 << "</th><td>";
+    myfile << "<tr><th id=\"1\">" << 1 << "</th><td>";
 
-    std::deque<const Tag*> stack;
+    std::deque<const Tag *> stack;
 
 
     while (true) {
@@ -240,7 +281,7 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
                 tags_it->open(myfile);
                 if (tags_it->len) {
                     stack.push_back(&(*tags_it));
-                    next_end =  c + tags_it->len;
+                    next_end = c + tags_it->len;
                 }
 
                 tags_it++;
@@ -248,25 +289,39 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
             };
 
             next = std::min(next_end, next_start);
-            //next = std::min(end, next);
+            // next = std::min(end, next);
         }
 
         switch (*c) {
-            case '\n':
-                flush();
-                ++bufferStart; //skip the new line
-                ++line;
-                for (auto it = stack.crbegin(); it != stack.crend(); ++it)
-                    (*it)->close(myfile);
-                myfile << "</td></tr>\n"
-                          "<tr><th id=\"" << line << "\">"<< line << "</th><td>";
-                for (auto it = stack.cbegin(); it != stack.cend(); ++it)
-                     (*it)->open(myfile);
-                break;
-            case '&': flush(); ++bufferStart; myfile << "&amp;"; break;
-            case '<': flush(); ++bufferStart; myfile << "&lt;"; break;
-            case '>': flush(); ++bufferStart; myfile << "&gt;"; break;
-            default: break;
+        case '\n':
+            flush();
+            ++bufferStart; // skip the new line
+            ++line;
+            for (auto it = stack.crbegin(); it != stack.crend(); ++it)
+                (*it)->close(myfile);
+            myfile << "</td></tr>\n"
+                      "<tr><th id=\""
+                   << line << "\">" << line << "</th><td>";
+            for (auto it = stack.cbegin(); it != stack.cend(); ++it)
+                (*it)->open(myfile);
+            break;
+        case '&':
+            flush();
+            ++bufferStart;
+            myfile << "&amp;";
+            break;
+        case '<':
+            flush();
+            ++bufferStart;
+            myfile << "&lt;";
+            break;
+        case '>':
+            flush();
+            ++bufferStart;
+            myfile << "&gt;";
+            break;
+        default:
+            break;
         }
         ++c;
     }
@@ -286,6 +341,8 @@ void Generator::generate(llvm::StringRef outputPrefix, std::string dataPath, con
 
     myfile.write(footer.begin(), footer.size());
 
-    myfile << "<br />Powered by <a href='https://woboq.com'><img alt='Woboq' src='https://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a href='https://code.woboq.org'>Code Browser</a> "
-              CODEBROWSER_VERSION "\n<br/>Generator usage only permitted with license.</p>\n</div></body></html>\n";
+    myfile << "<br />Powered by <a href='https://woboq.com'><img alt='Woboq' "
+              "src='https://code.woboq.org/woboq-16.png' width='41' height='16' /></a> <a "
+              "href='https://code.woboq.org'>Code Browser</a> " CODEBROWSER_VERSION
+              "\n<br/>Generator usage only permitted with license.</p>\n</div></body></html>\n";
 }
