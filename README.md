@@ -49,7 +49,7 @@ makepkg -si
 Compiling the generator on Linux
 ================================
 
-You need the clang libraries version 3.4 or later. You may want to `sudo apt install llvm-7 clang-7 libclang-7-dev` on Ubuntu if you ran into error like that clang says it cannot find "ClangConfig.cmake". More details in [issues#74](https://github.com/kdab/codebrowser/issues/74) .
+You need the clang libraries version 3.4 or later. You may want to `sudo apt install llvm-15 clang-15 libclang-15-dev` on Ubuntu if you ran into error like that clang says it cannot find "ClangConfig.cmake". More details in [issues#74](https://github.com/kdab/codebrowser/issues/74) .
  
 Example:
 ```bash
