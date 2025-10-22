@@ -87,7 +87,11 @@ void PreprocessorCallback::MacroExpands(const clang::Token &MacroNameTok, MyMacr
     // Temporarily change the diagnostics object so that we ignore any generated
     // diagnostics from this pass.
     clang::DiagnosticsEngine TmpDiags(PP.getDiagnostics().getDiagnosticIDs(),
+#if CLANG_VERSION_MAJOR >= 21
+                                      PP.getDiagnostics().getDiagnosticOptions(),
+#else
                                       &PP.getDiagnostics().getDiagnosticOptions(),
+#endif
                                       new clang::IgnoringDiagConsumer);
 
     disabled = true;
