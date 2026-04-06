@@ -496,7 +496,7 @@ int main(int argc, const char **argv)
         }
 
         bool isHeader = llvm::StringSwitch<bool>(llvm::sys::path::extension(filename))
-                            .Cases(".h", ".H", ".hh", ".hpp", true)
+                            .Cases({ ".h", ".H", ".hh", ".hpp" }, true)
                             .Default(false);
 
         auto compileCommandsForFile = Compilations->getCompileCommands(file);

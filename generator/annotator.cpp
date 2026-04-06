@@ -58,7 +58,8 @@ template<class T>
 ssize_t getTypeSize(const T &t)
 {
     const clang::ASTContext &ctx = t->getASTContext();
-    const clang::QualType &ty = ctx.getRecordType(t);
+    const clang::QualType ty =
+        ctx.getTagType(clang::ElaboratedTypeKeyword::None, std::nullopt, t, false);
 
     /** Return size in bytes */
     return ctx.getTypeSize(ty) >> 3;

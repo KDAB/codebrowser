@@ -215,9 +215,14 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
     bool VisitTypedefTypeLoc(clang::TypedefTypeLoc TL)
     {
         clang::SourceRange range = TL.getSourceRange();
+#if CLANG_VERSION_MAJOR >= 22
+        auto *decl = TL.getTypePtr()->getDecl();
+#else
+        auto *decl = TL.getTypedefNameDecl();
+#endif
         annotator.registerReference(
-            TL.getTypedefNameDecl(), range, Annotator::Typedef, Annotator::Use,
-            annotator.getTypeRef(TL.getTypedefNameDecl()->getUnderlyingType()), currentContext);
+            decl, range, Annotator::Typedef, Annotator::Use,
+            annotator.getTypeRef(decl->getUnderlyingType()), currentContext);
         return true;
     }
 
@@ -248,6 +253,19 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
         if (!NNS)
             return true;
 
+#if CLANG_VERSION_MAJOR >= 22
+        auto qualifier = NNS.getNestedNameSpecifier();
+        switch (qualifier.getKind()) {
+        case clang::NestedNameSpecifier::Kind::Namespace: {
+            auto *ns =
+                const_cast<clang::NamespaceDecl *>(qualifier.getAsNamespaceAndPrefix()
+                                                       .Namespace->getNamespace());
+            if (ns->isAnonymousNamespace())
+                break;
+            annotator.registerReference(ns, NNS.getSourceRange(), Annotator::Namespace);
+            return true; // skip prefixes
+        }
+#else
         switch (NNS.getNestedNameSpecifier()->getKind()) {
         case clang::NestedNameSpecifier::Namespace:
             if (NNS.getNestedNameSpecifier()->getAsNamespace()->isAnonymousNamespace())
@@ -260,6 +278,7 @@ struct BrowserASTVisitor : clang::RecursiveASTVisitor<BrowserASTVisitor>
                 NNS.getNestedNameSpecifier()->getAsNamespaceAlias()->getAliasedNamespace(),
                 NNS.getSourceRange(), Annotator::Namespace);
             return true; // skip prefixes
+#endif
         default:
             break;
         }
