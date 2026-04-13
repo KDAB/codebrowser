@@ -71,7 +71,7 @@ def do_file(directory, f, max_task):
 
     txtlines = OrderedDict()
     for fil in possible_files:
-        lines = str(fil.read_text()).splitlines()
+        lines = str(fil.read_text(errors='replace')).splitlines()
         for line in lines:
             txtlines[line] = None
 
