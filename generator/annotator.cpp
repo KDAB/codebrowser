@@ -1012,7 +1012,12 @@ static std::string getQualifiedName(clang::NamedDecl *decl)
     std::string name;
     clang::PrintingPolicy policy(decl->getASTContext().getLangOpts());
     // we don't want filelocation:line:column
+#if CLANG_VERSION_MAJOR >= 23
+    policy.AnonymousTagNameStyle =
+        llvm::to_underlying(clang::PrintingPolicy::AnonymousTagMode::Plain);
+#else
     policy.AnonymousTagLocations = false;
+#endif
     llvm::raw_string_ostream stream(name);
     decl->printQualifiedName(stream, policy);
     return name;
